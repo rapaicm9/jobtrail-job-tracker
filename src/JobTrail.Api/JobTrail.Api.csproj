@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="..\Modules\Identity\JobTrail.Modules.Identity\JobTrail.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Applications\JobTrail.Modules.Applications\JobTrail.Modules.Applications.csproj" />
+    <ProjectReference Include="..\Modules\Analytics\JobTrail.Modules.Analytics\JobTrail.Modules.Analytics.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\JobTrail.Modules.Notifications\JobTrail.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\Modules\Billing\JobTrail.Modules.Billing\JobTrail.Modules.Billing.csproj" />
+    <ProjectReference Include="..\JobTrail.Infrastructure\JobTrail.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

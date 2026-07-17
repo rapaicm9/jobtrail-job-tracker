@@ -1,0 +1,29 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/JobTrail.Api/JobTrail.Api.csproj" />
+    <Project Path="src/JobTrail.Infrastructure/JobTrail.Infrastructure.csproj" />
+    <Project Path="src/JobTrail.SharedKernel/JobTrail.SharedKernel.csproj" />
+    <Project Path="src/JobTrail.Worker/JobTrail.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Analytics/">
+    <Project Path="src/Modules/Analytics/JobTrail.Modules.Analytics.Contracts/JobTrail.Modules.Analytics.Contracts.csproj" />
+    <Project Path="src/Modules/Analytics/JobTrail.Modules.Analytics/JobTrail.Modules.Analytics.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Applications/">
+    <Project Path="src/Modules/Applications/JobTrail.Modules.Applications.Contracts/JobTrail.Modules.Applications.Contracts.csproj" />
+    <Project Path="src/Modules/Applications/JobTrail.Modules.Applications/JobTrail.Modules.Applications.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Billing/">
+    <Project Path="src/Modules/Billing/JobTrail.Modules.Billing.Contracts/JobTrail.Modules.Billing.Contracts.csproj" />
+    <Project Path="src/Modules/Billing/JobTrail.Modules.Billing/JobTrail.Modules.Billing.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/JobTrail.Modules.Identity.Contracts/JobTrail.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/JobTrail.Modules.Identity/JobTrail.Modules.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Notifications/">
+    <Project Path="src/Modules/Notifications/JobTrail.Modules.Notifications.Contracts/JobTrail.Modules.Notifications.Contracts.csproj" />
+    <Project Path="src/Modules/Notifications/JobTrail.Modules.Notifications/JobTrail.Modules.Notifications.csproj" />
+  </Folder>
+</Solution>

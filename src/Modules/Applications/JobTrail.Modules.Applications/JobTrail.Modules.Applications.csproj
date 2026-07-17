@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\JobTrail.Modules.Applications.Contracts\JobTrail.Modules.Applications.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\JobTrail.SharedKernel\JobTrail.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>
