@@ -26,4 +26,7 @@
     <Project Path="src/Modules/Notifications/JobTrail.Modules.Notifications.Contracts/JobTrail.Modules.Notifications.Contracts.csproj" />
     <Project Path="src/Modules/Notifications/JobTrail.Modules.Notifications/JobTrail.Modules.Notifications.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/JobTrail.ArchitectureTests/JobTrail.ArchitectureTests.csproj" />
+  </Folder>
 </Solution>

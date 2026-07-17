@@ -178,6 +178,15 @@ dotnet_naming_rule.constants_are_pascal_case.symbols = constants
 dotnet_naming_rule.constants_are_pascal_case.style = pascal_case
 dotnet_naming_rule.constants_are_pascal_case.severity = warning
 
+# Static readonly fields: PascalCase, like the constants they behave as.
+# Must precede the private-field rule below, which would otherwise claim them.
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.static_readonly_fields.applicable_accessibilities = *
+dotnet_naming_symbols.static_readonly_fields.required_modifiers = static,readonly
+dotnet_naming_rule.static_readonly_fields_are_pascal_case.symbols = static_readonly_fields
+dotnet_naming_rule.static_readonly_fields_are_pascal_case.style = pascal_case
+dotnet_naming_rule.static_readonly_fields_are_pascal_case.severity = warning
+
 # Public/protected fields: PascalCase (rare - prefer properties)
 dotnet_naming_symbols.visible_fields.applicable_kinds = field
 dotnet_naming_symbols.visible_fields.applicable_accessibilities = public,protected,protected_internal
