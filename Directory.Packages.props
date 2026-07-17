@@ -1,0 +1,22 @@
+<Project>
+
+  <!--
+    Central Package Management: one version table for the whole solution.
+    Projects declare <PackageReference Include="..." /> with no Version.
+
+    Versions are added here as each package is first adopted, not up front -
+    ADR-0002 requires re-verifying the version and licence at adoption, and a
+    speculative table would be unverified by the time it is used.
+  -->
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Worker host. Tracks the installed .NET 10 runtime. -->
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+  </ItemGroup>
+
+</Project>

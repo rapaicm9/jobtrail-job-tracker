@@ -1,0 +1,34 @@
+<Project>
+
+  <!--
+    Applies to every project in the repository. Individual .csproj files carry
+    only what is genuinely project-specific; if a property belongs to all of
+    them, it belongs here.
+  -->
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>14.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      Deliberately strict from commit one: a warning that is allowed to persist
+      is a warning nobody reads. Note this makes CA1848 fail the build on the
+      first plain ILogger call - source-generated [LoggerMessage] partial
+      methods are the intended pattern, not a workaround.
+    -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Nothing here ships to NuGet; the deployable artifacts are containers. -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>
