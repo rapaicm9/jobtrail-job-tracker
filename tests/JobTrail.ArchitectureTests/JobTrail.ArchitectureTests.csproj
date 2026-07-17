@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- xUnit v3 test projects are standalone executables, not libraries. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Shouldly" />
+    <PackageReference Include="TngTech.ArchUnitNET" />
+    <PackageReference Include="TngTech.ArchUnitNET.xUnitV3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The two hosts transitively reference every module, its Contracts, the
+      SharedKernel and Infrastructure, which puts all production assemblies in
+      this project's output where the loader can find them.
+    -->
+    <ProjectReference Include="..\..\src\JobTrail.Api\JobTrail.Api.csproj" />
+    <ProjectReference Include="..\..\src\JobTrail.Worker\JobTrail.Worker.csproj" />
+  </ItemGroup>
+
+</Project>
