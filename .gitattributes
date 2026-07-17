@@ -1,0 +1,51 @@
+# Normalize all text to LF in the repository and in the working tree.
+# eol=lf deliberately overrides core.autocrlf on Windows checkouts: shell
+# scripts and Dockerfiles copied into Linux images fail with CRLF endings.
+* text=auto eol=lf
+
+# Windows shells mis-parse LF-only batch files.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Gradle wrapper (Flutter/Android) ships one script per platform.
+gradlew      text eol=lf
+gradlew.bat  text eol=crlf
+
+# Language-aware diff hunk headers.
+*.cs      text diff=csharp
+*.md      text diff=markdown
+*.dart    text
+*.ts      text
+*.tsx     text
+*.js      text
+*.jsx     text
+*.json    text
+*.yml     text
+*.yaml    text
+*.sql     text
+*.sh      text eol=lf
+Dockerfile text eol=lf
+
+# Binaries: never normalize, never diff as text.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.jar   binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+*.dll   binary
+*.exe   binary
+*.so    binary
+*.dylib binary
+*.pfx   binary
+*.snk   binary
+*.jks   binary
+*.keystore binary
