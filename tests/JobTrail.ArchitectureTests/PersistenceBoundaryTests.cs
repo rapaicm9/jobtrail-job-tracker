@@ -18,13 +18,13 @@ namespace JobTrail.ArchitectureTests;
 /// </summary>
 public sealed class PersistenceBoundaryTests
 {
-    public static TheoryData<string> AllModules => [.. Modules];
+    public static TheoryData<string> AllModules => [.. ModuleNames];
 
     [Theory]
     [MemberData(nameof(AllModules))]
     public void DbContext_must_not_be_reachable_outside_its_own_module(string module)
     {
-        var outsideThisModule = Modules
+        var outsideThisModule = ModuleNames
             .Where(m => m != module)
             .Select(ImplementationOf)
             .Concat([ApiAssembly, WorkerAssembly, InfrastructureAssembly])

@@ -1,6 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\JobTrail.Modules.Identity.Contracts\JobTrail.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\..\JobTrail.SharedKernel\JobTrail.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\JobTrail.Infrastructure\JobTrail.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

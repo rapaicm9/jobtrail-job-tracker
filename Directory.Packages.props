@@ -39,6 +39,18 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
   </ItemGroup>
 
+  <ItemGroup Label="Persistence and identity">
+    <!-- EF Core 10 + Npgsql 10 against PostgreSQL 18. snake_case DB names via
+         EFCore.NamingConventions, applied in the shared context-config helper. -->
+    <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
+    <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
+    <!-- Binds the AppHost-injected connection string, adds health checks,
+         retry and telemetry to the module DbContext. -->
+    <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.6" />
+  </ItemGroup>
+
   <ItemGroup Label="Testing">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />
