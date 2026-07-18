@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/JobTrail.Api/JobTrail.Api.csproj" />
     <Project Path="src/JobTrail.Infrastructure/JobTrail.Infrastructure.csproj" />
+    <Project Path="src/JobTrail.ServiceDefaults/JobTrail.ServiceDefaults.csproj" />
     <Project Path="src/JobTrail.SharedKernel/JobTrail.SharedKernel.csproj" />
     <Project Path="src/JobTrail.Worker/JobTrail.Worker.csproj" />
   </Folder>
@@ -29,4 +30,5 @@
   <Folder Name="/tests/">
     <Project Path="tests/JobTrail.ArchitectureTests/JobTrail.ArchitectureTests.csproj" />
   </Folder>
+  <Project Path="JobTrail.AppHost/JobTrail.AppHost.csproj" />
 </Solution>

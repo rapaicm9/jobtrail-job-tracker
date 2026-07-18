@@ -19,6 +19,26 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
   </ItemGroup>
 
+  <ItemGroup Label="Aspire orchestration">
+    <!-- Pinned to the installed Aspire 13.4.6 toolchain (CLI + templates). -->
+    <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.6" />
+    <!-- Publishes the AppHost graph to a Docker Compose topology for the VPS. -->
+    <PackageVersion Include="Aspire.Hosting.Docker" Version="13.4.6" />
+  </ItemGroup>
+
+  <ItemGroup Label="Service defaults (shared host wiring)">
+    <!-- Versions carried from the aspire-servicedefaults template shipped with
+         the 13.4.6 toolchain, so ServiceDefaults tracks the same baseline. -->
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.6.0" />
+    <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.6.0" />
+    <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.15.3" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.15.2" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.15.1" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.15.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Testing">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />

@@ -4,6 +4,13 @@
 
 var builder = WebApplication.CreateBuilder(args);
 
+// OpenTelemetry, health checks, service discovery and HTTP resilience, shared
+// with the worker so both hosts observe and self-report identically.
+builder.AddServiceDefaults();
+
 var app = builder.Build();
+
+// /health/ready and /health/live for the proxy and the orchestrator.
+app.MapDefaultEndpoints();
 
 await app.RunAsync();
