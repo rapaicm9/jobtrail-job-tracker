@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <ProjectReference Include="..\JobTrail.ServiceDefaults\JobTrail.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Modules\Identity\JobTrail.Modules.Identity\JobTrail.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\Applications\JobTrail.Modules.Applications\JobTrail.Modules.Applications.csproj" />
     <ProjectReference Include="..\Modules\Analytics\JobTrail.Modules.Analytics\JobTrail.Modules.Analytics.csproj" />

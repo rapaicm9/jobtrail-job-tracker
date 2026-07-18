@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\JobTrail.ServiceDefaults\JobTrail.ServiceDefaults.csproj" />
     <ProjectReference Include="..\JobTrail.Infrastructure\JobTrail.Infrastructure.csproj" />
     <ProjectReference Include="..\JobTrail.SharedKernel\JobTrail.SharedKernel.csproj" />
     <ProjectReference Include="..\Modules\Notifications\JobTrail.Modules.Notifications\JobTrail.Modules.Notifications.csproj" />

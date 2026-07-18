@@ -1,0 +1,30 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.4.6">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <!--
+      UserSecretsId is where Aspire persists generated resource credentials
+      (e.g. the Postgres password) across runs. That store lives under the
+      user profile, outside the repository - no credential is written to any
+      tracked file.
+    -->
+    <UserSecretsId>c8ba500b-efbf-4515-a904-0cba23e29dd3</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <PackageReference Include="Aspire.Hosting.Redis" />
+    <PackageReference Include="Aspire.Hosting.Docker" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      The AppHost references the host projects only to launch and wire them.
+      Referencing a module implementation here would drag its internals into
+      orchestration; the modules are composed inside the hosts, not here.
+    -->
+    <ProjectReference Include="..\src\JobTrail.Api\JobTrail.Api.csproj" />
+    <ProjectReference Include="..\src\JobTrail.Worker\JobTrail.Worker.csproj" />
+  </ItemGroup>
+
+</Project>
