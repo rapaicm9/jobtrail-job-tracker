@@ -17,8 +17,13 @@ internal static class JobTrailArchitecture
     internal const string ApiAssembly = "JobTrail.Api";
     internal const string WorkerAssembly = "JobTrail.Worker";
 
-    /// <summary>Bounded contexts. One module = one schema = one DbContext.</summary>
-    internal static readonly string[] Modules =
+    /// <summary>
+    /// Bounded contexts. One module = one schema = one DbContext.
+    /// Named <c>ModuleNames</c> rather than <c>Modules</c> so it is not shadowed
+    /// by the <c>JobTrail.Modules</c> namespace, which becomes visible here once
+    /// a module carries real types.
+    /// </summary>
+    internal static readonly string[] ModuleNames =
     [
         "Identity",
         "Applications",
@@ -45,8 +50,8 @@ internal static class JobTrailArchitecture
             SharedKernelAssembly,
             InfrastructureAssembly,
         }
-        .Concat(Modules.Select(ImplementationOf))
-        .Concat(Modules.Select(ContractsOf))
+        .Concat(ModuleNames.Select(ImplementationOf))
+        .Concat(ModuleNames.Select(ContractsOf))
         .ToDictionary(name => name, name => Assembly.Load(name));
 
     internal static Assembly AssemblyNamed(string name) => LoadedAssemblies[name];

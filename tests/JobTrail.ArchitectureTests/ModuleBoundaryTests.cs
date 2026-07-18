@@ -17,9 +17,9 @@ public sealed class ModuleBoundaryTests
         get
         {
             var data = new TheoryData<string, string>();
-            foreach (var module in Modules)
+            foreach (var module in ModuleNames)
             {
-                foreach (var other in Modules.Where(m => m != module))
+                foreach (var other in ModuleNames.Where(m => m != module))
                 {
                     data.Add(module, other);
                 }
@@ -29,7 +29,7 @@ public sealed class ModuleBoundaryTests
         }
     }
 
-    public static TheoryData<string> AllModules => [.. Modules];
+    public static TheoryData<string> AllModules => [.. ModuleNames];
 
     [Theory]
     [MemberData(nameof(ModulePairs))]
@@ -50,7 +50,7 @@ public sealed class ModuleBoundaryTests
     [MemberData(nameof(AllModules))]
     public void Contracts_must_not_depend_on_any_module_implementation(string module)
     {
-        var implementations = Modules.Select(m => AssemblyNamed(ImplementationOf(m))).ToArray();
+        var implementations = ModuleNames.Select(m => AssemblyNamed(ImplementationOf(m))).ToArray();
 
         Types()
             .That()
@@ -85,9 +85,9 @@ public sealed class ModuleBoundaryTests
     [Fact]
     public void SharedKernel_must_not_depend_on_anything_else_in_the_solution()
     {
-        var everythingElse = Modules
+        var everythingElse = ModuleNames
             .Select(ImplementationOf)
-            .Concat(Modules.Select(ContractsOf))
+            .Concat(ModuleNames.Select(ContractsOf))
             .Concat([InfrastructureAssembly, ApiAssembly, WorkerAssembly])
             .Select(AssemblyNamed)
             .ToArray();
