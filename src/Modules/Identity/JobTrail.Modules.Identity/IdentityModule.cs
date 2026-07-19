@@ -1,20 +1,31 @@
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Identity.Authentication;
 using JobTrail.Modules.Identity.Domain;
+using JobTrail.Modules.Identity.Features.Login;
+using JobTrail.Modules.Identity.Features.Logout;
+using JobTrail.Modules.Identity.Features.LogoutAll;
+using JobTrail.Modules.Identity.Features.Refresh;
+using JobTrail.Modules.Identity.Features.Register;
 using JobTrail.Modules.Identity.Persistence;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace JobTrail.Modules.Identity;
 
 /// <summary>
 /// The Identity module's composition surface. A host calls
-/// <see cref="AddIdentityModule"/> to register the account store; everything the
-/// module owns stays internal behind it.
+/// <see cref="AddIdentityModule"/> to register the account store,
+/// <see cref="AddIdentityJwtAuthentication"/> to validate the module's access
+/// tokens, and <see cref="MapIdentityEndpoints"/> to expose the auth slices;
+/// everything the module owns stays internal behind them.
 /// </summary>
 public static class IdentityModule
 {
@@ -35,13 +46,62 @@ public static class IdentityModule
             .AddIdentityCore<ApplicationUser>(options =>
             {
                 options.User.RequireUniqueEmail = true;
+
+                // The password policy of record. RegisterRequestValidator
+                // mirrors it for field-keyed 422s; keep the two in step.
                 options.Password.RequiredLength = 8;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireDigit = true;
+                options.Password.RequireNonAlphanumeric = true;
             })
             .AddEntityFrameworkStores<IdentityModuleDbContext>();
 
         AddTokenModel(builder);
 
+        // The slice handlers - plain classes, invoked directly by the endpoints.
+        builder.Services.AddScoped<RegisterHandler>();
+        builder.Services.AddScoped<LoginHandler>();
+        builder.Services.AddScoped<LogoutAllHandler>();
+
         return builder;
+    }
+
+    /// <summary>
+    /// Registers the JwtBearer scheme that validates this module's access
+    /// tokens (ADR-0003: public key only, full rigor, per-request token-version
+    /// check). Lives here rather than in the host so the signing-key provider
+    /// and claim names never leak across the module boundary; the Api host just
+    /// calls this and adds authorization.
+    /// </summary>
+    public static IHostApplicationBuilder AddIdentityJwtAuthentication(this IHostApplicationBuilder builder)
+    {
+        builder.Services
+            .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer();
+
+        builder.Services
+            .AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<ISigningKeyProvider, IOptions<JwtOptions>>(JwtBearerConfiguration.Configure);
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Maps the auth slices onto the host's versioned API group, under
+    /// <c>/identity</c>.
+    /// </summary>
+    public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder api)
+    {
+        var identity = api.MapGroup("/identity");
+
+        RegisterEndpoint.Map(identity);
+        LoginEndpoint.Map(identity);
+        RefreshEndpoint.Map(identity);
+        LogoutEndpoint.Map(identity);
+        LogoutAllEndpoint.Map(identity);
+
+        return api;
     }
 
     /// <summary>

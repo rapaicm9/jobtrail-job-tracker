@@ -12,4 +12,5 @@ internal sealed record IssuedRefreshToken(string RawToken, DateTimeOffset Expire
 internal sealed record RotatedRefreshToken(UserId UserId, string RawToken, DateTimeOffset ExpiresAt);
 
 /// <summary>A matched access + refresh pair returned to the auth endpoints.</summary>
-internal sealed record IssuedTokens(AccessToken Access, string RefreshToken, DateTimeOffset RefreshTokenExpiresAt);
+internal sealed record IssuedTokens(
+    UserId UserId, AccessToken Access, string RefreshToken, DateTimeOffset RefreshTokenExpiresAt);

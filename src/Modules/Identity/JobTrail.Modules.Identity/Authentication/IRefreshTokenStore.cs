@@ -19,5 +19,11 @@ internal interface IRefreshTokenStore
 
     void Remove(RefreshToken token);
 
+    /// <summary>
+    /// Deletes every refresh token the user holds, effective immediately - no
+    /// separate <see cref="SaveChangesAsync"/> required. Global logout only.
+    /// </summary>
+    Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken);
+
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }

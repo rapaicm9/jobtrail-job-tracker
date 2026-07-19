@@ -59,6 +59,15 @@ internal sealed class RefreshTokenService(
         return new RotatedRefreshToken(UserId.From(existing.UserId), replacement.RawToken, replacement.ExpiresAt);
     }
 
+    /// <summary>
+    /// Global logout: every refresh token the user holds is deleted. The caller
+    /// bumps the account's token version alongside - the bump kills outstanding
+    /// access tokens, this kills the refresh tokens that would otherwise mint
+    /// new ones at the bumped version.
+    /// </summary>
+    public Task RevokeAllAsync(UserId userId, CancellationToken cancellationToken) =>
+        store.RemoveAllForUserAsync(userId.Value, cancellationToken);
+
     /// <summary>Per-device logout: the presented token's row is deleted outright.</summary>
     public async Task RevokeDeviceAsync(string rawToken, CancellationToken cancellationToken)
     {

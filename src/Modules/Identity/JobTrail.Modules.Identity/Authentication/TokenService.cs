@@ -18,7 +18,7 @@ internal sealed class TokenService(
     {
         var access = accessTokenIssuer.Issue(userId, tokenVersion);
         var refresh = await refreshTokenService.IssueAsync(userId, deviceLabel, cancellationToken);
-        return new IssuedTokens(access, refresh.RawToken, refresh.ExpiresAt);
+        return new IssuedTokens(userId, access, refresh.RawToken, refresh.ExpiresAt);
     }
 
     /// <summary>
@@ -43,6 +43,6 @@ internal sealed class TokenService(
         }
 
         var access = accessTokenIssuer.Issue(rotated.UserId, tokenVersion.Value);
-        return new IssuedTokens(access, rotated.RawToken, rotated.ExpiresAt);
+        return new IssuedTokens(rotated.UserId, access, rotated.RawToken, rotated.ExpiresAt);
     }
 }

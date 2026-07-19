@@ -27,6 +27,13 @@ internal sealed class FakeRefreshTokenStore : IRefreshTokenStore
 
     public void Remove(RefreshToken token) => _tokens.Remove(token);
 
+    public Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        // Immediate, like the EF store's ExecuteDelete - no SaveChanges involved.
+        _tokens.RemoveAll(t => t.UserId == userId);
+        return Task.CompletedTask;
+    }
+
     public Task SaveChangesAsync(CancellationToken cancellationToken)
     {
         SaveCount++;

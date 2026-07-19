@@ -19,5 +19,10 @@ internal sealed class EfRefreshTokenStore(IdentityModuleDbContext dbContext) : I
 
     public void Remove(RefreshToken token) => dbContext.RefreshTokens.Remove(token);
 
+    public async Task RemoveAllForUserAsync(Guid userId, CancellationToken cancellationToken) =>
+        await dbContext.RefreshTokens
+            .Where(t => t.UserId == userId)
+            .ExecuteDeleteAsync(cancellationToken);
+
     public Task SaveChangesAsync(CancellationToken cancellationToken) => dbContext.SaveChangesAsync(cancellationToken);
 }
