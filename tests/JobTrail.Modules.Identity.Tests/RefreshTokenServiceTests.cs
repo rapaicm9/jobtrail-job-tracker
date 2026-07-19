@@ -150,4 +150,18 @@ public sealed class RefreshTokenServiceTests
 
         _store.Tokens.Count.ShouldBe(1);
     }
+
+    [Fact]
+    public async Task Revoking_all_deletes_every_token_of_that_user_and_nobody_elses()
+    {
+        var target = UserId.New();
+        var bystander = UserId.New();
+        await _service.IssueAsync(target, "Pixel 8", CancellationToken.None);
+        await _service.IssueAsync(target, "Firefox on Linux", CancellationToken.None);
+        await _service.IssueAsync(bystander, null, CancellationToken.None);
+
+        await _service.RevokeAllAsync(target, CancellationToken.None);
+
+        _store.Tokens.ShouldHaveSingleItem().UserId.ShouldBe(bystander.Value);
+    }
 }
