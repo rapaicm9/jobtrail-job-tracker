@@ -1,5 +1,6 @@
 using ArchUnitNET.Domain;
 using ArchUnitNET.Loader;
+using static ArchUnitNET.Fluent.ArchRuleDefinition;
 
 // ArchUnitNET.Domain has its own Assembly type modelling a loaded assembly.
 // Everything here means the reflection one.
@@ -59,4 +60,18 @@ internal static class JobTrailArchitecture
     internal static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies([.. LoadedAssemblies.Values])
         .Build();
+
+    /// <summary>
+    /// Whether the named assembly contributes any types to the architecture,
+    /// resolved through the same predicate a rule would use for its subject.
+    /// <para>
+    /// A "must-not-depend" rule whose subject assembly is still empty matches
+    /// zero types, and ArchUnitNET fails such a rule for want of a positive
+    /// result rather than passing it. The boundary rules guard on this so an
+    /// empty module skips vacuously and the same rule turns live, unweakened,
+    /// the moment that module carries its first real type. See ADR-0007.
+    /// </para>
+    /// </summary>
+    internal static bool AssemblyHasTypes(string name) =>
+        Types().That().ResideInAssembly(AssemblyNamed(name)).GetObjects(Architecture).Any();
 }
