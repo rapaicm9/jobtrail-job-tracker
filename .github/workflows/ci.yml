@@ -43,13 +43,10 @@ jobs:
       - name: Verify formatting
         run: dotnet format --verify-no-changes --no-restore
 
-      # No test step yet, deliberately.
-      #
-      # The architecture rules cannot evaluate against modules that contain no
-      # types, and the rule engine fails an unevaluable rule rather than passing
-      # it, so the suite is currently red by design (ADR-0007). Gating on it
-      # today would mean a permanently failing check, and a check that is always
-      # red teaches everyone to ignore every check.
-      #
-      # The test gate is added by the change that turns the suite green - the
-      # first module to carry real types - not before.
+      - name: Test
+        # The full test pyramid: unit + integration + architecture rules, reusing
+        # the Release build above. Integration tests stand up real PostgreSQL and
+        # Redis through Testcontainers, which talks to the Docker daemon that
+        # ubuntu-latest ships preinstalled - no extra runner setup needed. A
+        # failing test fails the gate; coverage is information, never a gate.
+        run: dotnet test --no-build --no-restore --configuration Release

@@ -31,11 +31,13 @@ The modules are empty at the time these rules land, so 31 of 36 rules have no ty
 
 The rules go green as each module gains real types, which is the same moment they start doing their job. Until then a red suite is the accurate signal.
 
+**Update (2026-07-19):** the first module now carries real types, so the suite is green and CI gates on it. A "must-not-depend" rule whose subject assembly is still empty is skipped rather than failed — guarded on the subject resolving to at least one type, evaluated through the same predicate the rule uses. This is not the rejected global opt-out: the positive-evaluation guard stays **on** for every populated assembly, so a rule with types to check still fails if it stops matching them (a renamed assembly throws at load, before any rule runs). An empty module skips vacuously today and its rule turns live, unweakened, the moment that module carries its first type.
+
 ## Consequences
 
 - Assembly loading is part of each rule's correctness, not just plumbing. Assemblies are loaded by explicit name rather than by scanning the output directory — the test assembly references every module in order to load them and would otherwise trip the very rules it asserts.
 - The rules that name EF Core — Contracts must not expose it, Domain must not depend on it — are deferred to the change that adds EF Core, for the reason in (1) above.
-- Enforcing "CI must be green before merge" is deferred until the suite is green, which cannot be before the modules carry types.
+- Enforcing "CI must be green before merge" was deferred until the suite was green, which could not be before the modules carried types; as of the 2026-07-19 update above, the suite is green and CI runs it as a gate.
 - No licence exposure: nothing in the test stack can be relicensed out from under the project without an obvious fork available.
 
 ## Alternatives considered

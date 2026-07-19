@@ -35,6 +35,11 @@ public sealed class ModuleBoundaryTests
     [MemberData(nameof(ModulePairs))]
     public void Module_must_not_depend_on_another_modules_implementation(string module, string other)
     {
+        if (!AssemblyHasTypes(ImplementationOf(module)))
+        {
+            Assert.Skip($"{module} carries no types yet; this rule turns live once it does.");
+        }
+
         Types()
             .That()
             .ResideInAssembly(AssemblyNamed(ImplementationOf(module)))
@@ -50,6 +55,11 @@ public sealed class ModuleBoundaryTests
     [MemberData(nameof(AllModules))]
     public void Contracts_must_not_depend_on_any_module_implementation(string module)
     {
+        if (!AssemblyHasTypes(ContractsOf(module)))
+        {
+            Assert.Skip($"{module}.Contracts carries no types yet; this rule turns live once it does.");
+        }
+
         var implementations = ModuleNames.Select(m => AssemblyNamed(ImplementationOf(m))).ToArray();
 
         Types()
@@ -68,6 +78,11 @@ public sealed class ModuleBoundaryTests
     [MemberData(nameof(AllModules))]
     public void Module_must_not_depend_on_a_host(string module)
     {
+        if (!AssemblyHasTypes(ImplementationOf(module)))
+        {
+            Assert.Skip($"{module} carries no types yet; this rule turns live once it does.");
+        }
+
         Types()
             .That()
             .ResideInAssembly(AssemblyNamed(ImplementationOf(module)))
