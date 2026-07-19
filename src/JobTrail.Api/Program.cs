@@ -8,6 +8,9 @@ using JobTrail.Modules.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// No "Server: Kestrel" banner; version fingerprints help only an attacker.
+builder.WebHost.ConfigureKestrel(kestrel => kestrel.AddServerHeader = false);
+
 // OpenTelemetry, health checks, service discovery and HTTP resilience, shared
 // with the worker so both hosts observe and self-report identically.
 builder.AddServiceDefaults();
@@ -16,6 +19,12 @@ builder.AddServiceDefaults();
 // unhandled exceptions, which the exception handler middleware below converts
 // without ever leaking a stack trace.
 builder.Services.AddProblemDetails();
+
+// Edge hardening: real client address behind Caddy, key ring in Redis, and an
+// exact-origin CORS allowlist for the Next.js client.
+builder.AddApiForwardedHeaders();
+builder.AddApiDataProtection();
+builder.AddApiCors();
 
 // Accounts, credentials and the token store.
 builder.AddIdentityModule();
@@ -38,7 +47,16 @@ builder.AddApiRateLimiting();
 
 var app = builder.Build();
 
+// First in the pipeline: everything downstream - rate-limit partitions,
+// logging, scheme checks - must see the restored client address and scheme.
+app.UseForwardedHeaders();
+
 app.UseExceptionHandler();
+
+app.UseSecurityHeaders();
+
+// CORS ahead of the limiter so preflights are answered, not throttled.
+app.UseCors();
 
 // Before authentication on purpose: a throttled request is turned away without
 // paying the bearer validation's per-request token-version DB read.
