@@ -3,6 +3,7 @@
 // its own Add<Module>Module() and Map<Module>Endpoints() extension methods.
 
 using Asp.Versioning;
+using JobTrail.Api;
 using JobTrail.Modules.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,9 +33,16 @@ builder.Services.AddApiVersioning(options =>
     options.ReportApiVersions = true;
 });
 
+// Per-IP request budgets; policies attach to route groups below.
+builder.AddApiRateLimiting();
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
+
+// Before authentication on purpose: a throttled request is turned away without
+// paying the bearer validation's per-request token-version DB read.
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -49,8 +57,12 @@ var apiVersions = app.NewApiVersionSet()
 
 var api = app
     .MapGroup("/api/v{version:apiVersion}")
-    .WithApiVersionSet(apiVersions);
+    .WithApiVersionSet(apiVersions)
+    .RequireRateLimiting(RateLimitingConfiguration.GlobalPolicy);
 
-api.MapIdentityEndpoints();
+// The innermost policy wins on these endpoints: the auth surface swaps the
+// general per-IP budget for the stricter fixed window.
+api.MapIdentityEndpoints()
+    .RequireRateLimiting(RateLimitingConfiguration.AuthPolicy);
 
 await app.RunAsync();

@@ -89,9 +89,11 @@ public static class IdentityModule
 
     /// <summary>
     /// Maps the auth slices onto the host's versioned API group, under
-    /// <c>/identity</c>.
+    /// <c>/identity</c>. Returns the group itself so the host can layer
+    /// cross-cutting policy over it (rate limiting, output caching) without the
+    /// module naming host concerns.
     /// </summary>
-    public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder api)
+    public static RouteGroupBuilder MapIdentityEndpoints(this IEndpointRouteBuilder api)
     {
         var identity = api.MapGroup("/identity");
 
@@ -101,7 +103,7 @@ public static class IdentityModule
         LogoutEndpoint.Map(identity);
         LogoutAllEndpoint.Map(identity);
 
-        return api;
+        return identity;
     }
 
     /// <summary>
