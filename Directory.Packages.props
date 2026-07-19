@@ -51,6 +51,14 @@
     <PackageVersion Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" Version="13.4.6" />
   </ItemGroup>
 
+  <ItemGroup Label="Authentication (token model)">
+    <!-- Modern JsonWebTokenHandler for ES256 access-token issuance. MIT.
+         Pinned to 8.19.1: the JwtBearer 10.0.9 the Api host adopts in the auth
+         endpoints slice depends on Microsoft.IdentityModel 8.0.1, so unifying on
+         the higher 8.x patch here keeps one IdentityModel version across the graph. -->
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.19.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Testing">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />

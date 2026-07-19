@@ -1,10 +1,12 @@
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Identity.Authentication;
 using JobTrail.Modules.Identity.Domain;
 using JobTrail.Modules.Identity.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace JobTrail.Modules.Identity;
@@ -37,6 +39,32 @@ public static class IdentityModule
             })
             .AddEntityFrameworkStores<IdentityModuleDbContext>();
 
+        AddTokenModel(builder);
+
         return builder;
+    }
+
+    /// <summary>
+    /// Registers the token model (ADR-0003). The endpoints that call it arrive in
+    /// the auth-endpoints slice; wiring it here keeps that slice to routing and
+    /// host configuration. Key material is read lazily, so a host without keys
+    /// configured still starts - nothing signs a token until an endpoint runs.
+    /// </summary>
+    private static void AddTokenModel(IHostApplicationBuilder builder)
+    {
+        builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
+
+        // The clock abstraction. TryAdd so a host is free to register a fake first.
+        builder.Services.TryAddSingleton(TimeProvider.System);
+
+        // Stateless and key-holding: one instance for the app.
+        builder.Services.AddSingleton<ISigningKeyProvider, EcdsaSigningKeyProvider>();
+        builder.Services.AddSingleton<AccessTokenIssuer>();
+
+        // Persistence-touching: scoped to the request's DbContext.
+        builder.Services.AddScoped<IRefreshTokenStore, EfRefreshTokenStore>();
+        builder.Services.AddScoped<IUserTokenVersionReader, EfUserTokenVersionReader>();
+        builder.Services.AddScoped<RefreshTokenService>();
+        builder.Services.AddScoped<TokenService>();
     }
 }
