@@ -64,6 +64,12 @@
     <!-- URL-segment versioning (/api/v1/...) from day one - deployed mobile
          clients can't be force-upgraded. -->
     <PackageVersion Include="Asp.Versioning.Http" Version="10.0.0" />
+    <!-- Data Protection keys live in Redis so the Api stays stateless across
+         redeploys and, later, instances (§10.2 discipline). -->
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.10" />
+    <!-- Binds the AppHost-injected "cache" connection, with health checks and
+         telemetry on the multiplexer. -->
+    <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.4.6" />
   </ItemGroup>
 
   <ItemGroup Label="Testing">
