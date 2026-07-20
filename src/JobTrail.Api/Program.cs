@@ -4,6 +4,7 @@
 
 using Asp.Versioning;
 using JobTrail.Api;
+using JobTrail.Infrastructure.Events;
 using JobTrail.Modules.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +26,10 @@ builder.Services.AddProblemDetails();
 builder.AddApiForwardedHeaders();
 builder.AddApiDataProtection();
 builder.AddApiCors();
+
+// Async glue between modules. Registered before the modules themselves so a
+// module's composition method can add its handlers onto a live bus.
+builder.Services.AddInProcessEventBus();
 
 // Accounts, credentials and the token store.
 builder.AddIdentityModule();

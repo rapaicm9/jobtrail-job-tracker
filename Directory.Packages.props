@@ -19,6 +19,15 @@
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
   </ItemGroup>
 
+  <ItemGroup Label="Cross-cutting infrastructure">
+    <!-- Abstractions only: Infrastructure contributes DI registrations, a
+         hosted service and logging to whichever host composes it, and must not
+         drag a host implementation into every project that references it. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.10" />
+  </ItemGroup>
+
   <ItemGroup Label="Aspire orchestration">
     <!-- Pinned to the installed Aspire 13.4.6 toolchain (CLI + templates). -->
     <PackageVersion Include="Aspire.Hosting.PostgreSQL" Version="13.4.6" />
