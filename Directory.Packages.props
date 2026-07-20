@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <!-- Worker host. Tracks the installed .NET 10 runtime. -->
-    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.10" />
   </ItemGroup>
 
   <ItemGroup Label="Aspire orchestration">
@@ -79,6 +79,11 @@
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="TngTech.ArchUnitNET" Version="0.13.3" />
     <PackageVersion Include="TngTech.ArchUnitNET.xUnitV3" Version="0.13.3" />
+    <!-- Integration tests: in-process host + real PostgreSQL 18 and Redis in
+         containers - never the EF InMemory provider (ADR-0007). -->
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.10" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.13.0" />
+    <PackageVersion Include="Testcontainers.Redis" Version="4.13.0" />
   </ItemGroup>
 
 </Project>
