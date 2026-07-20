@@ -29,6 +29,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/JobTrail.ArchitectureTests/JobTrail.ArchitectureTests.csproj" />
+    <Project Path="tests/JobTrail.Infrastructure.Tests/JobTrail.Infrastructure.Tests.csproj" />
     <Project Path="tests/JobTrail.IntegrationTests/JobTrail.IntegrationTests.csproj" />
     <Project Path="tests/JobTrail.Modules.Identity.Tests/JobTrail.Modules.Identity.Tests.csproj" />
   </Folder>
