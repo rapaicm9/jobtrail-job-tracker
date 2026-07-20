@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
+    <!-- WebApplicationFactory needs to see the (internal) Program marker. -->
+    <InternalsVisibleTo Include="JobTrail.IntegrationTests" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Asp.Versioning.Http" />
     <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" />
     <PackageReference Include="Aspire.StackExchange.Redis" />

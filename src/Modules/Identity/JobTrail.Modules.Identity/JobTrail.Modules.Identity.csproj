@@ -18,6 +18,9 @@
   <ItemGroup>
     <!-- The module's types are internal; its own unit tests need to see them. -->
     <InternalsVisibleTo Include="JobTrail.Modules.Identity.Tests" />
+    <!-- The integration fixture applies this module's migrations to the
+         container database; everything else it does goes over HTTP. -->
+    <InternalsVisibleTo Include="JobTrail.IntegrationTests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JobTrail.Modules.Identity.Contracts\JobTrail.Modules.Identity.Contracts.csproj" />
