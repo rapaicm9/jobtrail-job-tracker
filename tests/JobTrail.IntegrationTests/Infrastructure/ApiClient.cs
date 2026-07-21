@@ -65,6 +65,9 @@ internal static class ApiClient
     public static Task<HttpResponseMessage> DeleteAccountAsync(this HttpClient client, string? accessToken) =>
         client.SendAsync(Authorized(HttpMethod.Delete, "/api/v1/account", accessToken));
 
+    public static Task<HttpResponseMessage> GrantProAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Post, "/api/v1/billing/dev/grant-pro", accessToken));
+
     private static HttpRequestMessage Authorized(HttpMethod method, string uri, string? accessToken)
     {
         var request = new HttpRequestMessage(method, uri);

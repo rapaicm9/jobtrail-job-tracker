@@ -1,10 +1,13 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Billing.Contracts;
+using JobTrail.Modules.Billing.Features.GrantPro;
 using JobTrail.Modules.Billing.Features.ProvisionPlan;
 using JobTrail.Modules.Billing.Features.PurchasePro;
 using JobTrail.Modules.Billing.Persistence;
 using JobTrail.Modules.Identity.Contracts;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -41,10 +44,26 @@ public static class BillingModule
         builder.Services.AddScoped<IEntitlementQuery, EfEntitlementQuery>();
         builder.Services.AddSingleton<IBillingProvider, MockBillingProvider>();
         builder.Services.AddScoped<PurchaseProHandler>();
+        builder.Services.AddScoped<GrantProHandler>();
 
         // The clock, if no host or module registered it first.
         builder.Services.TryAddSingleton(TimeProvider.System);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Maps Billing's developer-only endpoints. The host calls this only in
+    /// Development, so the shortcuts it exposes - granting Pro without a purchase -
+    /// can never exist in production. Returns the group so the host can layer its
+    /// own policy.
+    /// </summary>
+    public static RouteGroupBuilder MapBillingDevEndpoints(this IEndpointRouteBuilder api)
+    {
+        var billingDev = api.MapGroup("/billing/dev");
+
+        GrantProEndpoint.Map(billingDev);
+
+        return billingDev;
     }
 }

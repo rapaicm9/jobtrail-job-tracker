@@ -95,4 +95,11 @@ api.MapIdentityEndpoints()
 // Authenticated account self-service; inherits the group's general per-IP budget.
 api.MapAccountEndpoints();
 
+// Developer shortcuts (grant Pro without a purchase) exist only in Development -
+// mapping them nowhere else is what keeps them out of production entirely.
+if (app.Environment.IsDevelopment())
+{
+    api.MapBillingDevEndpoints();
+}
+
 await app.RunAsync();
