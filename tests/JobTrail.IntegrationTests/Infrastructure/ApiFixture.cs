@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using JobTrail.Modules.Billing.Persistence;
 using JobTrail.Modules.Identity.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -67,10 +68,12 @@ public sealed class ApiFixture : IAsyncLifetime
 
         _factory = new JobTrailApiFactory(BuildSettings());
 
-        // Deploy-time migrations, test-time equivalent: apply the Identity
-        // module's migrations before the first request needs the schema.
+        // Deploy-time migrations, test-time equivalent: apply each module's
+        // migrations before the first request needs its schema.
         using var scope = _factory.Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<IdentityModuleDbContext>()
+            .Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<BillingDbContext>()
             .Database.MigrateAsync();
     }
 
