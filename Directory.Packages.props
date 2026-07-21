@@ -53,6 +53,12 @@
          EFCore.NamingConventions, applied in the shared context-config helper. -->
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" />
+    <!-- The EF Core runtime is transitive (via Npgsql and Design); pin it so the
+         whole graph resolves one version. Without this a module that pulls it
+         only through Npgsql lands on 10.0.8 while Design carries 10.0.10, which
+         RAR reports as a conflict. Transitive pinning (see below) makes it stick. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.10" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.10" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
     <!-- Binds the AppHost-injected connection string, adds health checks,
