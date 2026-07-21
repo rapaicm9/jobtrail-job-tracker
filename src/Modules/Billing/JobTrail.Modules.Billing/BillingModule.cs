@@ -1,10 +1,13 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Billing.Contracts;
 using JobTrail.Modules.Billing.Features.ProvisionPlan;
+using JobTrail.Modules.Billing.Features.PurchasePro;
 using JobTrail.Modules.Billing.Persistence;
 using JobTrail.Modules.Identity.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace JobTrail.Modules.Billing;
@@ -32,6 +35,15 @@ public static class BillingModule
 
         // Every new account gets its Free plan, off Identity's UserRegistered.
         builder.Services.AddEventHandler<UserRegistered, PlanProvisioningHandler>();
+
+        // The entitlement seam other modules gate on, and the purchase flow that
+        // moves a plan onto Pro behind the mocked payment provider.
+        builder.Services.AddScoped<IEntitlementQuery, EfEntitlementQuery>();
+        builder.Services.AddSingleton<IBillingProvider, MockBillingProvider>();
+        builder.Services.AddScoped<PurchaseProHandler>();
+
+        // The clock, if no host or module registered it first.
+        builder.Services.TryAddSingleton(TimeProvider.System);
 
         return builder;
     }
