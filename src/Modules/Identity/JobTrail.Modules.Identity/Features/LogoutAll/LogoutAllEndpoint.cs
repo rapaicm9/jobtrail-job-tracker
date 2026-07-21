@@ -1,10 +1,8 @@
 using System.Security.Claims;
-using JobTrail.SharedKernel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.IdentityModel.JsonWebTokens;
 
 namespace JobTrail.Modules.Identity.Features.LogoutAll;
 
@@ -20,11 +18,9 @@ internal static class LogoutAllEndpoint
     private static async Task<Results<NoContent, ProblemHttpResult>> HandleAsync(
         ClaimsPrincipal principal, LogoutAllHandler handler, CancellationToken cancellationToken)
     {
-        // MapInboundClaims is off, so the subject arrives as plain `sub`.
-        if (!UserId.TryParse(principal.FindFirstValue(JwtRegisteredClaimNames.Sub), out var userId))
+        if (!principal.TryGetId(out var userId))
         {
-            return Error.Unauthorized("auth.invalid_token", "The access token carries no usable subject.")
-                .ToProblem();
+            return CurrentUser.MissingSubject.ToProblem();
         }
 
         var result = await handler.HandleAsync(userId, cancellationToken);

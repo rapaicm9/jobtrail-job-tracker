@@ -88,4 +88,7 @@ var api = app
 api.MapIdentityEndpoints()
     .RequireRateLimiting(RateLimitingConfiguration.AuthPolicy);
 
+// Authenticated account self-service; inherits the group's general per-IP budget.
+api.MapAccountEndpoints();
+
 await app.RunAsync();
