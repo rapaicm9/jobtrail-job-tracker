@@ -1,6 +1,9 @@
+using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Identity.Authentication;
+using JobTrail.Modules.Identity.Contracts;
 using JobTrail.Modules.Identity.Domain;
+using JobTrail.Modules.Identity.Features.DeleteAccount;
 using JobTrail.Modules.Identity.Features.GetAccount;
 using JobTrail.Modules.Identity.Features.Login;
 using JobTrail.Modules.Identity.Features.Logout;
@@ -67,6 +70,11 @@ public static class IdentityModule
         builder.Services.AddScoped<LogoutAllHandler>();
         builder.Services.AddScoped<GetAccountHandler>();
         builder.Services.AddScoped<UpdateAccountHandler>();
+        builder.Services.AddScoped<DeleteAccountHandler>();
+
+        // Identity's own reaction to an erasure request: delete its user rows.
+        // Other modules register their own handler for the same event.
+        builder.Services.AddEventHandler<UserDataDeletionRequested, AccountErasureHandler>();
 
         return builder;
     }
@@ -123,6 +131,7 @@ public static class IdentityModule
 
         GetAccountEndpoint.Map(account);
         UpdateAccountEndpoint.Map(account);
+        DeleteAccountEndpoint.Map(account);
 
         return account;
     }
