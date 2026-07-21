@@ -35,6 +35,13 @@ public sealed class ApiFixture : IAsyncLifetime
 
     public HttpClient CreateClient() => Factory.CreateClient();
 
+    /// <summary>
+    /// A DI scope on the running host, for the few tests that exercise a service
+    /// directly rather than over HTTP (a Contracts query has no endpoint of its
+    /// own). Scoped services like the module DbContext resolve inside it.
+    /// </summary>
+    public IServiceScope CreateScope() => Factory.Services.CreateScope();
+
     private JobTrailApiFactory Factory =>
         _factory ?? throw new InvalidOperationException("The fixture has not been initialized.");
 

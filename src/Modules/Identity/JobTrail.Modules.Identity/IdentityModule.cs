@@ -76,6 +76,13 @@ public static class IdentityModule
         // Other modules register their own handler for the same event.
         builder.Services.AddEventHandler<UserDataDeletionRequested, AccountErasureHandler>();
 
+        // The module's public Contracts surface: the current caller and a narrow
+        // read of user profile facts, both implemented internally. Other modules
+        // depend on the interfaces; the implementations never cross the boundary.
+        builder.Services.AddHttpContextAccessor();
+        builder.Services.AddScoped<IUserContext, HttpContextUserContext>();
+        builder.Services.AddScoped<IUserProfileQuery, EfUserProfileQuery>();
+
         return builder;
     }
 
