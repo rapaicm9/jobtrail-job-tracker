@@ -1,3 +1,4 @@
+using JobTrail.Modules.Identity.Contracts;
 using JobTrail.Modules.Identity.Features.Register;
 using JobTrail.Modules.Identity.Tests.Fakes;
 using JobTrail.SharedKernel;
@@ -11,6 +12,7 @@ public sealed class RegisterHandlerTests
 
     private readonly FakeUserStore _users = new();
     private readonly FakeRefreshTokenStore _refreshTokens = new();
+    private readonly RecordingEventBus _eventBus = new();
     private readonly RegisterHandler _handler;
 
     public RegisterHandlerTests()
@@ -18,7 +20,7 @@ public sealed class RegisterHandlerTests
         var userManager = AuthHarness.CreateUserManager(_users);
         var tokenService = AuthHarness.CreateTokenService(
             _refreshTokens, new FakeUserTokenVersionReader(), TestKeys.NewOptions(), new TestTimeProvider(Now));
-        _handler = new RegisterHandler(userManager, tokenService);
+        _handler = new RegisterHandler(userManager, tokenService, _eventBus);
     }
 
     [Fact]
@@ -41,6 +43,10 @@ public sealed class RegisterHandlerTests
         // Signed straight in: one refresh-token row for the new account.
         _refreshTokens.Tokens.ShouldHaveSingleItem().UserId.ShouldBe(user.Id);
         result.Value.AccessToken.ShouldNotBeNullOrEmpty();
+
+        // The new account is announced for the modules that own per-user state.
+        var registered = _eventBus.Published.ShouldHaveSingleItem().ShouldBeOfType<UserRegistered>();
+        registered.UserId.ShouldBe(UserId.From(user.Id));
     }
 
     [Fact]
@@ -67,6 +73,9 @@ public sealed class RegisterHandlerTests
         second.Error.Code.ShouldBe("registration.email_taken");
         second.Error.Type.ShouldBe(ErrorType.Conflict);
         _users.Users.Count.ShouldBe(1);
+
+        // Exactly one account opened, so exactly one announcement.
+        _eventBus.Published.ShouldHaveSingleItem().ShouldBeOfType<UserRegistered>();
     }
 
     [Fact]
@@ -81,5 +90,8 @@ public sealed class RegisterHandlerTests
         result.Error.Code.ShouldBe("registration.invalid");
         result.Error.Type.ShouldBe(ErrorType.Validation);
         _users.Users.ShouldBeEmpty();
+
+        // No account, no announcement.
+        _eventBus.Published.ShouldBeEmpty();
     }
 }

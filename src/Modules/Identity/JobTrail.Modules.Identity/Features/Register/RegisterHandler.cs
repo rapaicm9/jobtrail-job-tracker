@@ -1,6 +1,8 @@
 using JobTrail.Modules.Identity.Authentication;
+using JobTrail.Modules.Identity.Contracts;
 using JobTrail.Modules.Identity.Domain;
 using JobTrail.SharedKernel;
+using JobTrail.SharedKernel.Events;
 using Microsoft.AspNetCore.Identity;
 
 namespace JobTrail.Modules.Identity.Features.Register;
@@ -11,7 +13,8 @@ namespace JobTrail.Modules.Identity.Features.Register;
 /// </summary>
 internal sealed class RegisterHandler(
     UserManager<ApplicationUser> userManager,
-    TokenService tokenService)
+    TokenService tokenService,
+    IEventBus eventBus)
 {
     public async Task<Result<AuthTokensResponse>> HandleAsync(
         RegisterRequest request, CancellationToken cancellationToken)
@@ -30,8 +33,14 @@ internal sealed class RegisterHandler(
             return ToError(created);
         }
 
+        var userId = UserId.From(user.Id);
         var tokens = await tokenService.IssueAsync(
-            UserId.From(user.Id), user.TokenVersion, request.DeviceLabel, cancellationToken);
+            userId, user.TokenVersion, request.DeviceLabel, cancellationToken);
+
+        // Announce the new account so the modules that own per-user state can
+        // stand it up. Published after the account exists and the sign-in
+        // succeeded; a lost event (in-process bus) is the outbox's problem later.
+        await eventBus.PublishAsync(new UserRegistered(userId), cancellationToken);
 
         return tokens.ToResponse();
     }
