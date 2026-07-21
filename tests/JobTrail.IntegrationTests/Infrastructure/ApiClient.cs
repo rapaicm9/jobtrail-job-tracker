@@ -16,6 +16,16 @@ internal sealed record AuthTokens(
     string RefreshToken,
     DateTimeOffset RefreshTokenExpiresAt);
 
+/// <summary>
+/// The account profile as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record AccountProfile(
+    Guid UserId,
+    string Email,
+    string TimeZoneId,
+    DateTimeOffset CreatedAt);
+
 internal static class ApiClient
 {
     public const string Password = "Correct-horse7";
@@ -38,15 +48,29 @@ internal static class ApiClient
     public static Task<HttpResponseMessage> LogoutAsync(this HttpClient client, string refreshToken) =>
         client.PostAsJsonAsync("/api/v1/identity/logout", new { refreshToken });
 
-    public static Task<HttpResponseMessage> LogoutAllAsync(this HttpClient client, string? accessToken)
+    public static Task<HttpResponseMessage> LogoutAllAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Post, "/api/v1/identity/logout-all", accessToken));
+
+    public static Task<HttpResponseMessage> GetAccountAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/account", accessToken));
+
+    public static Task<HttpResponseMessage> UpdateAccountAsync(
+        this HttpClient client, string? accessToken, string? timeZoneId)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/identity/logout-all");
+        var request = Authorized(HttpMethod.Put, "/api/v1/account", accessToken);
+        request.Content = JsonContent.Create(new { timeZoneId });
+        return client.SendAsync(request);
+    }
+
+    private static HttpRequestMessage Authorized(HttpMethod method, string uri, string? accessToken)
+    {
+        var request = new HttpRequestMessage(method, uri);
         if (accessToken is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         }
 
-        return client.SendAsync(request);
+        return request;
     }
 
     /// <summary>Registers a fresh account and hands back its token pair.</summary>
@@ -62,5 +86,13 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var tokens = await response.Content.ReadFromJsonAsync<AuthTokens>();
         return tokens.ShouldNotBeNull();
+    }
+
+    public static async Task<AccountProfile> ReadProfileAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var profile = await response.Content.ReadFromJsonAsync<AccountProfile>();
+        return profile.ShouldNotBeNull();
     }
 }

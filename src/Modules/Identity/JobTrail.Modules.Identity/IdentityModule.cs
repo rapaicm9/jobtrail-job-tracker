@@ -1,11 +1,13 @@
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Identity.Authentication;
 using JobTrail.Modules.Identity.Domain;
+using JobTrail.Modules.Identity.Features.GetAccount;
 using JobTrail.Modules.Identity.Features.Login;
 using JobTrail.Modules.Identity.Features.Logout;
 using JobTrail.Modules.Identity.Features.LogoutAll;
 using JobTrail.Modules.Identity.Features.Refresh;
 using JobTrail.Modules.Identity.Features.Register;
+using JobTrail.Modules.Identity.Features.UpdateAccount;
 using JobTrail.Modules.Identity.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -63,6 +65,8 @@ public static class IdentityModule
         builder.Services.AddScoped<RegisterHandler>();
         builder.Services.AddScoped<LoginHandler>();
         builder.Services.AddScoped<LogoutAllHandler>();
+        builder.Services.AddScoped<GetAccountHandler>();
+        builder.Services.AddScoped<UpdateAccountHandler>();
 
         return builder;
     }
@@ -104,6 +108,23 @@ public static class IdentityModule
         LogoutAllEndpoint.Map(identity);
 
         return identity;
+    }
+
+    /// <summary>
+    /// Maps the account self-service slices onto the host's versioned API group,
+    /// under <c>/account</c>. A sibling of the auth group, not a child: these are
+    /// authenticated profile operations, so they take the host's general per-IP
+    /// budget rather than the auth surface's stricter window. Returns the group
+    /// so the host can layer its own policy.
+    /// </summary>
+    public static RouteGroupBuilder MapAccountEndpoints(this IEndpointRouteBuilder api)
+    {
+        var account = api.MapGroup("/account");
+
+        GetAccountEndpoint.Map(account);
+        UpdateAccountEndpoint.Map(account);
+
+        return account;
     }
 
     /// <summary>
