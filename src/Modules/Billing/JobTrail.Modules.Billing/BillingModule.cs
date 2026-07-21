@@ -1,5 +1,8 @@
+using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Billing.Features.ProvisionPlan;
 using JobTrail.Modules.Billing.Persistence;
+using JobTrail.Modules.Identity.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -8,9 +11,9 @@ namespace JobTrail.Modules.Billing;
 
 /// <summary>
 /// The Billing module's composition surface. A host calls
-/// <see cref="AddBillingModule"/> to register the entitlement store; everything
-/// the module owns stays internal behind it. Endpoints and the entitlement
-/// query arrive in later slices.
+/// <see cref="AddBillingModule"/> to register the entitlement store and its event
+/// reactions; everything the module owns stays internal behind it. Endpoints and
+/// the entitlement query arrive in later slices.
 /// </summary>
 public static class BillingModule
 {
@@ -26,6 +29,9 @@ public static class BillingModule
         // Aspire adds health checks, a retrying execution strategy and telemetry
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<BillingDbContext>();
+
+        // Every new account gets its Free plan, off Identity's UserRegistered.
+        builder.Services.AddEventHandler<UserRegistered, PlanProvisioningHandler>();
 
         return builder;
     }
