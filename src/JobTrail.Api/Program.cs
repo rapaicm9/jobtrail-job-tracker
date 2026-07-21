@@ -43,6 +43,10 @@ builder.AddBillingModule();
 builder.AddIdentityJwtAuthentication();
 builder.Services.AddAuthorization();
 
+// Billing contributes the Feature:* entitlement policies onto that authorization;
+// gated endpoints in any module resolve them by name, never referencing Billing.
+builder.Services.AddBillingFeaturePolicies();
+
 // URL-segment versioning (/api/v1/...) from day one - deployed mobile clients
 // can't be force-upgraded onto a changed contract.
 builder.Services.AddApiVersioning(options =>

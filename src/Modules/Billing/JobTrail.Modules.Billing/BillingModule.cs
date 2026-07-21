@@ -1,11 +1,13 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Billing.Authorization;
 using JobTrail.Modules.Billing.Contracts;
 using JobTrail.Modules.Billing.Features.GrantPro;
 using JobTrail.Modules.Billing.Features.ProvisionPlan;
 using JobTrail.Modules.Billing.Features.PurchasePro;
 using JobTrail.Modules.Billing.Persistence;
 using JobTrail.Modules.Identity.Contracts;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -50,6 +52,34 @@ public static class BillingModule
         builder.Services.TryAddSingleton(TimeProvider.System);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Registers a <c>Feature:*</c> authorization policy for every
+    /// <see cref="Entitlement"/>, each satisfied only when the entitlement query
+    /// says the caller holds it. Any module gates an endpoint by policy name
+    /// through <see cref="FeaturePolicy"/> - it never references Billing to do so,
+    /// and the client can never assert its own entitlement.
+    /// </summary>
+    public static IServiceCollection AddBillingFeaturePolicies(this IServiceCollection services)
+    {
+        services.AddScoped<IAuthorizationHandler, FeatureAuthorizationHandler>();
+
+        services.Configure<AuthorizationOptions>(options =>
+        {
+            foreach (var entitlement in Enum.GetValues<Entitlement>())
+            {
+                options.AddPolicy(FeaturePolicy.For(entitlement), policy =>
+                {
+                    // An unauthenticated caller is a 401, not a 403 - the check is
+                    // "which user", then "may that user".
+                    policy.RequireAuthenticatedUser();
+                    policy.AddRequirements(new FeatureRequirement(entitlement));
+                });
+            }
+        });
+
+        return services;
     }
 
     /// <summary>
