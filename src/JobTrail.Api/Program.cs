@@ -5,6 +5,7 @@
 using Asp.Versioning;
 using JobTrail.Api;
 using JobTrail.Infrastructure.Events;
+using JobTrail.Modules.Applications;
 using JobTrail.Modules.Billing;
 using JobTrail.Modules.Identity;
 
@@ -37,6 +38,10 @@ builder.AddIdentityModule();
 
 // Per-user entitlements (Free/Pro). Endpoints and policies arrive in later slices.
 builder.AddBillingModule();
+
+// The core aggregate: applications and the pipeline. Persistence only for now;
+// the aggregate's behaviour and endpoints arrive in later slices.
+builder.AddApplicationsModule();
 
 // The module also owns validation of its own access tokens; the host just
 // turns the scheme on and layers authorization over it.

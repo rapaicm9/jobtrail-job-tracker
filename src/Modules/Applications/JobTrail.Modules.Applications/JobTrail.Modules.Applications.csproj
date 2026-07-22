@@ -1,6 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The integration fixture applies this module's migrations to the
+         container database; everything else it does goes over HTTP. -->
+    <InternalsVisibleTo Include="JobTrail.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\JobTrail.Modules.Applications.Contracts\JobTrail.Modules.Applications.Contracts.csproj" />
     <ProjectReference Include="..\..\..\JobTrail.SharedKernel\JobTrail.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\JobTrail.Infrastructure\JobTrail.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
