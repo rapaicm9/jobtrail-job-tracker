@@ -2,6 +2,7 @@ using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Billing.Authorization;
 using JobTrail.Modules.Billing.Contracts;
+using JobTrail.Modules.Billing.Features.EraseData;
 using JobTrail.Modules.Billing.Features.GetPlan;
 using JobTrail.Modules.Billing.Features.GrantPro;
 using JobTrail.Modules.Billing.Features.ProvisionPlan;
@@ -39,8 +40,10 @@ public static class BillingModule
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<BillingDbContext>();
 
-        // Every new account gets its Free plan, off Identity's UserRegistered.
+        // Every new account gets its Free plan, off Identity's UserRegistered;
+        // an erasure request takes the plan and its purchases back out again.
         builder.Services.AddEventHandler<UserRegistered, PlanProvisioningHandler>();
+        builder.Services.AddEventHandler<UserDataDeletionRequested, BillingDataErasureHandler>();
 
         // The entitlement seam other modules gate on, and the purchase flow that
         // moves a plan onto Pro behind the mocked payment provider.

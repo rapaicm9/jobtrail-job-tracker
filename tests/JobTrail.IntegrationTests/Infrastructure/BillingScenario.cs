@@ -22,6 +22,15 @@ internal static class BillingScenario
         await db.SaveChangesAsync(cancellationToken);
     }
 
+    public static async Task SeedPurchaseAsync(
+        this ApiFixture fixture, UserId userId, CancellationToken cancellationToken)
+    {
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+        db.Purchases.Add(new Purchase { UserId = userId, ProviderReference = "seed_ref" });
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
     public static async Task<Plan?> PlanForAsync(
         this ApiFixture fixture, UserId userId, CancellationToken cancellationToken)
     {
