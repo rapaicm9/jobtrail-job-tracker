@@ -99,6 +99,9 @@ api.MapIdentityEndpoints()
 // Authenticated account self-service; inherits the group's general per-IP budget.
 api.MapAccountEndpoints();
 
+// Authenticated billing: plan status and the mocked Pro purchase; same budget.
+api.MapBillingEndpoints();
+
 // Developer shortcuts (grant Pro without a purchase) exist only in Development -
 // mapping them nowhere else is what keeps them out of production entirely.
 if (app.Environment.IsDevelopment())

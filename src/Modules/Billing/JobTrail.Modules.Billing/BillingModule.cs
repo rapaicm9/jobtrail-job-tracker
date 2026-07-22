@@ -2,6 +2,7 @@ using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Billing.Authorization;
 using JobTrail.Modules.Billing.Contracts;
+using JobTrail.Modules.Billing.Features.GetPlan;
 using JobTrail.Modules.Billing.Features.GrantPro;
 using JobTrail.Modules.Billing.Features.ProvisionPlan;
 using JobTrail.Modules.Billing.Features.PurchasePro;
@@ -20,8 +21,8 @@ namespace JobTrail.Modules.Billing;
 /// <summary>
 /// The Billing module's composition surface. A host calls
 /// <see cref="AddBillingModule"/> to register the entitlement store and its event
-/// reactions; everything the module owns stays internal behind it. Endpoints and
-/// the entitlement query arrive in later slices.
+/// reactions, then <see cref="MapBillingEndpoints"/> to expose the plan and
+/// purchase slices; everything the module owns stays internal behind it.
 /// </summary>
 public static class BillingModule
 {
@@ -45,6 +46,7 @@ public static class BillingModule
         // moves a plan onto Pro behind the mocked payment provider.
         builder.Services.AddScoped<IEntitlementQuery, EfEntitlementQuery>();
         builder.Services.AddSingleton<IBillingProvider, MockBillingProvider>();
+        builder.Services.AddScoped<GetPlanHandler>();
         builder.Services.AddScoped<PurchaseProHandler>();
         builder.Services.AddScoped<GrantProHandler>();
 
@@ -80,6 +82,23 @@ public static class BillingModule
         });
 
         return services;
+    }
+
+    /// <summary>
+    /// Maps Billing's authenticated slices onto the host's versioned API group,
+    /// under <c>/billing</c>: read the caller's plan status, and unlock Pro through
+    /// the mocked provider. A sibling of the account group - these take the host's
+    /// general per-IP budget. Returns the group so the host can layer its own
+    /// policy. Developer-only shortcuts stay in <see cref="MapBillingDevEndpoints"/>.
+    /// </summary>
+    public static RouteGroupBuilder MapBillingEndpoints(this IEndpointRouteBuilder api)
+    {
+        var billing = api.MapGroup("/billing");
+
+        GetPlanEndpoint.Map(billing);
+        PurchaseProEndpoint.Map(billing);
+
+        return billing;
     }
 
     /// <summary>

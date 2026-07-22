@@ -26,6 +26,12 @@ internal sealed record AccountProfile(
     string TimeZoneId,
     DateTimeOffset CreatedAt);
 
+/// <summary>
+/// The plan status as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record PlanStatus(string Tier, DateTimeOffset? UpdatedAt);
+
 internal static class ApiClient
 {
     public const string Password = "Correct-horse7";
@@ -65,6 +71,12 @@ internal static class ApiClient
     public static Task<HttpResponseMessage> DeleteAccountAsync(this HttpClient client, string? accessToken) =>
         client.SendAsync(Authorized(HttpMethod.Delete, "/api/v1/account", accessToken));
 
+    public static Task<HttpResponseMessage> GetPlanAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/billing/plan", accessToken));
+
+    public static Task<HttpResponseMessage> PurchaseProAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Post, "/api/v1/billing/purchase", accessToken));
+
     public static Task<HttpResponseMessage> GrantProAsync(this HttpClient client, string? accessToken) =>
         client.SendAsync(Authorized(HttpMethod.Post, "/api/v1/billing/dev/grant-pro", accessToken));
 
@@ -100,5 +112,13 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var profile = await response.Content.ReadFromJsonAsync<AccountProfile>();
         return profile.ShouldNotBeNull();
+    }
+
+    public static async Task<PlanStatus> ReadPlanAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var plan = await response.Content.ReadFromJsonAsync<PlanStatus>();
+        return plan.ShouldNotBeNull();
     }
 }
