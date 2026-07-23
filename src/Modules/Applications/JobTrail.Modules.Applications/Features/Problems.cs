@@ -5,11 +5,10 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace JobTrail.Modules.Applications.Features;
 
 /// <summary>
-/// Maps kernel failures onto RFC 9457 ProblemDetails at the API edge. The third
-/// near-copy of this mapper (after Identity and Billing), which is the point the
-/// duplication earns a shared web-edge home: extracting it now can retire all
-/// three copies at once. Kept local for this slice so the endpoint lands as one
-/// change; the extraction is its own.
+/// Maps kernel failures onto RFC 9457 ProblemDetails at the API edge. Each module
+/// keeps its own copy by design: the mapping is small and reads better beside the
+/// endpoints that use it, and a module can let its own status mapping diverge
+/// without disturbing the others.
 /// </summary>
 internal static class Problems
 {

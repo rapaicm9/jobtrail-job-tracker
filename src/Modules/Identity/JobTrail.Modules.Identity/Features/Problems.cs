@@ -6,8 +6,10 @@ namespace JobTrail.Modules.Identity.Features;
 
 /// <summary>
 /// Maps kernel failures onto RFC 9457 ProblemDetails at the API edge - the
-/// kernel itself stays transport-agnostic. Lives in the module for now, per the
-/// add-at-first-use rule; it moves to a shared home when a second module needs it.
+/// kernel itself stays transport-agnostic. Each module keeps its own copy by
+/// design: the mapping is small and reads better beside the endpoints that use
+/// it, and a module can let its own status mapping diverge without disturbing
+/// the others.
 /// </summary>
 internal static class Problems
 {

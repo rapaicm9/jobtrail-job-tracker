@@ -6,9 +6,10 @@ namespace JobTrail.Modules.Billing.Features;
 
 /// <summary>
 /// Maps kernel failures onto RFC 9457 ProblemDetails at the API edge. A near-copy
-/// of Identity's own mapper: Billing is the second module to need it, and the
-/// natural next step is a shared web-edge home - deferred to when a third module
-/// arrives, so extracting it can migrate every copy at once rather than half.
+/// of the sibling modules' mappers, and deliberately so: each module keeps its
+/// own because the mapping is small and reads better beside the endpoints that
+/// use it, and one module can let its status mapping diverge without disturbing
+/// the others.
 /// </summary>
 internal static class Problems
 {
