@@ -33,15 +33,16 @@ internal sealed class Application
     /// Moves the application to <paramref name="target"/> if the state machine
     /// allows it, stamping <see cref="UpdatedAt"/> and returning the recorded
     /// <see cref="StageTransition"/> (which the caller logs and publishes). An
-    /// illegal move - a backwards or same-stage step between active stages,
-    /// <c>Accepted</c> from anywhere but <c>Offer</c>, or terminal → terminal -
-    /// leaves the application untouched and returns
-    /// <see cref="ApplicationErrors.IllegalTransition"/>. Rules:
+    /// illegal move - a backwards or same-stage step between active stages, or
+    /// <c>Accepted</c> from anywhere but <c>Offer</c> - leaves the application
+    /// untouched and returns <see cref="ApplicationErrors.IllegalTransition"/>.
+    /// Rules:
     /// <list type="bullet">
     /// <item>active → a strictly later active stage (skips allowed);</item>
     /// <item><c>Rejected</c>/<c>Withdrawn</c>/<c>Ghosted</c> from any active stage;</item>
-    /// <item><c>Accepted</c> from <c>Offer</c> only;</item>
-    /// <item>terminal → any active stage (reopening, logged).</item>
+    /// <item><c>Accepted</c> from <c>Offer</c> only - never out of a terminal stage;</item>
+    /// <item>terminal → any active stage (reopening, logged);</item>
+    /// <item>terminal → another terminal outcome except <c>Accepted</c> (reclassifying).</item>
     /// </list>
     /// </summary>
     public Result<StageTransition> TransitionTo(Stage target, DateTimeOffset now)
@@ -80,8 +81,10 @@ internal sealed class Application
             // Terminal → active: reopening a closed application.
             (false, true) => TransitionKind.Reopen,
 
-            // Terminal → terminal: blocked; reopen to an active stage first.
-            (false, false) => null,
+            // Terminal → terminal: correcting the outcome (a ghost that finally
+            // sends the rejection). Accepted is the exception - it stays reachable
+            // from Offer alone, so it can't be reached out of another terminal.
+            (false, false) => target is Stage.Accepted ? null : TransitionKind.Reclassify,
         };
     }
 }

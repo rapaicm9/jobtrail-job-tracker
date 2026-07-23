@@ -16,6 +16,12 @@ internal enum TransitionKind
 
     /// <summary>Terminal → active: a closed application brought back to life.</summary>
     Reopen,
+
+    /// <summary>
+    /// Terminal → another terminal outcome: correcting how an application ended
+    /// (a ghost that finally sends the rejection) without reopening it first.
+    /// </summary>
+    Reclassify,
 }
 
 /// <summary>
