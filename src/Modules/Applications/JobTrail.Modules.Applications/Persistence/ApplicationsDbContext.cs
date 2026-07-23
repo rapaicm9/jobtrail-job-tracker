@@ -17,6 +17,8 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
 
     public DbSet<Application> Applications => Set<Application>();
 
+    public DbSet<Campaign> Campaigns => Set<Campaign>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
         // Owner columns carry the strongly-typed id and store as uuid; one place,
         // so no property has to remember to opt in.
@@ -45,6 +47,22 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             // A user's applications, read back by owner - the access path every
             // ownership-scoped query takes. Non-unique: a user has many.
             application.HasIndex(a => a.OwnerId);
+        });
+
+        builder.Entity<Campaign>(campaign =>
+        {
+            campaign.HasKey(c => c.Id);
+            campaign.Property(c => c.Id).HasDefaultValueSql("uuidv7()");
+            campaign.Property(c => c.Name).HasMaxLength(100).IsRequired();
+            campaign.Property(c => c.CreatedAt).HasDefaultValueSql("now()");
+
+            // Exactly one default campaign per user, enforced at the database. A
+            // partial (filtered) unique index constrains only the default rows, so
+            // the extra campaigns a Pro account adds stay unconstrained - and it
+            // doubles as the access path for "this user's default".
+            campaign.HasIndex(c => c.OwnerId)
+                .IsUnique()
+                .HasFilter("is_default");
         });
     }
 }

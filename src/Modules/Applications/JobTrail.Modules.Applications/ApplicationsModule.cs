@@ -1,5 +1,8 @@
+using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Applications.Features.ProvisionCampaign;
 using JobTrail.Modules.Applications.Persistence;
+using JobTrail.Modules.Identity.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -26,6 +29,9 @@ public static class ApplicationsModule
         // Aspire adds health checks, a retrying execution strategy and telemetry
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<ApplicationsDbContext>();
+
+        // Every new account gets its default campaign, off Identity's UserRegistered.
+        builder.Services.AddEventHandler<UserRegistered, CampaignProvisioningHandler>();
 
         return builder;
     }

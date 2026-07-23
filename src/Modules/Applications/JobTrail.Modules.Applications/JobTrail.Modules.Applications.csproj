@@ -17,6 +17,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\JobTrail.Modules.Applications.Contracts\JobTrail.Modules.Applications.Contracts.csproj" />
+    <!-- Consumes Identity's UserRegistered to provision the default campaign;
+         a Contracts reference only, never the module implementation. -->
+    <ProjectReference Include="..\..\Identity\JobTrail.Modules.Identity.Contracts\JobTrail.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="..\..\..\JobTrail.SharedKernel\JobTrail.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\JobTrail.Infrastructure\JobTrail.Infrastructure.csproj" />
   </ItemGroup>
