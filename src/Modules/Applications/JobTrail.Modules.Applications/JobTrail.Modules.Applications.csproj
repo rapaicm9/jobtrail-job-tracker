@@ -8,6 +8,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The state-machine unit tests drive the aggregate's internal API directly. -->
+    <InternalsVisibleTo Include="JobTrail.Modules.Applications.Tests" />
     <!-- The integration fixture applies this module's migrations to the
          container database; everything else it does goes over HTTP. -->
     <InternalsVisibleTo Include="JobTrail.IntegrationTests" />
