@@ -34,6 +34,14 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             application.Property(a => a.Id).HasDefaultValueSql("uuidv7()");
             application.Property(a => a.CreatedAt).HasDefaultValueSql("now()");
 
+            // Stored as its name, and defaulted at the database so a freshly
+            // inserted application lands on Applied without the code saying so.
+            application.Property(a => a.Stage)
+                .HasConversion<string>()
+                .HasMaxLength(16)
+                .IsRequired()
+                .HasDefaultValue(Stage.Applied);
+
             // A user's applications, read back by owner - the access path every
             // ownership-scoped query takes. Non-unique: a user has many.
             application.HasIndex(a => a.OwnerId);
