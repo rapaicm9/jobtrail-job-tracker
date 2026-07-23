@@ -32,6 +32,12 @@ internal sealed record AccountProfile(
 /// </summary>
 internal sealed record PlanStatus(string Tier, DateTimeOffset? UpdatedAt);
 
+/// <summary>
+/// A company picker row as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record CompanySummary(Guid Id, string Name);
+
 internal static class ApiClient
 {
     public const string Password = "Correct-horse7";
@@ -80,6 +86,13 @@ internal static class ApiClient
     public static Task<HttpResponseMessage> GrantProAsync(this HttpClient client, string? accessToken) =>
         client.SendAsync(Authorized(HttpMethod.Post, "/api/v1/billing/dev/grant-pro", accessToken));
 
+    public static Task<HttpResponseMessage> SearchCompaniesAsync(
+        this HttpClient client, string? accessToken, string? query) =>
+        client.SendAsync(Authorized(
+            HttpMethod.Get,
+            $"/api/v1/companies?query={Uri.EscapeDataString(query ?? string.Empty)}",
+            accessToken));
+
     private static HttpRequestMessage Authorized(HttpMethod method, string uri, string? accessToken)
     {
         var request = new HttpRequestMessage(method, uri);
@@ -120,5 +133,13 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var plan = await response.Content.ReadFromJsonAsync<PlanStatus>();
         return plan.ShouldNotBeNull();
+    }
+
+    public static async Task<IReadOnlyList<CompanySummary>> ReadCompaniesAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var companies = await response.Content.ReadFromJsonAsync<List<CompanySummary>>();
+        return companies.ShouldNotBeNull();
     }
 }

@@ -1,8 +1,11 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Applications.Features.ProvisionCampaign;
+using JobTrail.Modules.Applications.Features.SearchCompanies;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Identity.Contracts;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,6 +36,21 @@ public static class ApplicationsModule
         // Every new account gets its default campaign, off Identity's UserRegistered.
         builder.Services.AddEventHandler<UserRegistered, CampaignProvisioningHandler>();
 
+        builder.Services.AddScoped<SearchCompaniesHandler>();
+
         return builder;
+    }
+
+    /// <summary>
+    /// Maps the Applications module's authenticated slices onto the host's
+    /// versioned API group. The module owns several top-level resources, so this
+    /// mounts each on its own group (<c>/companies</c> now; the application,
+    /// campaign and interview groups join as their slices land) - it is the
+    /// module's endpoints, not one route. Takes the host's general per-IP budget.
+    /// </summary>
+    public static void MapApplicationsEndpoints(this IEndpointRouteBuilder api)
+    {
+        var companies = api.MapGroup("/companies");
+        SearchCompaniesEndpoint.Map(companies);
     }
 }
