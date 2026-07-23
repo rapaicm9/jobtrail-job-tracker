@@ -19,6 +19,8 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
 
     public DbSet<Campaign> Campaigns => Set<Campaign>();
 
+    public DbSet<Company> Companies => Set<Company>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
         // Owner columns carry the strongly-typed id and store as uuid; one place,
         // so no property has to remember to opt in.
@@ -63,6 +65,19 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             campaign.HasIndex(c => c.OwnerId)
                 .IsUnique()
                 .HasFilter("is_default");
+        });
+
+        builder.Entity<Company>(company =>
+        {
+            company.HasKey(c => c.Id);
+            company.Property(c => c.Id).HasDefaultValueSql("uuidv7()");
+            company.Property(c => c.Name).HasMaxLength(200).IsRequired();
+            company.Property(c => c.Website).HasMaxLength(2048);
+            company.Property(c => c.Notes).HasMaxLength(2000);
+            company.Property(c => c.CreatedAt).HasDefaultValueSql("now()");
+
+            // A user's companies, read back by owner for the type-ahead picker.
+            company.HasIndex(c => c.OwnerId);
         });
     }
 }

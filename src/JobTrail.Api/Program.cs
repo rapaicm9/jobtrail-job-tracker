@@ -107,6 +107,9 @@ api.MapAccountEndpoints();
 // Authenticated billing: plan status and the mocked Pro purchase; same budget.
 api.MapBillingEndpoints();
 
+// Authenticated application data: the company type-ahead picker for now; same budget.
+api.MapApplicationsEndpoints();
+
 // Developer shortcuts (grant Pro without a purchase) exist only in Development -
 // mapping them nowhere else is what keeps them out of production entirely.
 if (app.Environment.IsDevelopment())
