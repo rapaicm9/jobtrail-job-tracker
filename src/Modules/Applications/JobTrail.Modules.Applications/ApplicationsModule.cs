@@ -5,6 +5,7 @@ using JobTrail.Modules.Applications.Features.CreateApplication;
 using JobTrail.Modules.Applications.Features.GetApplication;
 using JobTrail.Modules.Applications.Features.ProvisionCampaign;
 using JobTrail.Modules.Applications.Features.SearchCompanies;
+using JobTrail.Modules.Applications.Features.TransitionApplication;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Identity.Contracts;
 using Microsoft.AspNetCore.Builder;
@@ -43,6 +44,7 @@ public static class ApplicationsModule
         builder.Services.AddScoped<CompanyResolver>();
         builder.Services.AddScoped<CreateApplicationHandler>();
         builder.Services.AddScoped<GetApplicationHandler>();
+        builder.Services.AddScoped<TransitionApplicationHandler>();
 
         return builder;
     }
@@ -62,5 +64,6 @@ public static class ApplicationsModule
         var applications = api.MapGroup("/applications");
         CreateApplicationEndpoint.Map(applications);
         GetApplicationEndpoint.Map(applications);
+        TransitionApplicationEndpoint.Map(applications);
     }
 }
