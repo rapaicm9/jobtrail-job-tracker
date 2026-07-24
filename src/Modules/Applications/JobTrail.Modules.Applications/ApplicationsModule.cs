@@ -2,12 +2,16 @@ using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Features.CreateApplication;
+using JobTrail.Modules.Applications.Features.CreateContact;
 using JobTrail.Modules.Applications.Features.GetApplication;
+using JobTrail.Modules.Applications.Features.GetContact;
 using JobTrail.Modules.Applications.Features.ListApplications;
+using JobTrail.Modules.Applications.Features.ListContacts;
 using JobTrail.Modules.Applications.Features.ProvisionCampaign;
 using JobTrail.Modules.Applications.Features.SearchCompanies;
 using JobTrail.Modules.Applications.Features.TransitionApplication;
 using JobTrail.Modules.Applications.Features.UpdateApplication;
+using JobTrail.Modules.Applications.Features.UpdateContact;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Identity.Contracts;
 using Microsoft.AspNetCore.Builder;
@@ -44,11 +48,18 @@ public static class ApplicationsModule
 
         builder.Services.AddScoped<SearchCompaniesHandler>();
         builder.Services.AddScoped<CompanyResolver>();
+        builder.Services.AddScoped<OwnershipGuard>();
         builder.Services.AddScoped<CreateApplicationHandler>();
         builder.Services.AddScoped<GetApplicationHandler>();
         builder.Services.AddScoped<ListApplicationsHandler>();
         builder.Services.AddScoped<UpdateApplicationHandler>();
         builder.Services.AddScoped<TransitionApplicationHandler>();
+
+        builder.Services.AddScoped<ContactLinkGuard>();
+        builder.Services.AddScoped<CreateContactHandler>();
+        builder.Services.AddScoped<GetContactHandler>();
+        builder.Services.AddScoped<ListContactsHandler>();
+        builder.Services.AddScoped<UpdateContactHandler>();
 
         return builder;
     }
@@ -56,9 +67,10 @@ public static class ApplicationsModule
     /// <summary>
     /// Maps the Applications module's authenticated slices onto the host's
     /// versioned API group. The module owns several top-level resources, so this
-    /// mounts each on its own group (<c>/companies</c> now; the application,
-    /// campaign and interview groups join as their slices land) - it is the
-    /// module's endpoints, not one route. Takes the host's general per-IP budget.
+    /// mounts each on its own group (<c>/companies</c>, <c>/applications</c>,
+    /// <c>/contacts</c> now; the interview group is nested under an application as
+    /// its slices land) - it is the module's endpoints, not one route. Takes the
+    /// host's general per-IP budget.
     /// </summary>
     public static void MapApplicationsEndpoints(this IEndpointRouteBuilder api)
     {
@@ -71,5 +83,11 @@ public static class ApplicationsModule
         GetApplicationEndpoint.Map(applications);
         UpdateApplicationEndpoint.Map(applications);
         TransitionApplicationEndpoint.Map(applications);
+
+        var contacts = api.MapGroup("/contacts");
+        ListContactsEndpoint.Map(contacts);
+        CreateContactEndpoint.Map(contacts);
+        GetContactEndpoint.Map(contacts);
+        UpdateContactEndpoint.Map(contacts);
     }
 }
