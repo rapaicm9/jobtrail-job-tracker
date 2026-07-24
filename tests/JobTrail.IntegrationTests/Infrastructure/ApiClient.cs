@@ -42,6 +42,21 @@ internal sealed record CompanySummary(Guid Id, string Name);
 internal sealed record MoneyView(decimal Amount, string Currency);
 
 /// <summary>
+/// An interview round as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record InterviewView(
+    Guid Id,
+    Guid ApplicationId,
+    DateTimeOffset ScheduledAt,
+    string Type,
+    string Format,
+    string Outcome,
+    string? Notes,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+/// <summary>
 /// A contact as a client sees it - declared here, not shared with the module, so a
 /// contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -210,6 +225,32 @@ internal static class ApiClient
         return client.SendAsync(request);
     }
 
+    public static Task<HttpResponseMessage> CreateInterviewAsync(
+        this HttpClient client, string? accessToken, Guid applicationId, object body)
+    {
+        var request = Authorized(HttpMethod.Post, $"/api/v1/applications/{applicationId}/interviews", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> GetInterviewAsync(
+        this HttpClient client, string? accessToken, Guid applicationId, Guid interviewId) =>
+        client.SendAsync(Authorized(
+            HttpMethod.Get, $"/api/v1/applications/{applicationId}/interviews/{interviewId}", accessToken));
+
+    public static Task<HttpResponseMessage> ListInterviewsAsync(
+        this HttpClient client, string? accessToken, Guid applicationId) =>
+        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{applicationId}/interviews", accessToken));
+
+    public static Task<HttpResponseMessage> UpdateInterviewAsync(
+        this HttpClient client, string? accessToken, Guid applicationId, Guid interviewId, object body)
+    {
+        var request = Authorized(
+            HttpMethod.Put, $"/api/v1/applications/{applicationId}/interviews/{interviewId}", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
     public static Task<HttpResponseMessage> TransitionApplicationAsync(
         this HttpClient client, string? accessToken, Guid id, string? targetStage)
     {
@@ -299,5 +340,21 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var contacts = await response.Content.ReadFromJsonAsync<List<ContactView>>();
         return contacts.ShouldNotBeNull();
+    }
+
+    public static async Task<InterviewView> ReadInterviewAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var interview = await response.Content.ReadFromJsonAsync<InterviewView>();
+        return interview.ShouldNotBeNull();
+    }
+
+    public static async Task<IReadOnlyList<InterviewView>> ReadInterviewListAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var interviews = await response.Content.ReadFromJsonAsync<List<InterviewView>>();
+        return interviews.ShouldNotBeNull();
     }
 }
