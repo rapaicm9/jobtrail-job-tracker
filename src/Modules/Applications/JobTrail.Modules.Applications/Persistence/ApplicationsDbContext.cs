@@ -23,6 +23,8 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
 
     public DbSet<ActivityLogEntry> ActivityLog => Set<ActivityLogEntry>();
 
+    public DbSet<Contact> Contacts => Set<Contact>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
         // Owner columns carry the strongly-typed id and store as uuid; one place,
         // so no property has to remember to opt in.
@@ -154,6 +156,38 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             // Read back by application (the timeline) and by owner (erasure).
             entry.HasIndex(e => e.ApplicationId);
             entry.HasIndex(e => e.OwnerId);
+        });
+
+        builder.Entity<Contact>(contact =>
+        {
+            contact.HasKey(c => c.Id);
+            contact.Property(c => c.Id).HasDefaultValueSql("uuidv7()");
+            contact.Property(c => c.CreatedAt).HasDefaultValueSql("now()");
+
+            contact.Property(c => c.Name).HasMaxLength(200).IsRequired();
+            contact.Property(c => c.Role).HasConversion<string>().HasMaxLength(32);
+            contact.Property(c => c.Email).HasMaxLength(320);
+            contact.Property(c => c.Phone).HasMaxLength(40);
+            contact.Property(c => c.Notes).HasMaxLength(2000);
+
+            // Linked to an application and/or a company (the slice requires at
+            // least one). Same-schema FKs: the application link is cascade-deleted
+            // with its application, the company link nulls out if the company goes.
+            contact.HasOne<Application>()
+                .WithMany()
+                .HasForeignKey(c => c.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            contact.HasOne<Company>()
+                .WithMany()
+                .HasForeignKey(c => c.CompanyId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // Read back by owner (the list and erasure), and by each link for the
+            // filtered list and the foreign keys.
+            contact.HasIndex(c => c.OwnerId);
+            contact.HasIndex(c => c.ApplicationId);
+            contact.HasIndex(c => c.CompanyId);
         });
     }
 }

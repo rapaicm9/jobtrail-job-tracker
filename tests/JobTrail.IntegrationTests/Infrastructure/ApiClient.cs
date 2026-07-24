@@ -42,6 +42,22 @@ internal sealed record CompanySummary(Guid Id, string Name);
 internal sealed record MoneyView(decimal Amount, string Currency);
 
 /// <summary>
+/// A contact as a client sees it - declared here, not shared with the module, so a
+/// contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record ContactView(
+    Guid Id,
+    Guid? ApplicationId,
+    Guid? CompanyId,
+    string Name,
+    string? Role,
+    string? Email,
+    string? Phone,
+    string? Notes,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+/// <summary>
 /// An application list row as a client sees it - declared here, not shared with
 /// the module, so a contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -158,6 +174,42 @@ internal static class ApiClient
         return client.SendAsync(request);
     }
 
+    public static Task<HttpResponseMessage> CreateContactAsync(this HttpClient client, string? accessToken, object body)
+    {
+        var request = Authorized(HttpMethod.Post, "/api/v1/contacts", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> GetContactAsync(this HttpClient client, string? accessToken, Guid id) =>
+        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/contacts/{id}", accessToken));
+
+    public static Task<HttpResponseMessage> ListContactsAsync(
+        this HttpClient client, string? accessToken, Guid? applicationId = null, Guid? companyId = null)
+    {
+        var query = new List<string>();
+        if (applicationId is { } appId)
+        {
+            query.Add($"applicationId={appId}");
+        }
+
+        if (companyId is { } companyIdValue)
+        {
+            query.Add($"companyId={companyIdValue}");
+        }
+
+        var uri = "/api/v1/contacts" + (query.Count > 0 ? "?" + string.Join('&', query) : string.Empty);
+        return client.SendAsync(Authorized(HttpMethod.Get, uri, accessToken));
+    }
+
+    public static Task<HttpResponseMessage> UpdateContactAsync(
+        this HttpClient client, string? accessToken, Guid id, object body)
+    {
+        var request = Authorized(HttpMethod.Put, $"/api/v1/contacts/{id}", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
     public static Task<HttpResponseMessage> TransitionApplicationAsync(
         this HttpClient client, string? accessToken, Guid id, string? targetStage)
     {
@@ -231,5 +283,21 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var applications = await response.Content.ReadFromJsonAsync<List<ApplicationSummaryView>>();
         return applications.ShouldNotBeNull();
+    }
+
+    public static async Task<ContactView> ReadContactAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var contact = await response.Content.ReadFromJsonAsync<ContactView>();
+        return contact.ShouldNotBeNull();
+    }
+
+    public static async Task<IReadOnlyList<ContactView>> ReadContactListAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var contacts = await response.Content.ReadFromJsonAsync<List<ContactView>>();
+        return contacts.ShouldNotBeNull();
     }
 }
