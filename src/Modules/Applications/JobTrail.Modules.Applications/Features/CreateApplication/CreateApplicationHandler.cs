@@ -1,3 +1,5 @@
+using JobTrail.Infrastructure.Outbox;
+using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Identity.Contracts;
@@ -63,6 +65,23 @@ internal sealed class CreateApplicationHandler(
 
         dbContext.Applications.Add(application);
         dbContext.ActivityLog.Add(ActivityLogEntry.Created(application.Id, ownerId));
+
+        // Announced in the same SaveChanges as the application itself, so the fact
+        // and the announcement of it commit together. A consumer cannot read this
+        // module's tables to catch up, so a lost event is a fact nobody else ever
+        // learns - hence the outbox rather than in-memory dispatch.
+        dbContext.Outbox.Add(OutboxMessage.For(
+            ApplicationSubmitted.EventType,
+            new ApplicationSubmitted(
+                application.Id,
+                ownerId,
+                application.CampaignId,
+                application.CompanyId,
+                application.AppliedDate,
+                application.Source,
+                application.WorkMode?.ToString(),
+                timeProvider.GetUtcNow())));
+
         await dbContext.SaveChangesAsync(cancellationToken);
 
         // CreatedAt and Stage are database-generated; EF reads them back onto the
