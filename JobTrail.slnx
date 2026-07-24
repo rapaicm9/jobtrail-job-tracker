@@ -34,6 +34,7 @@
     <Project Path="tests/JobTrail.Modules.Applications.Tests/JobTrail.Modules.Applications.Tests.csproj" />
     <Project Path="tests/JobTrail.Modules.Billing.Tests/JobTrail.Modules.Billing.Tests.csproj" />
     <Project Path="tests/JobTrail.Modules.Identity.Tests/JobTrail.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/JobTrail.SharedKernel.Tests/JobTrail.SharedKernel.Tests.csproj" />
   </Folder>
   <Project Path="JobTrail.AppHost/JobTrail.AppHost.csproj" />
 </Solution>

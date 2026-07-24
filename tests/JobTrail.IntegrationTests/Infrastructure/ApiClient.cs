@@ -42,6 +42,12 @@ internal sealed record CompanySummary(Guid Id, string Name);
 internal sealed record MoneyView(decimal Amount, string Currency);
 
 /// <summary>
+/// One page of a list, as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record PageView<T>(IReadOnlyList<T> Items, string? NextCursor);
+
+/// <summary>
 /// An interview round as a client sees it - declared here, not shared with the
 /// module, so a contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -191,8 +197,9 @@ internal static class ApiClient
         this HttpClient client, string? accessToken, Guid id) =>
         client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{id}", accessToken));
 
-    public static Task<HttpResponseMessage> ListApplicationsAsync(this HttpClient client, string? accessToken) =>
-        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/applications", accessToken));
+    public static Task<HttpResponseMessage> ListApplicationsAsync(
+        this HttpClient client, string? accessToken, int? limit = null, string? cursor = null) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/applications" + Paging(limit, cursor), accessToken));
 
     public static Task<HttpResponseMessage> UpdateApplicationAsync(
         this HttpClient client, string? accessToken, Guid id, object body)
@@ -213,7 +220,8 @@ internal static class ApiClient
         client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/contacts/{id}", accessToken));
 
     public static Task<HttpResponseMessage> ListContactsAsync(
-        this HttpClient client, string? accessToken, Guid? applicationId = null, Guid? companyId = null)
+        this HttpClient client, string? accessToken, Guid? applicationId = null, Guid? companyId = null,
+        int? limit = null, string? cursor = null)
     {
         var query = new List<string>();
         if (applicationId is { } appId)
@@ -224,6 +232,16 @@ internal static class ApiClient
         if (companyId is { } companyIdValue)
         {
             query.Add($"companyId={companyIdValue}");
+        }
+
+        if (limit is { } requested)
+        {
+            query.Add($"limit={requested}");
+        }
+
+        if (cursor is not null)
+        {
+            query.Add($"cursor={Uri.EscapeDataString(cursor)}");
         }
 
         var uri = "/api/v1/contacts" + (query.Count > 0 ? "?" + string.Join('&', query) : string.Empty);
@@ -252,8 +270,11 @@ internal static class ApiClient
             HttpMethod.Get, $"/api/v1/applications/{applicationId}/interviews/{interviewId}", accessToken));
 
     public static Task<HttpResponseMessage> ListInterviewsAsync(
-        this HttpClient client, string? accessToken, Guid applicationId) =>
-        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{applicationId}/interviews", accessToken));
+        this HttpClient client, string? accessToken, Guid applicationId, int? limit = null, string? cursor = null) =>
+        client.SendAsync(Authorized(
+            HttpMethod.Get,
+            $"/api/v1/applications/{applicationId}/interviews" + Paging(limit, cursor),
+            accessToken));
 
     public static Task<HttpResponseMessage> UpdateInterviewAsync(
         this HttpClient client, string? accessToken, Guid applicationId, Guid interviewId, object body)
@@ -273,8 +294,28 @@ internal static class ApiClient
     }
 
     public static Task<HttpResponseMessage> GetActivityAsync(
-        this HttpClient client, string? accessToken, Guid applicationId) =>
-        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{applicationId}/activity", accessToken));
+        this HttpClient client, string? accessToken, Guid applicationId, int? limit = null, string? cursor = null) =>
+        client.SendAsync(Authorized(
+            HttpMethod.Get,
+            $"/api/v1/applications/{applicationId}/activity" + Paging(limit, cursor),
+            accessToken));
+
+    /// <summary>The paging query string, or nothing when neither parameter is being exercised.</summary>
+    private static string Paging(int? limit, string? cursor)
+    {
+        var query = new List<string>();
+        if (limit is { } requested)
+        {
+            query.Add($"limit={requested}");
+        }
+
+        if (cursor is not null)
+        {
+            query.Add($"cursor={Uri.EscapeDataString(cursor)}");
+        }
+
+        return query.Count > 0 ? "?" + string.Join('&', query) : string.Empty;
+    }
 
     public static Task<HttpResponseMessage> TransitionApplicationAsync(
         this HttpClient client, string? accessToken, Guid id, string? targetStage)
@@ -342,14 +383,13 @@ internal static class ApiClient
         return application.ShouldNotBeNull();
     }
 
+    /// <summary>
+    /// The rows of a page, for the tests that care about content rather than
+    /// paging; <see cref="ReadPageAsync{T}"/> is the one that also sees the cursor.
+    /// </summary>
     public static async Task<IReadOnlyList<ApplicationSummaryView>> ReadApplicationListAsync(
-        this HttpResponseMessage response)
-    {
-        response.IsSuccessStatusCode.ShouldBeTrue(
-            $"expected a success status but got {(int)response.StatusCode}");
-        var applications = await response.Content.ReadFromJsonAsync<List<ApplicationSummaryView>>();
-        return applications.ShouldNotBeNull();
-    }
+        this HttpResponseMessage response) =>
+        (await response.ReadPageAsync<ApplicationSummaryView>()).Items;
 
     public static async Task<ContactView> ReadContactAsync(this HttpResponseMessage response)
     {
@@ -359,13 +399,8 @@ internal static class ApiClient
         return contact.ShouldNotBeNull();
     }
 
-    public static async Task<IReadOnlyList<ContactView>> ReadContactListAsync(this HttpResponseMessage response)
-    {
-        response.IsSuccessStatusCode.ShouldBeTrue(
-            $"expected a success status but got {(int)response.StatusCode}");
-        var contacts = await response.Content.ReadFromJsonAsync<List<ContactView>>();
-        return contacts.ShouldNotBeNull();
-    }
+    public static async Task<IReadOnlyList<ContactView>> ReadContactListAsync(this HttpResponseMessage response) =>
+        (await response.ReadPageAsync<ContactView>()).Items;
 
     public static async Task<ActivityEntryView> ReadActivityEntryAsync(this HttpResponseMessage response)
     {
@@ -375,13 +410,8 @@ internal static class ApiClient
         return entry.ShouldNotBeNull();
     }
 
-    public static async Task<IReadOnlyList<ActivityEntryView>> ReadActivityAsync(this HttpResponseMessage response)
-    {
-        response.IsSuccessStatusCode.ShouldBeTrue(
-            $"expected a success status but got {(int)response.StatusCode}");
-        var entries = await response.Content.ReadFromJsonAsync<List<ActivityEntryView>>();
-        return entries.ShouldNotBeNull();
-    }
+    public static async Task<IReadOnlyList<ActivityEntryView>> ReadActivityAsync(this HttpResponseMessage response) =>
+        (await response.ReadPageAsync<ActivityEntryView>()).Items;
 
     public static async Task<InterviewView> ReadInterviewAsync(this HttpResponseMessage response)
     {
@@ -391,11 +421,16 @@ internal static class ApiClient
         return interview.ShouldNotBeNull();
     }
 
-    public static async Task<IReadOnlyList<InterviewView>> ReadInterviewListAsync(this HttpResponseMessage response)
+    public static async Task<IReadOnlyList<InterviewView>> ReadInterviewListAsync(
+        this HttpResponseMessage response) =>
+        (await response.ReadPageAsync<InterviewView>()).Items;
+
+    /// <summary>One page of any list, cursor included.</summary>
+    public static async Task<PageView<T>> ReadPageAsync<T>(this HttpResponseMessage response)
     {
         response.IsSuccessStatusCode.ShouldBeTrue(
             $"expected a success status but got {(int)response.StatusCode}");
-        var interviews = await response.Content.ReadFromJsonAsync<List<InterviewView>>();
-        return interviews.ShouldNotBeNull();
+        var page = await response.Content.ReadFromJsonAsync<PageView<T>>();
+        return page.ShouldNotBeNull();
     }
 }

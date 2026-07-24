@@ -96,9 +96,12 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
                 .HasForeignKey(a => a.CompanyId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // A user's applications, read back by owner - the access path every
-            // ownership-scoped query takes. Non-unique: a user has many.
-            application.HasIndex(a => a.OwnerId);
+            // A user's applications, read back by owner in the list's own order -
+            // the access path every ownership-scoped query takes, and the one the
+            // cursor walks. Ascending: the list reads newest-first, which Postgres
+            // serves by scanning this backwards. Owner alone is the leading column,
+            // so plain "this user's applications" is served too.
+            application.HasIndex(a => new { a.OwnerId, a.AppliedDate, a.Id });
 
             // Support the foreign keys and the "applications in this campaign / at
             // this company" reads that follow them.
@@ -158,8 +161,9 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
                 .HasForeignKey(e => e.ApplicationId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Read back by application (the timeline) and by owner (erasure).
-            entry.HasIndex(e => e.ApplicationId);
+            // Read back by application in the timeline's own order, and by owner
+            // for erasure. The timeline reads newest-first off a backward scan.
+            entry.HasIndex(e => new { e.ApplicationId, e.CreatedAt, e.Id });
             entry.HasIndex(e => e.OwnerId);
         });
 
@@ -188,9 +192,10 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
                 .HasForeignKey(c => c.CompanyId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Read back by owner (the list and erasure), and by each link for the
-            // filtered list and the foreign keys.
-            contact.HasIndex(c => c.OwnerId);
+            // Read back by owner in the list's own order - name, then id to break
+            // the ties names have - and by each link for the filtered list and the
+            // foreign keys.
+            contact.HasIndex(c => new { c.OwnerId, c.Name, c.Id });
             contact.HasIndex(c => c.ApplicationId);
             contact.HasIndex(c => c.CompanyId);
         });
@@ -214,8 +219,9 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
                 .HasForeignKey(i => i.ApplicationId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Read back by application (the round list) and by owner (erasure).
-            interview.HasIndex(i => i.ApplicationId);
+            // Read back by application in the round list's own order, and by owner
+            // for erasure.
+            interview.HasIndex(i => new { i.ApplicationId, i.ScheduledAt, i.Id });
             interview.HasIndex(i => i.OwnerId);
         });
     }
