@@ -131,6 +131,14 @@ internal static class ApiClient
         this HttpClient client, string? accessToken, Guid id) =>
         client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{id}", accessToken));
 
+    public static Task<HttpResponseMessage> TransitionApplicationAsync(
+        this HttpClient client, string? accessToken, Guid id, string? targetStage)
+    {
+        var request = Authorized(HttpMethod.Post, $"/api/v1/applications/{id}/transition", accessToken);
+        request.Content = JsonContent.Create(new { targetStage });
+        return client.SendAsync(request);
+    }
+
     private static HttpRequestMessage Authorized(HttpMethod method, string uri, string? accessToken)
     {
         var request = new HttpRequestMessage(method, uri);

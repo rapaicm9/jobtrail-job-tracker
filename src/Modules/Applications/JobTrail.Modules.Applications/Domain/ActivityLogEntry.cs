@@ -55,4 +55,19 @@ internal sealed class ActivityLogEntry
         Kind = ActivityKind.Created,
         ToStage = Stage.Applied,
     };
+
+    /// <summary>
+    /// The entry marking a stage change, carrying both ends and its kind straight
+    /// from the accepted <see cref="StageTransition"/> - so the timeline records
+    /// not just that the application moved, but how (an advance, a reopen, …).
+    /// </summary>
+    public static ActivityLogEntry ForStageChange(Guid applicationId, UserId ownerId, StageTransition transition) => new()
+    {
+        ApplicationId = applicationId,
+        OwnerId = ownerId,
+        Kind = ActivityKind.StageChanged,
+        FromStage = transition.From,
+        ToStage = transition.To,
+        TransitionKind = transition.Kind,
+    };
 }
