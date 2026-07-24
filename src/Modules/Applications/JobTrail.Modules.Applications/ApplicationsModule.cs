@@ -1,5 +1,8 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Applications.Features;
+using JobTrail.Modules.Applications.Features.CreateApplication;
+using JobTrail.Modules.Applications.Features.GetApplication;
 using JobTrail.Modules.Applications.Features.ProvisionCampaign;
 using JobTrail.Modules.Applications.Features.SearchCompanies;
 using JobTrail.Modules.Applications.Persistence;
@@ -37,6 +40,9 @@ public static class ApplicationsModule
         builder.Services.AddEventHandler<UserRegistered, CampaignProvisioningHandler>();
 
         builder.Services.AddScoped<SearchCompaniesHandler>();
+        builder.Services.AddScoped<CompanyResolver>();
+        builder.Services.AddScoped<CreateApplicationHandler>();
+        builder.Services.AddScoped<GetApplicationHandler>();
 
         return builder;
     }
@@ -52,5 +58,9 @@ public static class ApplicationsModule
     {
         var companies = api.MapGroup("/companies");
         SearchCompaniesEndpoint.Map(companies);
+
+        var applications = api.MapGroup("/applications");
+        CreateApplicationEndpoint.Map(applications);
+        GetApplicationEndpoint.Map(applications);
     }
 }

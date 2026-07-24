@@ -21,6 +21,8 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
 
     public DbSet<Company> Companies => Set<Company>();
 
+    public DbSet<ActivityLogEntry> ActivityLog => Set<ActivityLogEntry>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
         // Owner columns carry the strongly-typed id and store as uuid; one place,
         // so no property has to remember to opt in.
@@ -127,6 +129,31 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
 
             // A user's companies, read back by owner for the type-ahead picker.
             company.HasIndex(c => c.OwnerId);
+        });
+
+        builder.Entity<ActivityLogEntry>(entry =>
+        {
+            entry.HasKey(e => e.Id);
+            entry.Property(e => e.Id).HasDefaultValueSql("uuidv7()");
+            entry.Property(e => e.CreatedAt).HasDefaultValueSql("now()");
+
+            // The kind and the two stage ends store as their names, like the
+            // application's own stage - the timeline reads for itself.
+            entry.Property(e => e.Kind).HasConversion<string>().HasMaxLength(16).IsRequired();
+            entry.Property(e => e.FromStage).HasConversion<string>().HasMaxLength(16);
+            entry.Property(e => e.ToStage).HasConversion<string>().HasMaxLength(16);
+            entry.Property(e => e.TransitionKind).HasConversion<string>().HasMaxLength(16);
+
+            // A child of its application: deleting the application takes its whole
+            // timeline with it, so no orphan rows survive.
+            entry.HasOne<Application>()
+                .WithMany()
+                .HasForeignKey(e => e.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Read back by application (the timeline) and by owner (erasure).
+            entry.HasIndex(e => e.ApplicationId);
+            entry.HasIndex(e => e.OwnerId);
         });
     }
 }
