@@ -19,10 +19,66 @@ internal sealed class Application
     public UserId OwnerId { get; set; }
 
     /// <summary>
+    /// The campaign this application lives in. Required - every application belongs
+    /// to exactly one, and a Free account's is the auto-created default. A real
+    /// foreign key within this schema (restricted on delete, so a campaign holding
+    /// applications can't simply vanish).
+    /// </summary>
+    public Guid CampaignId { get; set; }
+
+    /// <summary>
+    /// The company applied to, if one is attached - a reusable <see cref="Company"/>
+    /// chosen from the picker. Optional (a role can be recorded before its company
+    /// is), and a foreign key within this schema that nulls out if the company is
+    /// later removed, leaving the application intact.
+    /// </summary>
+    public Guid? CompanyId { get; set; }
+
+    /// <summary>
     /// Where the application sits in the pipeline. Starts at <see cref="Stage.Applied"/>
     /// - v1 has no earlier stage - and moves only via <see cref="TransitionTo"/>.
     /// </summary>
     public Stage Stage { get; private set; } = Stage.Applied;
+
+    /// <summary>The role or job title applied for. The one required built-in field.</summary>
+    public required string Role { get; set; }
+
+    /// <summary>
+    /// Compensation as an amount plus its currency - multi-currency, no FX
+    /// conversion in v1. Null when the user hasn't recorded any.
+    /// </summary>
+    public Money? Compensation { get; set; }
+
+    /// <summary>Free-text location; structured locations are a v2 concern.</summary>
+    public string? Location { get; set; }
+
+    /// <summary>Onsite / hybrid / remote, if stated. Feeds Pro work-mode breakdowns.</summary>
+    public WorkMode? WorkMode { get; set; }
+
+    /// <summary>The job posting's URL. Stored only, never fetched.</summary>
+    public string? PostingUrl { get; set; }
+
+    /// <summary>Where the application came from (e.g. LinkedIn, referral); feeds Pro breakdowns.</summary>
+    public string? Source { get; set; }
+
+    /// <summary>The date the user applied. Basis for time-based analytics; set at creation.</summary>
+    public DateOnly AppliedDate { get; set; }
+
+    /// <summary>The posting's application deadline, if any. Drives a reminder.</summary>
+    public DateOnly? ApplicationDeadline { get; set; }
+
+    /// <summary>
+    /// The deadline to decide on an offer. Only meaningful once an offer is on the
+    /// table, so it stays null for the applications that never reach <see cref="Stage.Offer"/>.
+    /// Drives the offer-decision reminder.
+    /// </summary>
+    public DateOnly? OfferDecisionDeadline { get; set; }
+
+    /// <summary>Free-text label for the CV version used; file history is a v2 concern.</summary>
+    public string? CvLabel { get; set; }
+
+    /// <summary>Free-text label for the cover-letter version used; as with <see cref="CvLabel"/>.</summary>
+    public string? CoverLetterLabel { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
 
