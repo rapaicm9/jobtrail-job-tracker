@@ -22,6 +22,16 @@ internal static class Problems
             statusCode: StatusOf(error.Type),
             extensions: new Dictionary<string, object?> { ["code"] = error.Code });
 
+    /// <summary>
+    /// Field-keyed request-validation failures as a 422 - not the framework's
+    /// default 400.
+    /// </summary>
+    public static ProblemHttpResult Validation(IDictionary<string, string[]> errors) =>
+        TypedResults.Problem(new HttpValidationProblemDetails(errors)
+        {
+            Status = StatusCodes.Status422UnprocessableEntity,
+        });
+
     private static int StatusOf(ErrorType type) => type switch
     {
         ErrorType.Validation => StatusCodes.Status422UnprocessableEntity,

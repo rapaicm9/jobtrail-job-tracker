@@ -38,6 +38,32 @@ internal sealed record PlanStatus(string Tier, DateTimeOffset? UpdatedAt);
 /// </summary>
 internal sealed record CompanySummary(Guid Id, string Name);
 
+/// <summary>A compensation amount and currency, as a client sees it.</summary>
+internal sealed record MoneyView(decimal Amount, string Currency);
+
+/// <summary>
+/// An application as a client sees it - declared here, not shared with the module,
+/// so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record ApplicationView(
+    Guid Id,
+    Guid CampaignId,
+    Guid? CompanyId,
+    string Stage,
+    string Role,
+    MoneyView? Compensation,
+    string? Location,
+    string? WorkMode,
+    string? PostingUrl,
+    string? Source,
+    DateOnly AppliedDate,
+    DateOnly? ApplicationDeadline,
+    DateOnly? OfferDecisionDeadline,
+    string? CvLabel,
+    string? CoverLetterLabel,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
 internal static class ApiClient
 {
     public const string Password = "Correct-horse7";
@@ -93,6 +119,18 @@ internal static class ApiClient
             $"/api/v1/companies?query={Uri.EscapeDataString(query ?? string.Empty)}",
             accessToken));
 
+    public static Task<HttpResponseMessage> CreateApplicationAsync(
+        this HttpClient client, string? accessToken, object body)
+    {
+        var request = Authorized(HttpMethod.Post, "/api/v1/applications", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> GetApplicationAsync(
+        this HttpClient client, string? accessToken, Guid id) =>
+        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{id}", accessToken));
+
     private static HttpRequestMessage Authorized(HttpMethod method, string uri, string? accessToken)
     {
         var request = new HttpRequestMessage(method, uri);
@@ -141,5 +179,13 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var companies = await response.Content.ReadFromJsonAsync<List<CompanySummary>>();
         return companies.ShouldNotBeNull();
+    }
+
+    public static async Task<ApplicationView> ReadApplicationAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var application = await response.Content.ReadFromJsonAsync<ApplicationView>();
+        return application.ShouldNotBeNull();
     }
 }
