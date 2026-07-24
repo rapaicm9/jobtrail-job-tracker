@@ -103,7 +103,7 @@ public sealed class StageTransitionTests
 
     [Fact]
     public void An_application_starts_at_Applied() =>
-        new Application().Stage.ShouldBe(Stage.Applied);
+        NewApplication().Stage.ShouldBe(Stage.Applied);
 
     [Theory]
     [InlineData(nameof(Stage.Rejected))]
@@ -113,7 +113,7 @@ public sealed class StageTransitionTests
     {
         // The common real path: most applications never advance, they go straight
         // from Applied to Rejected or Ghosted.
-        var application = new Application();
+        var application = NewApplication();
 
         var result = application.TransitionTo(Parse(terminal), MoveTime);
 
@@ -177,6 +177,13 @@ public sealed class StageTransitionTests
     private static Stage Parse(string name) => Enum.Parse<Stage>(name);
 
     /// <summary>
+    /// A minimally-valid application. <c>Role</c> is the one required built-in
+    /// field; these tests only exercise the <see cref="Stage"/> machine, so its
+    /// value is immaterial.
+    /// </summary>
+    private static Application NewApplication() => new() { Role = "Backend Engineer" };
+
+    /// <summary>
     /// Puts a fresh application into <paramref name="stage"/> by the shortest legal
     /// path from Applied - the only way in, since Stage has no public setter. Every
     /// step used here is itself asserted legal by
@@ -184,7 +191,7 @@ public sealed class StageTransitionTests
     /// </summary>
     private static Application ArrangeAt(Stage stage)
     {
-        var application = new Application();
+        var application = NewApplication();
         foreach (var step in PathFromApplied(stage))
         {
             application.TransitionTo(step, ArrangeTime).IsSuccess.ShouldBeTrue(
