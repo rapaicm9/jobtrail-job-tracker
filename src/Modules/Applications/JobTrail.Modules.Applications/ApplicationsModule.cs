@@ -3,15 +3,19 @@ using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Features.CreateApplication;
 using JobTrail.Modules.Applications.Features.CreateContact;
+using JobTrail.Modules.Applications.Features.CreateInterview;
 using JobTrail.Modules.Applications.Features.GetApplication;
 using JobTrail.Modules.Applications.Features.GetContact;
+using JobTrail.Modules.Applications.Features.GetInterview;
 using JobTrail.Modules.Applications.Features.ListApplications;
 using JobTrail.Modules.Applications.Features.ListContacts;
+using JobTrail.Modules.Applications.Features.ListInterviews;
 using JobTrail.Modules.Applications.Features.ProvisionCampaign;
 using JobTrail.Modules.Applications.Features.SearchCompanies;
 using JobTrail.Modules.Applications.Features.TransitionApplication;
 using JobTrail.Modules.Applications.Features.UpdateApplication;
 using JobTrail.Modules.Applications.Features.UpdateContact;
+using JobTrail.Modules.Applications.Features.UpdateInterview;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Identity.Contracts;
 using Microsoft.AspNetCore.Builder;
@@ -61,6 +65,11 @@ public static class ApplicationsModule
         builder.Services.AddScoped<ListContactsHandler>();
         builder.Services.AddScoped<UpdateContactHandler>();
 
+        builder.Services.AddScoped<CreateInterviewHandler>();
+        builder.Services.AddScoped<GetInterviewHandler>();
+        builder.Services.AddScoped<ListInterviewsHandler>();
+        builder.Services.AddScoped<UpdateInterviewHandler>();
+
         return builder;
     }
 
@@ -89,5 +98,12 @@ public static class ApplicationsModule
         CreateContactEndpoint.Map(contacts);
         GetContactEndpoint.Map(contacts);
         UpdateContactEndpoint.Map(contacts);
+
+        // Interviews live under their application - a round has no life apart from it.
+        var interviews = api.MapGroup("/applications/{applicationId:guid}/interviews");
+        ListInterviewsEndpoint.Map(interviews);
+        CreateInterviewEndpoint.Map(interviews);
+        GetInterviewEndpoint.Map(interviews);
+        UpdateInterviewEndpoint.Map(interviews);
     }
 }

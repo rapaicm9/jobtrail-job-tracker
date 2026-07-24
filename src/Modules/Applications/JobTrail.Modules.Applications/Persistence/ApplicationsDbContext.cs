@@ -25,6 +25,8 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
 
     public DbSet<Contact> Contacts => Set<Contact>();
 
+    public DbSet<Interview> Interviews => Set<Interview>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
         // Owner columns carry the strongly-typed id and store as uuid; one place,
         // so no property has to remember to opt in.
@@ -188,6 +190,30 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             contact.HasIndex(c => c.OwnerId);
             contact.HasIndex(c => c.ApplicationId);
             contact.HasIndex(c => c.CompanyId);
+        });
+
+        builder.Entity<Interview>(interview =>
+        {
+            interview.HasKey(i => i.Id);
+            interview.Property(i => i.Id).HasDefaultValueSql("uuidv7()");
+            interview.Property(i => i.CreatedAt).HasDefaultValueSql("now()");
+
+            interview.Property(i => i.Type).HasConversion<string>().HasMaxLength(16).IsRequired();
+            interview.Property(i => i.Format).HasConversion<string>().HasMaxLength(16).IsRequired();
+            interview.Property(i => i.Outcome).HasConversion<string>().HasMaxLength(16).IsRequired();
+            interview.Property(i => i.Notes).HasMaxLength(2000);
+
+            // A child of its application: deleting the application takes its rounds
+            // with it. The application link is required - a round has no meaning
+            // apart from the application it is on.
+            interview.HasOne<Application>()
+                .WithMany()
+                .HasForeignKey(i => i.ApplicationId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Read back by application (the round list) and by owner (erasure).
+            interview.HasIndex(i => i.ApplicationId);
+            interview.HasIndex(i => i.OwnerId);
         });
     }
 }
