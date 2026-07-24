@@ -148,6 +148,9 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             entry.Property(e => e.ToStage).HasConversion<string>().HasMaxLength(16);
             entry.Property(e => e.TransitionKind).HasConversion<string>().HasMaxLength(16);
 
+            // A manual note's text; null on the automatic entries.
+            entry.Property(e => e.Note).HasMaxLength(2000);
+
             // A child of its application: deleting the application takes its whole
             // timeline with it, so no orphan rows survive.
             entry.HasOne<Application>()
