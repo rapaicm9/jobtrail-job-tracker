@@ -1,8 +1,5 @@
 namespace JobTrail.Modules.Applications.Features.CreateApplication;
 
-/// <summary>A compensation amount paired with its currency code, as a client sends it.</summary>
-internal sealed record MoneyRequest(decimal Amount, string? Currency);
-
 /// <summary>
 /// The fields a client supplies to open an application. The pipeline stage is not
 /// among them - a new application always starts at <c>Applied</c> - and neither is
@@ -24,4 +21,4 @@ internal sealed record CreateApplicationRequest(
     DateOnly? AppliedDate,
     DateOnly? ApplicationDeadline,
     string? CvLabel,
-    string? CoverLetterLabel);
+    string? CoverLetterLabel) : IApplicationFields;

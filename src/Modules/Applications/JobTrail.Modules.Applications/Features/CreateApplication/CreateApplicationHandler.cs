@@ -50,15 +50,15 @@ internal sealed class CreateApplicationHandler(
             CampaignId = campaignId.Value,
             CompanyId = company.Value,
             Role = request.Role!.Trim(),
-            Compensation = ToMoney(request.Compensation),
-            Location = Clean(request.Location),
-            WorkMode = ParseWorkMode(request.WorkMode),
-            PostingUrl = Clean(request.PostingUrl),
-            Source = Clean(request.Source),
+            Compensation = ApplicationFieldMapping.ToMoney(request.Compensation),
+            Location = ApplicationFieldMapping.Clean(request.Location),
+            WorkMode = ApplicationFieldMapping.ParseWorkMode(request.WorkMode),
+            PostingUrl = ApplicationFieldMapping.Clean(request.PostingUrl),
+            Source = ApplicationFieldMapping.Clean(request.Source),
             AppliedDate = request.AppliedDate ?? await ResolveLocalTodayAsync(ownerId, cancellationToken),
             ApplicationDeadline = request.ApplicationDeadline,
-            CvLabel = Clean(request.CvLabel),
-            CoverLetterLabel = Clean(request.CoverLetterLabel),
+            CvLabel = ApplicationFieldMapping.Clean(request.CvLabel),
+            CoverLetterLabel = ApplicationFieldMapping.Clean(request.CoverLetterLabel),
         };
 
         dbContext.Applications.Add(application);
@@ -78,18 +78,5 @@ internal sealed class CreateApplicationHandler(
         return timezoneId is not null && TimeZoneInfo.TryFindSystemTimeZoneById(timezoneId, out var timezone)
             ? DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(nowUtc, timezone).DateTime)
             : DateOnly.FromDateTime(nowUtc.UtcDateTime);
-    }
-
-    private static Money? ToMoney(MoneyRequest? compensation) =>
-        compensation is null ? null : new Money(compensation.Amount, compensation.Currency!.ToUpperInvariant());
-
-    private static WorkMode? ParseWorkMode(string? workMode) =>
-        workMode is null ? null : Enum.Parse<WorkMode>(workMode, ignoreCase: true);
-
-    /// <summary>Trims a free-text field and treats blank as absent, so no field stores "".</summary>
-    private static string? Clean(string? value)
-    {
-        var trimmed = value?.Trim();
-        return string.IsNullOrEmpty(trimmed) ? null : trimmed;
     }
 }
