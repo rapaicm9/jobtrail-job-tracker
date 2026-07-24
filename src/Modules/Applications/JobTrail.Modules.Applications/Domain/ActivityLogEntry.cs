@@ -10,17 +10,20 @@ internal enum ActivityKind
 
     /// <summary>The application moved between stages - the from/to and its kind are carried.</summary>
     StageChanged,
+
+    /// <summary>The user wrote a note against the application; the text is carried.</summary>
+    Note,
 }
 
 /// <summary>
-/// One append-only row on an application's timeline. This slice writes the
-/// automatic entries - the application's creation, and (next slice) each stage
-/// change - so the history is captured from the first write; manual user notes
-/// join later. Construction goes through the factories so every entry is
+/// One append-only row on an application's timeline: the automatic entries - the
+/// application's creation and each stage change - alongside the notes the user
+/// writes by hand. Construction goes through the factories so every entry is
 /// internally consistent (a <see cref="ActivityKind.Created"/> entry only ever
-/// carries the entry stage, a stage change always carries both ends). The row is
-/// a child of its <see cref="ApplicationId"/> and is cascade-deleted with it;
-/// <see cref="OwnerId"/> is carried for erasure and the owner-scoped timeline read.
+/// carries the entry stage, a stage change always carries both ends, a note only
+/// its text). The row is a child of its <see cref="ApplicationId"/> and is
+/// cascade-deleted with it; <see cref="OwnerId"/> is carried for erasure and the
+/// owner-scoped timeline read.
 /// </summary>
 internal sealed class ActivityLogEntry
 {
@@ -44,6 +47,12 @@ internal sealed class ActivityLogEntry
 
     /// <summary>How a stage change related to the pipeline; null for a creation entry.</summary>
     public TransitionKind? TransitionKind { get; private set; }
+
+    /// <summary>
+    /// What the user wrote; null on the automatic entries. Free text the user
+    /// typed about their own job search - it stays out of logs and events.
+    /// </summary>
+    public string? Note { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -69,5 +78,18 @@ internal sealed class ActivityLogEntry
         FromStage = transition.From,
         ToStage = transition.To,
         TransitionKind = transition.Kind,
+    };
+
+    /// <summary>
+    /// A note the user wrote against the application - the one entry a client
+    /// creates directly, carrying no stages because nothing moved. Named for what
+    /// it builds rather than <c>Note</c>, which the text itself already takes.
+    /// </summary>
+    public static ActivityLogEntry ForNote(Guid applicationId, UserId ownerId, string note) => new()
+    {
+        ApplicationId = applicationId,
+        OwnerId = ownerId,
+        Kind = ActivityKind.Note,
+        Note = note,
     };
 }

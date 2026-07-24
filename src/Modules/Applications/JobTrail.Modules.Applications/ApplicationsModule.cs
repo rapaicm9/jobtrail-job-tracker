@@ -1,9 +1,11 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Applications.Features;
+using JobTrail.Modules.Applications.Features.AddNote;
 using JobTrail.Modules.Applications.Features.CreateApplication;
 using JobTrail.Modules.Applications.Features.CreateContact;
 using JobTrail.Modules.Applications.Features.CreateInterview;
+using JobTrail.Modules.Applications.Features.GetActivity;
 using JobTrail.Modules.Applications.Features.GetApplication;
 using JobTrail.Modules.Applications.Features.GetContact;
 using JobTrail.Modules.Applications.Features.GetInterview;
@@ -70,16 +72,19 @@ public static class ApplicationsModule
         builder.Services.AddScoped<ListInterviewsHandler>();
         builder.Services.AddScoped<UpdateInterviewHandler>();
 
+        builder.Services.AddScoped<AddNoteHandler>();
+        builder.Services.AddScoped<GetActivityHandler>();
+
         return builder;
     }
 
     /// <summary>
     /// Maps the Applications module's authenticated slices onto the host's
     /// versioned API group. The module owns several top-level resources, so this
-    /// mounts each on its own group (<c>/companies</c>, <c>/applications</c>,
-    /// <c>/contacts</c> now; the interview group is nested under an application as
-    /// its slices land) - it is the module's endpoints, not one route. Takes the
-    /// host's general per-IP budget.
+    /// mounts each on its own group - the top-level <c>/companies</c>,
+    /// <c>/applications</c> and <c>/contacts</c>, plus the interviews and timeline
+    /// nested under an application, since neither has a life apart from it. It is
+    /// the module's endpoints, not one route. Takes the host's general per-IP budget.
     /// </summary>
     public static void MapApplicationsEndpoints(this IEndpointRouteBuilder api)
     {
@@ -105,5 +110,10 @@ public static class ApplicationsModule
         CreateInterviewEndpoint.Map(interviews);
         GetInterviewEndpoint.Map(interviews);
         UpdateInterviewEndpoint.Map(interviews);
+
+        // The application's timeline, read whole and appended to a note at a time.
+        var activity = api.MapGroup("/applications/{applicationId:guid}/activity");
+        GetActivityEndpoint.Map(activity);
+        AddNoteEndpoint.Map(activity);
     }
 }

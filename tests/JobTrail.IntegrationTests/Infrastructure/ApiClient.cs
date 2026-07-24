@@ -57,6 +57,19 @@ internal sealed record InterviewView(
     DateTimeOffset? UpdatedAt);
 
 /// <summary>
+/// A timeline entry as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record ActivityEntryView(
+    Guid Id,
+    string Kind,
+    DateTimeOffset OccurredAt,
+    string? FromStage,
+    string? ToStage,
+    string? TransitionKind,
+    string? Note);
+
+/// <summary>
 /// A contact as a client sees it - declared here, not shared with the module, so a
 /// contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -251,6 +264,18 @@ internal static class ApiClient
         return client.SendAsync(request);
     }
 
+    public static Task<HttpResponseMessage> AddNoteAsync(
+        this HttpClient client, string? accessToken, Guid applicationId, object body)
+    {
+        var request = Authorized(HttpMethod.Post, $"/api/v1/applications/{applicationId}/activity", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> GetActivityAsync(
+        this HttpClient client, string? accessToken, Guid applicationId) =>
+        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{applicationId}/activity", accessToken));
+
     public static Task<HttpResponseMessage> TransitionApplicationAsync(
         this HttpClient client, string? accessToken, Guid id, string? targetStage)
     {
@@ -340,6 +365,22 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var contacts = await response.Content.ReadFromJsonAsync<List<ContactView>>();
         return contacts.ShouldNotBeNull();
+    }
+
+    public static async Task<ActivityEntryView> ReadActivityEntryAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var entry = await response.Content.ReadFromJsonAsync<ActivityEntryView>();
+        return entry.ShouldNotBeNull();
+    }
+
+    public static async Task<IReadOnlyList<ActivityEntryView>> ReadActivityAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var entries = await response.Content.ReadFromJsonAsync<List<ActivityEntryView>>();
+        return entries.ShouldNotBeNull();
     }
 
     public static async Task<InterviewView> ReadInterviewAsync(this HttpResponseMessage response)
