@@ -1,5 +1,7 @@
 using JobTrail.Infrastructure.Events;
+using JobTrail.Infrastructure.Outbox;
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Features.AddNote;
 using JobTrail.Modules.Applications.Features.CreateApplication;
@@ -24,6 +26,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace JobTrail.Modules.Applications;
@@ -51,6 +54,16 @@ public static class ApplicationsModule
 
         // Every new account gets its default campaign, off Identity's UserRegistered.
         builder.Services.AddEventHandler<UserRegistered, CampaignProvisioningHandler>();
+
+        // The clock every handler here dates its writes by. Registered defensively:
+        // the module should stand up whether or not another one got here first.
+        builder.Services.TryAddSingleton(TimeProvider.System);
+
+        // What this module owes other modules, delivered durably. A consumer that
+        // misses one of these cannot catch up by reading our tables, so the event
+        // is recorded with the change and delivered until its handlers succeed.
+        builder.AddOutboxDispatcher<ApplicationsDbContext>(registry =>
+            registry.Register<ApplicationSubmitted>(ApplicationSubmitted.EventType));
 
         builder.Services.AddScoped<SearchCompaniesHandler>();
         builder.Services.AddScoped<CompanyResolver>();

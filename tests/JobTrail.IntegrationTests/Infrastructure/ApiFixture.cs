@@ -61,6 +61,9 @@ public sealed class ApiFixture : IAsyncLifetime
         // gets throttled; the throttling test dials its own down.
         ["RateLimiting:GlobalPermitLimit"] = "10000",
         ["RateLimiting:AuthPermitLimit"] = "10000",
+        // The outbox dispatcher runs for real here; polling faster than production
+        // keeps the tests that wait on a delivery short without changing what runs.
+        ["Outbox:PollIntervalMs"] = "150",
     };
 
     public async ValueTask InitializeAsync()

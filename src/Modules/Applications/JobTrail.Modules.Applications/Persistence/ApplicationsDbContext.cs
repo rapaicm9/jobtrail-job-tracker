@@ -1,3 +1,4 @@
+using JobTrail.Infrastructure.Outbox;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.SharedKernel;
@@ -26,6 +27,13 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
     public DbSet<Contact> Contacts => Set<Contact>();
 
     public DbSet<Interview> Interviews => Set<Interview>();
+
+    /// <summary>
+    /// Events this module owes other modules. It lives here, in this module's
+    /// store, so a row is written in the same transaction as the change it
+    /// announces - which is the only reason the outbox works at all.
+    /// </summary>
+    public DbSet<OutboxMessage> Outbox => Set<OutboxMessage>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
         // Owner columns carry the strongly-typed id and store as uuid; one place,
@@ -223,6 +231,29 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             // for erasure.
             interview.HasIndex(i => new { i.ApplicationId, i.ScheduledAt, i.Id });
             interview.HasIndex(i => i.OwnerId);
+        });
+
+        builder.Entity<OutboxMessage>(message =>
+        {
+            // "outbox" rather than the convention's plural: it is one queue, and
+            // that is what it is called everywhere it is discussed.
+            message.ToTable("outbox");
+
+            message.HasKey(m => m.Id);
+            message.Property(m => m.Id).HasDefaultValueSql("uuidv7()");
+            message.Property(m => m.OccurredAt).HasDefaultValueSql("now()");
+
+            message.Property(m => m.EventType).HasMaxLength(OutboxMessage.MaxEventTypeLength).IsRequired();
+            message.Property(m => m.Error).HasMaxLength(OutboxMessage.MaxErrorLength);
+
+            // jsonb rather than text: the payload is a document, and storing it as
+            // one keeps it queryable when a delivery has to be explained.
+            message.Property(m => m.Payload).HasColumnType("jsonb").IsRequired();
+
+            // The dispatcher only ever reads what is still owed, in the order it
+            // was recorded. A partial index keeps that access path the size of the
+            // backlog rather than the size of the history.
+            message.HasIndex(m => new { m.OccurredAt, m.Id }).HasFilter("processed_at IS NULL");
         });
     }
 }
