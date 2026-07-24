@@ -39,4 +39,13 @@ internal static class ApplicationErrors
     /// </summary>
     public static readonly Error NoDefaultCampaign =
         Error.Failure("application.no_default_campaign", "This account has no default campaign.");
+
+    /// <summary>
+    /// An offer-decision deadline was set on an application that has no offer yet.
+    /// The deadline only means something once the application is at <c>Offer</c>, so
+    /// setting it earlier is a validation failure - a 422.
+    /// </summary>
+    public static readonly Error OfferDeadlineRequiresOffer = Error.Validation(
+        "application.offer_deadline_requires_offer",
+        "An offer-decision deadline can only be set once the application has reached the Offer stage.");
 }
