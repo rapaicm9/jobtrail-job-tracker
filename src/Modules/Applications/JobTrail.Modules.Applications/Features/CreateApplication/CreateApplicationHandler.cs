@@ -66,6 +66,8 @@ internal sealed class CreateApplicationHandler(
         dbContext.Applications.Add(application);
         dbContext.ActivityLog.Add(ActivityLogEntry.Created(application.Id, ownerId));
 
+        var now = timeProvider.GetUtcNow();
+
         // Announced in the same SaveChanges as the application itself, so the fact
         // and the announcement of it commit together. A consumer cannot read this
         // module's tables to catch up, so a lost event is a fact nobody else ever
@@ -80,7 +82,18 @@ internal sealed class CreateApplicationHandler(
                 application.AppliedDate,
                 application.Source,
                 application.WorkMode?.ToString(),
-                timeProvider.GetUtcNow())));
+                now)));
+
+        // A deadline entered while opening the application is a deadline like any
+        // other, and this is the event Notifications schedules from - the submission
+        // does not carry one. Without this, a deadline typed in here would never
+        // reach a reminder.
+        if (application.ApplicationDeadline is not null)
+        {
+            dbContext.Outbox.Add(OutboxMessage.For(
+                new ApplicationDeadlineSet(
+                    Guid.CreateVersion7(), application.Id, ownerId, application.ApplicationDeadline, now)));
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
 

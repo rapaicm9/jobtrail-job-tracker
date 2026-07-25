@@ -101,7 +101,9 @@ public static class ApplicationsModule
             .Register<ApplicationSubmitted>()
             .Register<ApplicationStageChanged>()
             .Register<ApplicationReachedTerminal>()
-            .Register<ApplicationReopened>();
+            .Register<ApplicationReopened>()
+            .Register<ApplicationDeadlineSet>()
+            .Register<OfferDecisionDeadlineSet>();
 
     /// <summary>
     /// Maps the Applications module's authenticated slices onto the host's
