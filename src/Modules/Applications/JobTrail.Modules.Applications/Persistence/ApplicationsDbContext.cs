@@ -254,6 +254,11 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             // was recorded. A partial index keeps that access path the size of the
             // backlog rather than the size of the history.
             message.HasIndex(m => new { m.OccurredAt, m.Id }).HasFilter("processed_at IS NULL");
+
+            // The second way these rows are read: by owner, when a user asks to be
+            // forgotten and the events still owed on their behalf have to go with
+            // the rest of their data. Rare, but it must not scan the backlog.
+            message.HasIndex(m => m.OwnerId);
         });
     }
 }

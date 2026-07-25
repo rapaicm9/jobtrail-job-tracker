@@ -1,3 +1,4 @@
+using JobTrail.SharedKernel;
 using JobTrail.SharedKernel.Events;
 
 namespace JobTrail.Infrastructure.Outbox;
@@ -21,13 +22,22 @@ public sealed class OutboxMessage
     /// <summary>Long enough for a readable event name, short enough to stay an identifier.</summary>
     public const int MaxEventTypeLength = 100;
 
-    private OutboxMessage(string eventType, string payload)
+    private OutboxMessage(string eventType, UserId ownerId, string payload)
     {
         EventType = eventType;
+        OwnerId = ownerId;
         Payload = payload;
     }
 
     public Guid Id { get; private set; }
+
+    /// <summary>
+    /// The user the event concerns, lifted out of the payload and onto the row so
+    /// it can be queried. An owed event is data held about that user: when they
+    /// ask to be forgotten it has to be findable and deletable like everything
+    /// else, and a JSON document is the wrong thing to make that depend on.
+    /// </summary>
+    public UserId OwnerId { get; private set; }
 
     /// <summary>
     /// The stable name the event declares - deliberately not the CLR type name,
@@ -60,7 +70,7 @@ public sealed class OutboxMessage
     /// </summary>
     public static OutboxMessage For<TEvent>(TEvent integrationEvent)
         where TEvent : IOutboxEvent =>
-        new(TEvent.EventType, OutboxSerialization.Serialize(integrationEvent));
+        new(TEvent.EventType, integrationEvent.OwnerId, OutboxSerialization.Serialize(integrationEvent));
 
     internal void MarkProcessed(DateTimeOffset now)
     {
