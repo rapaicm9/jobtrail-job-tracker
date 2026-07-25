@@ -103,7 +103,9 @@ public static class ApplicationsModule
             .Register<ApplicationReachedTerminal>()
             .Register<ApplicationReopened>()
             .Register<ApplicationDeadlineSet>()
-            .Register<OfferDecisionDeadlineSet>();
+            .Register<OfferDecisionDeadlineSet>()
+            .Register<InterviewScheduled>()
+            .Register<InterviewCancelled>();
 
     /// <summary>
     /// Maps the Applications module's authenticated slices onto the host's

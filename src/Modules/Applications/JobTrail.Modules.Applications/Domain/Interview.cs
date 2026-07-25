@@ -34,8 +34,8 @@ internal enum InterviewOutcome
 /// format, how it turned out, and any notes. A round is created as
 /// <see cref="InterviewOutcome.Pending"/> and its outcome recorded later. It is a
 /// child of its <see cref="ApplicationId"/> and cascade-deleted with it; the
-/// scheduled instant will later drive interview reminders and time-to-interview
-/// analytics (through an event, once the outbox exists). <see cref="OwnerId"/> is a
+/// scheduled instant drives interview reminders and time-to-interview analytics
+/// through the events the slices announce it with. <see cref="OwnerId"/> is a
 /// non-FK reference to an Identity account - no cross-schema foreign key, ever.
 /// </summary>
 internal sealed class Interview
