@@ -21,6 +21,7 @@ namespace JobTrail.Modules.Applications.Contracts;
 /// </para>
 /// </summary>
 public sealed record ApplicationSubmitted(
+    Guid EventId,
     Guid ApplicationId,
     UserId OwnerId,
     Guid CampaignId,

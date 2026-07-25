@@ -62,8 +62,7 @@ public static class ApplicationsModule
         // What this module owes other modules, delivered durably. A consumer that
         // misses one of these cannot catch up by reading our tables, so the event
         // is recorded with the change and delivered until its handlers succeed.
-        builder.AddOutboxDispatcher<ApplicationsDbContext>(registry =>
-            registry.Register<ApplicationSubmitted>());
+        builder.AddOutboxDispatcher<ApplicationsDbContext>(RegisterOutboxEvents);
 
         builder.Services.AddScoped<SearchCompaniesHandler>();
         builder.Services.AddScoped<CompanyResolver>();
@@ -90,6 +89,19 @@ public static class ApplicationsModule
 
         return builder;
     }
+
+    /// <summary>
+    /// Every event this module records for durable delivery, named in one place.
+    /// A method rather than a lambda at the call site so the test that holds the
+    /// module to publishing nothing unregistered can register exactly what the
+    /// host registers, instead of a copy that would drift from it.
+    /// </summary>
+    internal static void RegisterOutboxEvents(OutboxEventRegistry registry) =>
+        registry
+            .Register<ApplicationSubmitted>()
+            .Register<ApplicationStageChanged>()
+            .Register<ApplicationReachedTerminal>()
+            .Register<ApplicationReopened>();
 
     /// <summary>
     /// Maps the Applications module's authenticated slices onto the host's

@@ -17,4 +17,17 @@ public interface IOutboxEvent : IIntegrationEvent
 {
     /// <summary>The stable name this event's stored rows carry.</summary>
     static abstract string EventType { get; }
+
+    /// <summary>
+    /// This occurrence's own identity, minted where the event is recorded.
+    /// Delivery is at-least-once, so a handler can be handed the same event twice;
+    /// this is the key it recognizes the repeat by, and without one the
+    /// idempotency every consumer owes would have nothing to key on.
+    /// <para>
+    /// It identifies the <em>event</em>, not the row that happens to carry it: it
+    /// travels in the payload, so it still means the same thing if these events
+    /// ever reach consumers by some other route.
+    /// </para>
+    /// </summary>
+    Guid EventId { get; }
 }
