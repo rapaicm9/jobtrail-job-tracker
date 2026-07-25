@@ -10,7 +10,9 @@ namespace JobTrail.Api;
 /// future cookie payloads survive redeploys and are shared across instances -
 /// forgetting this invalidates them all on every container restart (§5.4).
 /// Redis is the stack's home for externalized state (§10.2); the JWTs
-/// themselves never touch Data Protection (ES256, own keys).
+/// themselves never touch Data Protection (ES256, own keys). The multiplexer
+/// itself is registered at the composition root, since the idempotency cache
+/// shares it.
 /// </summary>
 internal static class DataProtectionConfiguration
 {
@@ -18,10 +20,6 @@ internal static class DataProtectionConfiguration
 
     public static IHostApplicationBuilder AddApiDataProtection(this IHostApplicationBuilder builder)
     {
-        // Aspire-wired multiplexer for the AppHost's "cache" resource: health
-        // check, telemetry and the injected connection string come with it.
-        builder.AddRedisClient(connectionName: "cache");
-
         builder.Services
             .AddDataProtection()
             // A stable name, not the assembly name: keys must keep decrypting

@@ -325,6 +325,47 @@ internal static class ApiClient
         return client.SendAsync(request);
     }
 
+    /// <summary>
+    /// A request with an <c>Idempotency-Key</c>, for the tests whose subject is
+    /// the header rather than any one route. The route is written out at the call
+    /// site on purpose: these assert the wire contract, so spelling it is the point.
+    /// </summary>
+    public static Task<HttpResponseMessage> SendWithKeyAsync(
+        this HttpClient client,
+        HttpMethod method,
+        string uri,
+        string? accessToken,
+        object? body = null,
+        string? idempotencyKey = null) =>
+        client.SendContentWithKeyAsync(
+            method, uri, accessToken, body is null ? null : JsonContent.Create(body), idempotencyKey);
+
+    /// <summary>
+    /// The same, over content the caller built. Used where a test needs the exact
+    /// bytes on the wire - the request fingerprint is computed over them, so a
+    /// serializer's choices must not come between the test and the server.
+    /// </summary>
+    public static Task<HttpResponseMessage> SendContentWithKeyAsync(
+        this HttpClient client,
+        HttpMethod method,
+        string uri,
+        string? accessToken,
+        HttpContent? content = null,
+        string? idempotencyKey = null)
+    {
+        var request = Authorized(method, uri, accessToken);
+        request.Content = content;
+
+        if (idempotencyKey is not null)
+        {
+            // Unvalidated: these tests deliberately send keys the client would
+            // otherwise refuse to put on the wire, and the server is what decides.
+            request.Headers.TryAddWithoutValidation("Idempotency-Key", idempotencyKey);
+        }
+
+        return client.SendAsync(request);
+    }
+
     private static HttpRequestMessage Authorized(HttpMethod method, string uri, string? accessToken)
     {
         var request = new HttpRequestMessage(method, uri);

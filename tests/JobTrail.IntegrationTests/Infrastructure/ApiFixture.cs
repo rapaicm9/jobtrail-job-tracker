@@ -64,6 +64,9 @@ public sealed class ApiFixture : IAsyncLifetime
         // The outbox dispatcher runs for real here; polling faster than production
         // keeps the tests that wait on a delivery short without changing what runs.
         ["Outbox:PollIntervalMs"] = "150",
+        // Same idea for a held idempotency key: short enough that a test seeding an
+        // in-flight reservation cannot leave one standing over its neighbours.
+        ["Idempotency:InFlightSeconds"] = "5",
     };
 
     public async ValueTask InitializeAsync()

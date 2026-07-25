@@ -4,6 +4,7 @@
 
 using Asp.Versioning;
 using JobTrail.Api;
+using JobTrail.Api.Idempotency;
 using JobTrail.Infrastructure.Events;
 using JobTrail.Modules.Applications;
 using JobTrail.Modules.Billing;
@@ -23,11 +24,21 @@ builder.AddServiceDefaults();
 // without ever leaking a stack trace.
 builder.Services.AddProblemDetails();
 
+// Aspire-wired Redis for the AppHost's "cache" resource - health check,
+// telemetry and connection string included. Registered here rather than inside
+// one feature because two of them resolve it: the Data Protection key ring and
+// the idempotency replay cache.
+builder.AddRedisClient(connectionName: "cache");
+
 // Edge hardening: real client address behind Caddy, key ring in Redis, and an
 // exact-origin CORS allowlist for the Next.js client.
 builder.AddApiForwardedHeaders();
 builder.AddApiDataProtection();
 builder.AddApiCors();
+
+// A retried mutation must happen once: POSTs carrying an Idempotency-Key are
+// answered from the replay cache rather than executed again.
+builder.AddApiIdempotency();
 
 // Async glue between modules. Registered before the modules themselves so a
 // module's composition method can add its handlers onto a live bus.
@@ -82,6 +93,10 @@ app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// After authorization on purpose: a key is scoped to the caller it belongs to,
+// and a request that was never allowed through must not be able to claim one.
+app.UseIdempotencyKeys();
 
 // /health/ready and /health/live for the proxy and the orchestrator.
 app.MapDefaultEndpoints();
