@@ -63,7 +63,7 @@ public static class ApplicationsModule
         // misses one of these cannot catch up by reading our tables, so the event
         // is recorded with the change and delivered until its handlers succeed.
         builder.AddOutboxDispatcher<ApplicationsDbContext>(registry =>
-            registry.Register<ApplicationSubmitted>(ApplicationSubmitted.EventType));
+            registry.Register<ApplicationSubmitted>());
 
         builder.Services.AddScoped<SearchCompaniesHandler>();
         builder.Services.AddScoped<CompanyResolver>();

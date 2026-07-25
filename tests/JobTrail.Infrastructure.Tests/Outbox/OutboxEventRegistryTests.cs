@@ -14,18 +14,17 @@ namespace JobTrail.Infrastructure.Tests.Outbox;
 /// </summary>
 public sealed class OutboxEventRegistryTests
 {
-    private const string EventType = "tests.thing_happened";
-
     [Fact]
     public async Task Delivers_the_recorded_event_to_every_handler()
     {
         var first = new RecordingHandler();
         var second = new RecordingHandler();
         var provider = BuildProvider(first, second);
-        var registry = new OutboxEventRegistry().Register<ThingHappened>(EventType);
+        var registry = new OutboxEventRegistry().Register<ThingHappened>();
         var message = Record(new ThingHappened(UserId.New(), "a note", new DateOnly(2026, 7, 24), 3));
 
-        await registry.DeliverAsync(EventType, message.Payload, provider, TestContext.Current.CancellationToken);
+        await registry.DeliverAsync(
+            ThingHappened.EventType, message.Payload, provider, TestContext.Current.CancellationToken);
 
         first.Received.ShouldHaveSingleItem();
         second.Received.ShouldHaveSingleItem();
@@ -36,11 +35,11 @@ public sealed class OutboxEventRegistryTests
     {
         var handler = new RecordingHandler();
         var provider = BuildProvider(handler);
-        var registry = new OutboxEventRegistry().Register<ThingHappened>(EventType);
+        var registry = new OutboxEventRegistry().Register<ThingHappened>();
         var original = new ThingHappened(UserId.New(), "a note", new DateOnly(2026, 7, 24), 3);
 
         await registry.DeliverAsync(
-            EventType, Record(original).Payload, provider, TestContext.Current.CancellationToken);
+            ThingHappened.EventType, Record(original).Payload, provider, TestContext.Current.CancellationToken);
 
         // Every member survives, UserId included - it is a record struct, so it
         // travels as its wrapped value and comes back through the same constructor.
@@ -51,13 +50,13 @@ public sealed class OutboxEventRegistryTests
     public async Task Lets_a_handler_failure_out()
     {
         var provider = BuildProvider(new ThrowingHandler());
-        var registry = new OutboxEventRegistry().Register<ThingHappened>(EventType);
+        var registry = new OutboxEventRegistry().Register<ThingHappened>();
         var message = Record(new ThingHappened(UserId.New(), "a note", new DateOnly(2026, 7, 24), 3));
 
         // Swallowing this is what would make the outbox a lie: the row would be
         // marked processed although nothing handled it.
         await Should.ThrowAsync<InvalidOperationException>(() => registry.DeliverAsync(
-            EventType, message.Payload, provider, TestContext.Current.CancellationToken));
+            ThingHappened.EventType, message.Payload, provider, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -74,14 +73,14 @@ public sealed class OutboxEventRegistryTests
     [Fact]
     public void Knows_which_events_it_can_deliver()
     {
-        var registry = new OutboxEventRegistry().Register<ThingHappened>(EventType);
+        var registry = new OutboxEventRegistry().Register<ThingHappened>();
 
-        registry.IsRegistered(EventType).ShouldBeTrue();
+        registry.IsRegistered(ThingHappened.EventType).ShouldBeTrue();
         registry.IsRegistered("tests.never_registered").ShouldBeFalse();
     }
 
     private static OutboxMessage Record(ThingHappened integrationEvent) =>
-        OutboxMessage.For(EventType, integrationEvent);
+        OutboxMessage.For(integrationEvent);
 
     private static IServiceProvider BuildProvider(params IEventHandler<ThingHappened>[] handlers)
     {
@@ -94,7 +93,10 @@ public sealed class OutboxEventRegistryTests
         return services.BuildServiceProvider();
     }
 
-    private sealed record ThingHappened(UserId OwnerId, string Note, DateOnly On, int Count) : IIntegrationEvent;
+    private sealed record ThingHappened(UserId OwnerId, string Note, DateOnly On, int Count) : IOutboxEvent
+    {
+        public static string EventType => "tests.thing_happened";
+    }
 
     private sealed class RecordingHandler : IEventHandler<ThingHappened>
     {

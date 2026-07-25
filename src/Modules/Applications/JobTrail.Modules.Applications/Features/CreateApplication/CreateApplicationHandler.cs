@@ -71,7 +71,6 @@ internal sealed class CreateApplicationHandler(
         // module's tables to catch up, so a lost event is a fact nobody else ever
         // learns - hence the outbox rather than in-memory dispatch.
         dbContext.Outbox.Add(OutboxMessage.For(
-            ApplicationSubmitted.EventType,
             new ApplicationSubmitted(
                 application.Id,
                 ownerId,

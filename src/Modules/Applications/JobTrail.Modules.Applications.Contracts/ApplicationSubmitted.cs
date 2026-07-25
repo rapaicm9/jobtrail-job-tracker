@@ -28,11 +28,11 @@ public sealed record ApplicationSubmitted(
     DateOnly AppliedDate,
     string? Source,
     string? WorkMode,
-    DateTimeOffset OccurredAt) : IIntegrationEvent
+    DateTimeOffset OccurredAt) : IOutboxEvent
 {
     /// <summary>
     /// The name its outbox rows carry. Fixed and independent of the type name, so
     /// renaming this record never orphans rows already written.
     /// </summary>
-    public const string EventType = "applications.application_submitted";
+    public static string EventType => "applications.application_submitted";
 }

@@ -30,8 +30,8 @@ public sealed class OutboxMessage
     public Guid Id { get; private set; }
 
     /// <summary>
-    /// The stable name the event was registered under - deliberately not the CLR
-    /// type name, so renaming a record cannot orphan rows already written.
+    /// The stable name the event declares - deliberately not the CLR type name,
+    /// so renaming a record cannot orphan rows already written.
     /// </summary>
     public string EventType { get; private set; }
 
@@ -53,12 +53,14 @@ public sealed class OutboxMessage
     public string? Error { get; private set; }
 
     /// <summary>
-    /// Records an event for delivery. The id and the occurred-at come from the
-    /// database, so a row is never written with a clock this process guessed.
+    /// Records an event for delivery under the name its type declares, so no
+    /// caller can write a row the registry will not recognize. The id and the
+    /// occurred-at come from the database, so a row is never written with a clock
+    /// this process guessed.
     /// </summary>
-    public static OutboxMessage For<TEvent>(string eventType, TEvent integrationEvent)
-        where TEvent : IIntegrationEvent =>
-        new(eventType, OutboxSerialization.Serialize(integrationEvent));
+    public static OutboxMessage For<TEvent>(TEvent integrationEvent)
+        where TEvent : IOutboxEvent =>
+        new(TEvent.EventType, OutboxSerialization.Serialize(integrationEvent));
 
     internal void MarkProcessed(DateTimeOffset now)
     {
