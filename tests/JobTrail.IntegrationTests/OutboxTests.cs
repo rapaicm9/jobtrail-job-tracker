@@ -37,8 +37,7 @@ public sealed class OutboxTests(ApiFixture fixture)
             appliedDate = "2026-07-20",
         })).ReadApplicationAsync();
 
-        var message = await FindMessageAsync(created.Id);
-        message.EventType.ShouldBe(ApplicationSubmitted.EventType);
+        var message = await SubmittedMessageAsync(created.Id);
 
         // The payload carries what a consumer cannot look up for itself, and none
         // of the user's own account of the role.
@@ -58,7 +57,7 @@ public sealed class OutboxTests(ApiFixture fixture)
         var response = await _client.CreateApplicationAsync(tokens.AccessToken, new { source = "LinkedIn" });
         await response.ShouldBeValidationProblemAsync("role");
 
-        (await MessagesForOwnerAsync(tokens.UserId)).ShouldBeEmpty();
+        (await fixture.MessagesForAsync(tokens.UserId, Ct)).ShouldBeEmpty();
     }
 
     [Fact]
@@ -69,11 +68,11 @@ public sealed class OutboxTests(ApiFixture fixture)
             tokens.AccessToken, new { role = "Engineer" })).ReadApplicationAsync();
 
         await Poll.UntilAsync(
-            async () => (await FindMessageAsync(created.Id)).ProcessedAt is not null,
+            async () => (await SubmittedMessageAsync(created.Id)).ProcessedAt is not null,
             "the dispatcher should deliver the recorded event and mark it processed",
             Ct);
 
-        var message = await FindMessageAsync(created.Id);
+        var message = await SubmittedMessageAsync(created.Id);
         message.Attempts.ShouldBe(0);
         message.Error.ShouldBeNull();
     }
@@ -86,16 +85,16 @@ public sealed class OutboxTests(ApiFixture fixture)
             tokens.AccessToken, new { role = "Engineer" })).ReadApplicationAsync();
 
         await Poll.UntilAsync(
-            async () => (await FindMessageAsync(created.Id)).ProcessedAt is not null,
+            async () => (await SubmittedMessageAsync(created.Id)).ProcessedAt is not null,
             "the event should be delivered before the row is watched for a second delivery",
             Ct);
-        var delivered = await FindMessageAsync(created.Id);
+        var delivered = await SubmittedMessageAsync(created.Id);
 
         // Several poll intervals: a row that was going to be claimed again would
         // have been by now.
         await Task.Delay(TimeSpan.FromMilliseconds(600), Ct);
 
-        var later = await FindMessageAsync(created.Id);
+        var later = await SubmittedMessageAsync(created.Id);
         later.ProcessedAt.ShouldBe(delivered.ProcessedAt);
         later.Attempts.ShouldBe(0);
     }
@@ -126,7 +125,7 @@ public sealed class OutboxTests(ApiFixture fixture)
         using var scope = fixture.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
 
-        var message = OutboxMessage.For(new NeverRegistered(ownerId));
+        var message = OutboxMessage.For(new NeverRegistered(Guid.CreateVersion7(), ownerId));
 
         dbContext.Outbox.Add(message);
         await dbContext.SaveChangesAsync(Ct);
@@ -142,32 +141,15 @@ public sealed class OutboxTests(ApiFixture fixture)
         return await dbContext.Outbox.AsNoTracking().SingleAsync(m => m.Id == id, Ct);
     }
 
-    private async Task<OutboxMessage> FindMessageAsync(Guid applicationId)
-    {
-        using var scope = fixture.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
-
-        var messages = await dbContext.Outbox.AsNoTracking().ToListAsync(Ct);
-        return messages
-            .Where(m => m.Payload.Contains(applicationId.ToString(), StringComparison.Ordinal))
-            .ShouldHaveSingleItem();
-    }
-
-    private async Task<IReadOnlyList<OutboxMessage>> MessagesForOwnerAsync(Guid ownerId)
-    {
-        using var scope = fixture.CreateScope();
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
-
-        var messages = await dbContext.Outbox.AsNoTracking().ToListAsync(Ct);
-        return [.. messages.Where(m => m.Payload.Contains(ownerId.ToString(), StringComparison.Ordinal))];
-    }
+    private Task<OutboxMessage> SubmittedMessageAsync(Guid applicationId) =>
+        fixture.SingleMessageForAsync(applicationId, ApplicationSubmitted.EventType, Ct);
 
     /// <summary>
     /// An event the module never registers, so nothing can deliver it. Declared
     /// here rather than borrowing a real event under a made-up name: the name now
     /// belongs to the type, which is the point of the mechanism under test.
     /// </summary>
-    private sealed record NeverRegistered(UserId OwnerId) : IOutboxEvent
+    private sealed record NeverRegistered(Guid EventId, UserId OwnerId) : IOutboxEvent
     {
         public static string EventType => "applications.never_registered";
     }

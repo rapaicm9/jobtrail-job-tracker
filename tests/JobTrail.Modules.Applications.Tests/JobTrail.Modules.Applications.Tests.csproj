@@ -18,9 +18,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Pure-domain tests of the aggregate's state machine (InternalsVisibleTo is
-         set on the module). No host, no database - the pipeline invariant lives
-         entirely in the aggregate. -->
+    <!-- Unit tests of the module's internals (InternalsVisibleTo is set on it).
+         No host and no database: the pipeline invariant lives entirely in the
+         aggregate, and what the module publishes is a fact about composition. -->
     <ProjectReference Include="..\..\src\Modules\Applications\JobTrail.Modules.Applications\JobTrail.Modules.Applications.csproj" />
   </ItemGroup>
 

@@ -72,6 +72,7 @@ internal sealed class CreateApplicationHandler(
         // learns - hence the outbox rather than in-memory dispatch.
         dbContext.Outbox.Add(OutboxMessage.For(
             new ApplicationSubmitted(
+                Guid.CreateVersion7(),
                 application.Id,
                 ownerId,
                 application.CampaignId,

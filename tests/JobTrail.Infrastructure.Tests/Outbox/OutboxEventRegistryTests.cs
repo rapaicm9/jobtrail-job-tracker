@@ -21,7 +21,7 @@ public sealed class OutboxEventRegistryTests
         var second = new RecordingHandler();
         var provider = BuildProvider(first, second);
         var registry = new OutboxEventRegistry().Register<ThingHappened>();
-        var message = Record(new ThingHappened(UserId.New(), "a note", new DateOnly(2026, 7, 24), 3));
+        var message = Record(AThingHappened());
 
         await registry.DeliverAsync(
             ThingHappened.EventType, message.Payload, provider, TestContext.Current.CancellationToken);
@@ -36,7 +36,7 @@ public sealed class OutboxEventRegistryTests
         var handler = new RecordingHandler();
         var provider = BuildProvider(handler);
         var registry = new OutboxEventRegistry().Register<ThingHappened>();
-        var original = new ThingHappened(UserId.New(), "a note", new DateOnly(2026, 7, 24), 3);
+        var original = AThingHappened();
 
         await registry.DeliverAsync(
             ThingHappened.EventType, Record(original).Payload, provider, TestContext.Current.CancellationToken);
@@ -51,7 +51,7 @@ public sealed class OutboxEventRegistryTests
     {
         var provider = BuildProvider(new ThrowingHandler());
         var registry = new OutboxEventRegistry().Register<ThingHappened>();
-        var message = Record(new ThingHappened(UserId.New(), "a note", new DateOnly(2026, 7, 24), 3));
+        var message = Record(AThingHappened());
 
         // Swallowing this is what would make the outbox a lie: the row would be
         // marked processed although nothing handled it.
@@ -79,6 +79,10 @@ public sealed class OutboxEventRegistryTests
         registry.IsRegistered("tests.never_registered").ShouldBeFalse();
     }
 
+    /// <summary>An occurrence with something of every kind in it, to prove the round trip whole.</summary>
+    private static ThingHappened AThingHappened() =>
+        new(Guid.CreateVersion7(), UserId.New(), "a note", new DateOnly(2026, 7, 24), 3);
+
     private static OutboxMessage Record(ThingHappened integrationEvent) =>
         OutboxMessage.For(integrationEvent);
 
@@ -93,7 +97,8 @@ public sealed class OutboxEventRegistryTests
         return services.BuildServiceProvider();
     }
 
-    private sealed record ThingHappened(UserId OwnerId, string Note, DateOnly On, int Count) : IOutboxEvent
+    private sealed record ThingHappened(Guid EventId, UserId OwnerId, string Note, DateOnly On, int Count)
+        : IOutboxEvent
     {
         public static string EventType => "tests.thing_happened";
     }
