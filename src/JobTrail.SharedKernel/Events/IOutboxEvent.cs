@@ -30,4 +30,17 @@ public interface IOutboxEvent : IIntegrationEvent
     /// </para>
     /// </summary>
     Guid EventId { get; }
+
+    /// <summary>
+    /// The user this event is about. Every durably published event in this system
+    /// concerns exactly one account, and saying so on the interface is what makes a
+    /// recorded event <em>erasable</em>: when that user asks to be forgotten, the
+    /// events still owed on their behalf have to go with the rest of their data,
+    /// and a payload nobody can query by owner cannot be found to delete.
+    /// <para>
+    /// Declared here rather than read out of the serialized payload, so erasure
+    /// never depends on the shape a serializer happened to choose.
+    /// </para>
+    /// </summary>
+    UserId OwnerId { get; }
 }

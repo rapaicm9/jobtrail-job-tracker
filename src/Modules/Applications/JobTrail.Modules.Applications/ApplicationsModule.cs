@@ -7,6 +7,7 @@ using JobTrail.Modules.Applications.Features.AddNote;
 using JobTrail.Modules.Applications.Features.CreateApplication;
 using JobTrail.Modules.Applications.Features.CreateContact;
 using JobTrail.Modules.Applications.Features.CreateInterview;
+using JobTrail.Modules.Applications.Features.EraseData;
 using JobTrail.Modules.Applications.Features.GetActivity;
 using JobTrail.Modules.Applications.Features.GetApplication;
 using JobTrail.Modules.Applications.Features.GetContact;
@@ -54,6 +55,10 @@ public static class ApplicationsModule
 
         // Every new account gets its default campaign, off Identity's UserRegistered.
         builder.Services.AddEventHandler<UserRegistered, CampaignProvisioningHandler>();
+
+        // And gives everything back on the way out: this module's share of the
+        // erasure fan-out, from its own schema only.
+        builder.Services.AddEventHandler<UserDataDeletionRequested, ApplicationsDataErasureHandler>();
 
         // The clock every handler here dates its writes by. Registered defensively:
         // the module should stand up whether or not another one got here first.
