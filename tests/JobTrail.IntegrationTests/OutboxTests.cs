@@ -3,6 +3,7 @@ using JobTrail.IntegrationTests.Infrastructure;
 using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.SharedKernel;
+using JobTrail.SharedKernel.Events;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -125,11 +126,7 @@ public sealed class OutboxTests(ApiFixture fixture)
         using var scope = fixture.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
 
-        var message = OutboxMessage.For(
-            "applications.never_registered",
-            new ApplicationSubmitted(
-                Guid.CreateVersion7(), ownerId, Guid.CreateVersion7(), null,
-                new DateOnly(2026, 7, 24), null, null, DateTimeOffset.UtcNow));
+        var message = OutboxMessage.For(new NeverRegistered(ownerId));
 
         dbContext.Outbox.Add(message);
         await dbContext.SaveChangesAsync(Ct);
@@ -163,5 +160,15 @@ public sealed class OutboxTests(ApiFixture fixture)
 
         var messages = await dbContext.Outbox.AsNoTracking().ToListAsync(Ct);
         return [.. messages.Where(m => m.Payload.Contains(ownerId.ToString(), StringComparison.Ordinal))];
+    }
+
+    /// <summary>
+    /// An event the module never registers, so nothing can deliver it. Declared
+    /// here rather than borrowing a real event under a made-up name: the name now
+    /// belongs to the type, which is the point of the mechanism under test.
+    /// </summary>
+    private sealed record NeverRegistered(UserId OwnerId) : IOutboxEvent
+    {
+        public static string EventType => "applications.never_registered";
     }
 }

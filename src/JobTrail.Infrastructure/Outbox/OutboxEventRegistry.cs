@@ -26,15 +26,15 @@ public sealed class OutboxEventRegistry
     private readonly Dictionary<string, Func<string, IServiceProvider, CancellationToken, Task>> _deliveries = [];
 
     /// <summary>
-    /// Registers <typeparamref name="TEvent"/> under the name its rows carry.
-    /// The name is given rather than derived, so it survives a rename of the record.
+    /// Registers <typeparamref name="TEvent"/> under the name it declares - the
+    /// same name its rows are written with, which is what keeps the two ends from
+    /// drifting. Two events declaring one name is a programming error and throws
+    /// here, at composition, rather than on the delivery path.
     /// </summary>
-    public OutboxEventRegistry Register<TEvent>(string eventType)
-        where TEvent : IIntegrationEvent
+    public OutboxEventRegistry Register<TEvent>()
+        where TEvent : IOutboxEvent
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(eventType);
-
-        _deliveries.Add(eventType, DeliverAsync<TEvent>);
+        _deliveries.Add(TEvent.EventType, DeliverAsync<TEvent>);
         return this;
     }
 
@@ -55,7 +55,7 @@ public sealed class OutboxEventRegistry
 
     private static async Task DeliverAsync<TEvent>(
         string payload, IServiceProvider provider, CancellationToken cancellationToken)
-        where TEvent : IIntegrationEvent
+        where TEvent : IOutboxEvent
     {
         var integrationEvent = OutboxSerialization.Deserialize<TEvent>(payload)
             ?? throw new InvalidOperationException(
