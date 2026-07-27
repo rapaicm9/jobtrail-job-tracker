@@ -2,6 +2,7 @@ using JobTrail.Infrastructure.Outbox;
 using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Persistence;
+using JobTrail.Modules.Billing.Contracts;
 using JobTrail.Modules.Identity.Contracts;
 using JobTrail.SharedKernel;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +21,8 @@ namespace JobTrail.Modules.Applications.Features.CreateApplication;
 internal sealed class CreateApplicationHandler(
     ApplicationsDbContext dbContext,
     CompanyResolver companyResolver,
+    CustomFieldValueResolver customFieldValues,
+    IEntitlementQuery entitlements,
     IUserProfileQuery profileQuery,
     TimeProvider timeProvider)
 {
@@ -42,6 +45,27 @@ internal sealed class CreateApplicationHandler(
             return company.Error;
         }
 
+        // Custom-field answers are Pro. The gate cannot sit on the route - both
+        // tiers open applications - so it sits here, on the one part of the
+        // payload only one of them may write. Sending the bag at all is the write;
+        // an empty one included, since clearing is a change like any other.
+        var values = CustomFieldValues.Empty;
+        if (request.CustomFields is { } requested)
+        {
+            if (!await entitlements.HasEntitlementAsync(ownerId, Entitlement.CustomFields, cancellationToken))
+            {
+                return CustomFieldErrors.ValuesNotEntitled;
+            }
+
+            var resolved = await customFieldValues.ResolveAsync(ownerId, requested, cancellationToken);
+            if (resolved.IsFailure)
+            {
+                return resolved.Error;
+            }
+
+            values = resolved.Value;
+        }
+
         var application = new Application
         {
             // Generated here, not by the database, so the id is known before the
@@ -61,6 +85,7 @@ internal sealed class CreateApplicationHandler(
             ApplicationDeadline = request.ApplicationDeadline,
             CvLabel = ApplicationFieldMapping.Clean(request.CvLabel),
             CoverLetterLabel = ApplicationFieldMapping.Clean(request.CoverLetterLabel),
+            CustomFieldValues = values,
         };
 
         dbContext.Applications.Add(application);

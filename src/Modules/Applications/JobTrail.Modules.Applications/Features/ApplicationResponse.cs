@@ -1,3 +1,4 @@
+using System.Text.Json;
 using JobTrail.Modules.Applications.Domain;
 
 namespace JobTrail.Modules.Applications.Features;
@@ -7,10 +8,16 @@ internal sealed record MoneyResponse(decimal Amount, string Currency);
 
 /// <summary>
 /// An application as a client sees it: the built-in fields plus its pipeline
-/// position, campaign and (optional) company. Deliberately narrower than the row -
-/// no custom-field bag yet, and the enums travel as their names so the contract
-/// doesn't leak storage ordinals. Returned by create, get, update and transition,
-/// so a client never needs a follow-up read.
+/// position, campaign, (optional) company and the account's own custom-field
+/// answers. Deliberately narrower than the row, and the enums travel as their
+/// names so the contract doesn't leak storage ordinals. Returned by create, get,
+/// update and transition, so a client never needs a follow-up read.
+/// <para>
+/// <see cref="CustomFields"/> is returned to every caller, entitlement or not.
+/// Writing values is the paid capability; reading back what is already recorded
+/// is not, or an account that lost the entitlement could not make sense of its
+/// own applications.
+/// </para>
 /// </summary>
 internal sealed record ApplicationResponse(
     Guid Id,
@@ -28,6 +35,7 @@ internal sealed record ApplicationResponse(
     DateOnly? OfferDecisionDeadline,
     string? CvLabel,
     string? CoverLetterLabel,
+    IReadOnlyDictionary<Guid, JsonElement> CustomFields,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);
 
@@ -49,6 +57,7 @@ internal static class ApplicationResponseMapping
         application.OfferDecisionDeadline,
         application.CvLabel,
         application.CoverLetterLabel,
+        application.CustomFieldValues.Values,
         application.CreatedAt,
         application.UpdatedAt);
 }

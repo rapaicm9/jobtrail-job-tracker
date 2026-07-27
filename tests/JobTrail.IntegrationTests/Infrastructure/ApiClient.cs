@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Shouldly;
 
 namespace JobTrail.IntegrationTests.Infrastructure;
@@ -40,6 +41,30 @@ internal sealed record CompanySummary(Guid Id, string Name);
 
 /// <summary>A compensation amount and currency, as a client sees it.</summary>
 internal sealed record MoneyView(decimal Amount, string Currency);
+
+/// <summary>
+/// The custom-field answers as a client sees them, keyed by definition id.
+/// <para>
+/// A dictionary with value equality, because the views that carry it are records
+/// and several tests compare one whole: a plain dictionary compares by reference,
+/// so two responses holding identical answers would never be equal. Values are
+/// compared as the JSON they arrived as - <see cref="JsonElement"/> has no
+/// equality of its own, and the raw text is exactly what was stored.
+/// </para>
+/// </summary>
+internal sealed class CustomFieldBag : Dictionary<Guid, JsonElement>, IEquatable<CustomFieldBag>
+{
+    public bool Equals(CustomFieldBag? other) =>
+        other is not null
+        && Count == other.Count
+        && this.All(entry =>
+            other.TryGetValue(entry.Key, out var value)
+            && value.GetRawText() == entry.Value.GetRawText());
+
+    public override bool Equals(object? obj) => Equals(obj as CustomFieldBag);
+
+    public override int GetHashCode() => Count;
+}
 
 /// <summary>
 /// A custom-field definition as a client sees it - declared here, not shared with
@@ -140,6 +165,7 @@ internal sealed record ApplicationView(
     DateOnly? OfferDecisionDeadline,
     string? CvLabel,
     string? CoverLetterLabel,
+    CustomFieldBag CustomFields,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt);
 

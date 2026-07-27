@@ -80,6 +80,17 @@ internal sealed class Application
     /// <summary>Free-text label for the cover-letter version used; as with <see cref="CvLabel"/>.</summary>
     public string? CoverLetterLabel { get; set; }
 
+    /// <summary>
+    /// The answers to the fields this account defined for itself, as one JSONB
+    /// document keyed by definition id. The flexible per-user remainder: everything
+    /// above is a column because everyone has it and it is filtered or charted on
+    /// across all users, and this is everything else.
+    /// <para>
+    /// Replaced wholesale rather than edited in place - see <see cref="CustomFieldValues"/>.
+    /// </para>
+    /// </summary>
+    public CustomFieldValues CustomFieldValues { get; set; } = CustomFieldValues.Empty;
+
     public DateTimeOffset CreatedAt { get; set; }
 
     /// <summary>Set when the application is next modified; null until then.</summary>

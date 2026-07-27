@@ -1,8 +1,10 @@
+using System.Text.Json;
 using JobTrail.Infrastructure.Outbox;
 using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Persistence;
+using JobTrail.Modules.Billing.Contracts;
 using JobTrail.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +23,8 @@ namespace JobTrail.Modules.Applications.Features.UpdateApplication;
 internal sealed class UpdateApplicationHandler(
     ApplicationsDbContext dbContext,
     CompanyResolver companyResolver,
+    CustomFieldValueResolver customFieldValues,
+    IEntitlementQuery entitlements,
     TimeProvider timeProvider)
 {
     public async Task<Result<ApplicationResponse>> HandleAsync(
@@ -43,6 +47,11 @@ internal sealed class UpdateApplicationHandler(
         if (company.IsFailure)
         {
             return company.Error;
+        }
+
+        if (await ApplyCustomFieldsAsync(ownerId, application, request, cancellationToken) is { } refusal)
+        {
+            return refusal;
         }
 
         // Where the deadlines stood before the replace. An event is owed only where
@@ -73,6 +82,49 @@ internal sealed class UpdateApplicationHandler(
         await dbContext.SaveChangesAsync(cancellationToken);
 
         return application.ToResponse();
+    }
+
+    /// <summary>
+    /// Settles what this edit does to the custom-field answers, and returns the
+    /// reason it may not, if there is one.
+    /// <para>
+    /// Entitlement decides whether the bag is writable at all, and the rest falls
+    /// out of that. A caller who may write it gets the replace semantics every
+    /// other field here has - send it and it is replaced, leave it off and it is
+    /// cleared. A caller who may not write it is refused if they try, and their
+    /// edit leaves the stored answers exactly as they were if they don't. That
+    /// second case is the whole of "retained read-only": an account that has lost
+    /// the entitlement can go on editing the rest of an application forever
+    /// without its answers quietly draining away.
+    /// </para>
+    /// <para>
+    /// The entitlement is read on every update, not only when the bag is present,
+    /// because the absent case is exactly the one whose meaning depends on it.
+    /// </para>
+    /// </summary>
+    private async Task<Error?> ApplyCustomFieldsAsync(
+        UserId ownerId,
+        Application application,
+        UpdateApplicationRequest request,
+        CancellationToken cancellationToken)
+    {
+        var mayWrite = await entitlements.HasEntitlementAsync(
+            ownerId, Entitlement.CustomFields, cancellationToken);
+
+        if (!mayWrite)
+        {
+            return request.CustomFields is null ? null : CustomFieldErrors.ValuesNotEntitled;
+        }
+
+        var resolved = await customFieldValues.ResolveAsync(
+            ownerId, request.CustomFields ?? new Dictionary<Guid, JsonElement>(), cancellationToken);
+        if (resolved.IsFailure)
+        {
+            return resolved.Error;
+        }
+
+        application.CustomFieldValues = resolved.Value;
+        return null;
     }
 
     /// <summary>

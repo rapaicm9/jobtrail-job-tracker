@@ -12,6 +12,14 @@ public enum ErrorType
     NotFound,
     Conflict,
     Unauthorized,
+
+    /// <summary>
+    /// The caller is known and the request understood, but they may not do this.
+    /// Distinct from <see cref="Unauthorized"/>, which asks who they are. Raised
+    /// where the refusal cannot be an authorization policy on the route - an
+    /// endpoint both tiers may call, carrying one part only one of them may write.
+    /// </summary>
+    Forbidden,
 }
 
 /// <summary>
@@ -33,4 +41,6 @@ public sealed record Error(string Code, string Message, ErrorType Type = ErrorTy
     public static Error Conflict(string code, string message) => new(code, message, ErrorType.Conflict);
 
     public static Error Unauthorized(string code, string message) => new(code, message, ErrorType.Unauthorized);
+
+    public static Error Forbidden(string code, string message) => new(code, message, ErrorType.Forbidden);
 }

@@ -32,6 +32,13 @@ internal static class FieldRules
     /// </summary>
     public const int CustomFieldsPerOwner = 50;
 
+    /// <summary>
+    /// How long one custom-field answer may be, for the types that hold text. The
+    /// same cap the built-in notes carry: the bag rides on every read of the
+    /// application, so an unbounded value would be paid for on every one.
+    /// </summary>
+    public const int CustomFieldValueMaxLength = 2000;
+
     /// <summary>An absolute http(s) URL - the only thing worth storing as a posting link.</summary>
     public static bool IsAbsoluteHttpUrl(string value) =>
         Uri.TryCreate(value, UriKind.Absolute, out var uri)
