@@ -1,6 +1,7 @@
 using JobTrail.Infrastructure.Outbox;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Applications.Domain;
+using JobTrail.Modules.Applications.Features;
 using JobTrail.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,14 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
     public DbSet<Contact> Contacts => Set<Contact>();
 
     public DbSet<Interview> Interviews => Set<Interview>();
+
+    /// <summary>
+    /// The fields a user has defined for themselves. Relational rather than in the
+    /// JSON bag the answers live in: a definition is the same shape for everyone
+    /// and is read to render every form, whereas the answers are the per-user
+    /// remainder.
+    /// </summary>
+    public DbSet<CustomFieldDefinition> CustomFields => Set<CustomFieldDefinition>();
 
     /// <summary>
     /// Events this module owes other modules. It lives here, in this module's
@@ -231,6 +240,45 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             // for erasure.
             interview.HasIndex(i => new { i.ApplicationId, i.ScheduledAt, i.Id });
             interview.HasIndex(i => i.OwnerId);
+        });
+
+        builder.Entity<CustomFieldDefinition>(definition =>
+        {
+            definition.HasKey(d => d.Id);
+            definition.Property(d => d.Id).HasDefaultValueSql("uuidv7()");
+            definition.Property(d => d.CreatedAt).HasDefaultValueSql("now()");
+
+            definition.Property(d => d.Label).HasMaxLength(FieldRules.CustomFieldLabelMaxLength).IsRequired();
+
+            // Stored as its name, like every other enum here - the row reads for
+            // itself, and reordering the enum cannot silently re-type a field.
+            definition.Property(d => d.Type).HasConversion<string>().HasMaxLength(16).IsRequired();
+
+            // The choices as a Postgres text[] rather than a JSON document: it is a
+            // list of short strings, and the array type keeps it queryable without
+            // the ceremony of a document.
+            definition.Property(d => d.Options).HasColumnType("text[]").IsRequired();
+
+            definition.Property(d => d.IsArchived).HasDefaultValue(false);
+
+            // Computed by the database so it cannot drift from the label, and
+            // stored rather than virtual because PostgreSQL will only index a
+            // stored generated column.
+            definition.Property(d => d.LabelNormalized)
+                .HasComputedColumnSql("lower(label)", stored: true)
+                .HasMaxLength(FieldRules.CustomFieldLabelMaxLength);
+
+            // One live field per name per user, compared case-insensitively - two
+            // fields called "Referral" and "referral" are the same field to anyone
+            // reading a form. Partial, so archiving a field frees its name again
+            // while the values recorded under it stay put.
+            definition.HasIndex(d => new { d.OwnerId, d.LabelNormalized })
+                .IsUnique()
+                .HasFilter("NOT is_archived");
+
+            // The whole list is read per owner to render a form, and again by owner
+            // for erasure.
+            definition.HasIndex(d => new { d.OwnerId, d.CreatedAt, d.Id });
         });
 
         builder.MapOutbox();

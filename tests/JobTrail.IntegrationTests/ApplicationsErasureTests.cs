@@ -27,7 +27,10 @@ public sealed class ApplicationsErasureTests(ApiFixture fixture)
     /// so, which is the point - a new table is a new thing to erase.
     /// </summary>
     private static readonly string[] OwnedTables =
-        ["activity_log", "applications", "campaigns", "companies", "contacts", "interviews", "outbox"];
+    [
+        "activity_log", "applications", "campaigns", "companies", "contacts", "custom_fields", "interviews",
+        "outbox",
+    ];
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -123,6 +126,13 @@ public sealed class ApplicationsErasureTests(ApiFixture fixture)
     private async Task<AuthTokens> SeedAsync()
     {
         var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
+
+        // Defining a field needs the entitlement, so the seed buys it. Without a
+        // custom field the row-count check below would pass while proving nothing
+        // about the newest table in the schema.
+        await fixture.UnlockProAsync(_client, tokens, Ct);
+        await ShouldSucceedAsync(_client.CreateCustomFieldAsync(
+            tokens.AccessToken, new { label = "Referral source", type = "text" }));
 
         var application = await (await _client.CreateApplicationAsync(tokens.AccessToken, new
         {
