@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace JobTrail.Modules.Applications.Features.CreateApplication;
 
 /// <summary>
@@ -8,6 +10,12 @@ namespace JobTrail.Modules.Applications.Features.CreateApplication;
 /// <see cref="CompanyId"/> to reference an existing company, or
 /// <see cref="CompanyName"/> to create-or-reuse one by name (at most one of the two).
 /// <see cref="AppliedDate"/> defaults to the caller's local today when omitted.
+/// <para>
+/// <see cref="CustomFields"/> answers the fields the account defined for itself,
+/// keyed by definition id, each value the raw JSON its field's type calls for.
+/// Writing them needs the entitlement, which the handler checks - the endpoint
+/// itself serves both tiers and so cannot carry the gate.
+/// </para>
 /// </summary>
 internal sealed record CreateApplicationRequest(
     string? Role,
@@ -21,4 +29,5 @@ internal sealed record CreateApplicationRequest(
     DateOnly? AppliedDate,
     DateOnly? ApplicationDeadline,
     string? CvLabel,
-    string? CoverLetterLabel) : IApplicationFields;
+    string? CoverLetterLabel,
+    IReadOnlyDictionary<Guid, JsonElement>? CustomFields) : IApplicationFields;

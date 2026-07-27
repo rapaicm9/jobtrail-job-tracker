@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace JobTrail.Modules.Applications.Features.UpdateApplication;
 
 /// <summary>
@@ -7,6 +9,13 @@ namespace JobTrail.Modules.Applications.Features.UpdateApplication;
 /// deadline is settable now (it wasn't on create), but only once the application
 /// has an offer - the handler enforces that. <see cref="AppliedDate"/> is required,
 /// since a client editing the record already has it.
+/// <para>
+/// <see cref="CustomFields"/> is a replace like the rest for a caller entitled to
+/// write it, and untouchable for one who is not - so an account that has lost the
+/// entitlement keeps its answers by editing everything else around them. Values
+/// are the raw JSON each field's type calls for; the handler is where they meet
+/// the definitions that say what that is.
+/// </para>
 /// </summary>
 internal sealed record UpdateApplicationRequest(
     string? Role,
@@ -21,4 +30,5 @@ internal sealed record UpdateApplicationRequest(
     DateOnly? ApplicationDeadline,
     DateOnly? OfferDecisionDeadline,
     string? CvLabel,
-    string? CoverLetterLabel) : IApplicationFields;
+    string? CoverLetterLabel,
+    IReadOnlyDictionary<Guid, JsonElement>? CustomFields) : IApplicationFields;

@@ -4,6 +4,7 @@ using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.SharedKernel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace JobTrail.Modules.Applications.Persistence;
 
@@ -87,6 +88,34 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             // slice overrides it with the user's local "today" (dates are
             // timezone-relative), but a row is never left without one.
             application.Property(a => a.AppliedDate).HasDefaultValueSql("CURRENT_DATE");
+
+            // The custom-field answers, as one JSONB document keyed by definition
+            // id. A converted property rather than a complex type: a complex type
+            // has a shape fixed at model-build time, and this bag's keys are ids
+            // that only exist at runtime. Keying the document by id is what makes
+            // a single field addressable by path - which is what filtering,
+            // sorting and a GIN index over the queried paths all rest on.
+            //
+            // The comparer compares documents, not references. Every update
+            // reassigns the bag, so the default reference equality would call it
+            // modified each time and rewrite the column on every edit of an
+            // application - including the ones that never touched a custom field.
+            // Comparing the stored text is exact, and cheap because the bag is
+            // immutable and caches it.
+            application.Property(a => a.CustomFieldValues)
+                .HasColumnType("jsonb")
+                .IsRequired()
+                .HasDefaultValueSql("'{}'::jsonb")
+                .HasConversion(
+                    values => values.ToJson(),
+                    json => CustomFieldValues.FromJson(json),
+                    new ValueComparer<CustomFieldValues>(
+                        (left, right) => left!.ToJson() == right!.ToJson(),
+                        values => values.ToJson().GetHashCode(StringComparison.Ordinal),
+
+                        // Immutable, so the snapshot the change tracker keeps can be
+                        // the value itself rather than a copy of it.
+                        values => values));
 
             // Compensation is an amount + currency that travel together, so it maps
             // as one optional complex type over two columns; both are null when the
