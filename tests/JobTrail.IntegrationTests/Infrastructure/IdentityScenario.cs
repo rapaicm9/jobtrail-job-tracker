@@ -40,20 +40,36 @@ internal static class IdentityScenario
     }
 
     /// <summary>
-    /// The erasure requests recorded for this user. Identity's outbox carries
-    /// exactly one kind of row, so this is the whole of it - and the row is the
-    /// durable record that the request was accepted, which is what a test asserting
-    /// the promise was kept has to look at.
+    /// The erasure requests recorded for this user - the durable record that the
+    /// request was accepted, which is what a test asserting the promise was kept
+    /// has to look at.
     /// </summary>
-    public static async Task<IReadOnlyList<OutboxMessage>> ErasureRequestsForAsync(
-        this ApiFixture fixture, UserId userId, CancellationToken cancellationToken)
+    public static Task<IReadOnlyList<OutboxMessage>> ErasureRequestsForAsync(
+        this ApiFixture fixture, UserId userId, CancellationToken cancellationToken) =>
+        fixture.IdentityOutboxForAsync(userId, UserDataDeletionRequested.EventType, cancellationToken);
+
+    /// <summary>
+    /// The registration announcements recorded for this user - what Billing and
+    /// Applications stand their per-user state up from, and which the account
+    /// cannot function without.
+    /// </summary>
+    public static Task<IReadOnlyList<OutboxMessage>> RegistrationAnnouncementsForAsync(
+        this ApiFixture fixture, UserId userId, CancellationToken cancellationToken) =>
+        fixture.IdentityOutboxForAsync(userId, UserRegistered.EventType, cancellationToken);
+
+    /// <summary>
+    /// Identity's outbox rows of one kind for one user. The rows are the module's
+    /// own bookkeeping rather than an API surface, so a test that cares what was
+    /// recorded has to read them directly.
+    /// </summary>
+    private static async Task<IReadOnlyList<OutboxMessage>> IdentityOutboxForAsync(
+        this ApiFixture fixture, UserId userId, string eventType, CancellationToken cancellationToken)
     {
         using var scope = fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<IdentityModuleDbContext>();
 
         return await db.Outbox.AsNoTracking()
-            .Where(message => message.OwnerId == userId
-                && message.EventType == UserDataDeletionRequested.EventType)
+            .Where(message => message.OwnerId == userId && message.EventType == eventType)
             .OrderBy(message => message.OccurredAt)
             .ThenBy(message => message.Id)
             .ToListAsync(cancellationToken);

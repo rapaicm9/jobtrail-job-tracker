@@ -22,9 +22,9 @@ internal sealed class PlanProvisioningHandler(BillingDbContext dbContext)
 {
     public async Task HandleAsync(UserRegistered integrationEvent, CancellationToken cancellationToken)
     {
-        dbContext.Plans.Add(new Plan
+        var plan = dbContext.Plans.Add(new Plan
         {
-            UserId = integrationEvent.UserId,
+            UserId = integrationEvent.OwnerId,
             Tier = PlanTier.Free,
         });
 
@@ -35,8 +35,13 @@ internal sealed class PlanProvisioningHandler(BillingDbContext dbContext)
         catch (DbUpdateException e)
             when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // Already provisioned. Nothing to undo: the failed insert never
-            // committed, and this scope's context is discarded after the handler.
+            // Already provisioned, so there is nothing to write - but the insert
+            // that failed is still tracked, and it has to go. The outbox dispatcher
+            // delivers a whole batch in one scope, so this context outlives the
+            // delivery: left here, the row would be attempted again by the *next*
+            // account's save, fail on the same constraint, and swallow that
+            // account's plan along with it.
+            plan.State = EntityState.Detached;
         }
     }
 }
