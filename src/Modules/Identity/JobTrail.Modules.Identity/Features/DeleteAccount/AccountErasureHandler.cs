@@ -1,7 +1,7 @@
 using JobTrail.Modules.Identity.Contracts;
-using JobTrail.Modules.Identity.Domain;
+using JobTrail.Modules.Identity.Persistence;
 using JobTrail.SharedKernel.Events;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobTrail.Modules.Identity.Features.DeleteAccount;
 
@@ -11,22 +11,27 @@ namespace JobTrail.Modules.Identity.Features.DeleteAccount;
 /// refresh tokens, claims, logins. Other modules erase their own data from the
 /// same event; this handler owns only Identity's.
 /// <para>
-/// Idempotent, as the at-least-once bus requires: a request for a user who is
-/// already gone finds nothing and returns quietly.
+/// A set-based delete rather than <c>UserManager</c>, for two reasons that only
+/// matter once delivery is durable. <c>UserManager.DeleteAsync</c> reports failure
+/// by returning a result rather than throwing, so a failed erasure would be
+/// indistinguishable from a successful one and the event would be marked
+/// delivered. And it saves through the same <c>DbContext</c> the dispatcher is
+/// using, leaving a failed delete pending on the change tracker for the
+/// dispatcher's own save to commit by accident. One statement has neither problem.
+/// </para>
+/// <para>
+/// Idempotent, as at-least-once delivery requires: a request for a user who is
+/// already gone deletes nothing and returns quietly.
 /// </para>
 /// </summary>
-internal sealed class AccountErasureHandler(UserManager<ApplicationUser> userManager)
+internal sealed class AccountErasureHandler(IdentityModuleDbContext dbContext)
     : IEventHandler<UserDataDeletionRequested>
 {
     public async Task HandleAsync(
         UserDataDeletionRequested integrationEvent, CancellationToken cancellationToken)
     {
-        var user = await userManager.FindByIdAsync(integrationEvent.UserId.ToString());
-        if (user is null)
-        {
-            return;
-        }
+        var userId = integrationEvent.OwnerId.Value;
 
-        await userManager.DeleteAsync(user);
+        await dbContext.Users.Where(user => user.Id == userId).ExecuteDeleteAsync(cancellationToken);
     }
 }

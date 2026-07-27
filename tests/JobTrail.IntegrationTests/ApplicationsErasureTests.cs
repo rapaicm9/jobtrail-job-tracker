@@ -159,7 +159,7 @@ public sealed class ApplicationsErasureTests(ApiFixture fixture)
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
 
         await new ApplicationsDataErasureHandler(dbContext)
-            .HandleAsync(new UserDataDeletionRequested(ownerId), Ct);
+            .HandleAsync(new UserDataDeletionRequested(Guid.CreateVersion7(), ownerId), Ct);
     }
 
     /// <summary>

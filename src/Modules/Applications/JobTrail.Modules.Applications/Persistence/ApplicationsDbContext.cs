@@ -233,32 +233,6 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             interview.HasIndex(i => i.OwnerId);
         });
 
-        builder.Entity<OutboxMessage>(message =>
-        {
-            // "outbox" rather than the convention's plural: it is one queue, and
-            // that is what it is called everywhere it is discussed.
-            message.ToTable("outbox");
-
-            message.HasKey(m => m.Id);
-            message.Property(m => m.Id).HasDefaultValueSql("uuidv7()");
-            message.Property(m => m.OccurredAt).HasDefaultValueSql("now()");
-
-            message.Property(m => m.EventType).HasMaxLength(OutboxMessage.MaxEventTypeLength).IsRequired();
-            message.Property(m => m.Error).HasMaxLength(OutboxMessage.MaxErrorLength);
-
-            // jsonb rather than text: the payload is a document, and storing it as
-            // one keeps it queryable when a delivery has to be explained.
-            message.Property(m => m.Payload).HasColumnType("jsonb").IsRequired();
-
-            // The dispatcher only ever reads what is still owed, in the order it
-            // was recorded. A partial index keeps that access path the size of the
-            // backlog rather than the size of the history.
-            message.HasIndex(m => new { m.OccurredAt, m.Id }).HasFilter("processed_at IS NULL");
-
-            // The second way these rows are read: by owner, when a user asks to be
-            // forgotten and the events still owed on their behalf have to go with
-            // the rest of their data. Rare, but it must not scan the backlog.
-            message.HasIndex(m => m.OwnerId);
-        });
+        builder.MapOutbox();
     }
 }
