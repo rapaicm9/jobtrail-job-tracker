@@ -6,20 +6,24 @@ using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Features.AddNote;
 using JobTrail.Modules.Applications.Features.CreateApplication;
 using JobTrail.Modules.Applications.Features.CreateContact;
+using JobTrail.Modules.Applications.Features.CreateCustomField;
 using JobTrail.Modules.Applications.Features.CreateInterview;
 using JobTrail.Modules.Applications.Features.EraseData;
 using JobTrail.Modules.Applications.Features.GetActivity;
 using JobTrail.Modules.Applications.Features.GetApplication;
 using JobTrail.Modules.Applications.Features.GetContact;
+using JobTrail.Modules.Applications.Features.GetCustomField;
 using JobTrail.Modules.Applications.Features.GetInterview;
 using JobTrail.Modules.Applications.Features.ListApplications;
 using JobTrail.Modules.Applications.Features.ListContacts;
+using JobTrail.Modules.Applications.Features.ListCustomFields;
 using JobTrail.Modules.Applications.Features.ListInterviews;
 using JobTrail.Modules.Applications.Features.ProvisionCampaign;
 using JobTrail.Modules.Applications.Features.SearchCompanies;
 using JobTrail.Modules.Applications.Features.TransitionApplication;
 using JobTrail.Modules.Applications.Features.UpdateApplication;
 using JobTrail.Modules.Applications.Features.UpdateContact;
+using JobTrail.Modules.Applications.Features.UpdateCustomField;
 using JobTrail.Modules.Applications.Features.UpdateInterview;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Identity.Contracts;
@@ -92,6 +96,11 @@ public static class ApplicationsModule
         builder.Services.AddScoped<AddNoteHandler>();
         builder.Services.AddScoped<GetActivityHandler>();
 
+        builder.Services.AddScoped<CreateCustomFieldHandler>();
+        builder.Services.AddScoped<GetCustomFieldHandler>();
+        builder.Services.AddScoped<ListCustomFieldsHandler>();
+        builder.Services.AddScoped<UpdateCustomFieldHandler>();
+
         return builder;
     }
 
@@ -149,5 +158,15 @@ public static class ApplicationsModule
         var activity = api.MapGroup("/applications/{applicationId:guid}/activity");
         GetActivityEndpoint.Map(activity);
         AddNoteEndpoint.Map(activity);
+
+        // The user's own fields. Account-level rather than nested under an
+        // application - one definition answered by all of them. The Pro gate sits
+        // on the two write endpoints rather than on this group, so an account that
+        // cannot define a field can still read the ones it has.
+        var customFields = api.MapGroup("/custom-fields");
+        ListCustomFieldsEndpoint.Map(customFields);
+        CreateCustomFieldEndpoint.Map(customFields);
+        GetCustomFieldEndpoint.Map(customFields);
+        UpdateCustomFieldEndpoint.Map(customFields);
     }
 }

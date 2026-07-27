@@ -25,6 +25,10 @@
     <!-- Consumes Identity's UserRegistered to provision the default campaign;
          a Contracts reference only, never the module implementation. -->
     <ProjectReference Include="..\..\Identity\JobTrail.Modules.Identity.Contracts\JobTrail.Modules.Identity.Contracts.csproj" />
+    <!-- Names the Feature:* policy that gates the Pro custom-field endpoints.
+         Contracts only: the entitlement check itself stays Billing's, and this
+         module never learns what a plan is. -->
+    <ProjectReference Include="..\..\Billing\JobTrail.Modules.Billing.Contracts\JobTrail.Modules.Billing.Contracts.csproj" />
     <ProjectReference Include="..\..\..\JobTrail.SharedKernel\JobTrail.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\JobTrail.Infrastructure\JobTrail.Infrastructure.csproj" />
   </ItemGroup>

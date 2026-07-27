@@ -42,6 +42,19 @@ internal sealed record CompanySummary(Guid Id, string Name);
 internal sealed record MoneyView(decimal Amount, string Currency);
 
 /// <summary>
+/// A custom-field definition as a client sees it - declared here, not shared with
+/// the module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record CustomFieldView(
+    Guid Id,
+    string Label,
+    string Type,
+    IReadOnlyList<string> Options,
+    bool IsArchived,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+/// <summary>
 /// One page of a list, as a client sees it - declared here, not shared with the
 /// module, so a contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -285,6 +298,29 @@ internal static class ApiClient
         return client.SendAsync(request);
     }
 
+    public static Task<HttpResponseMessage> CreateCustomFieldAsync(
+        this HttpClient client, string? accessToken, object body)
+    {
+        var request = Authorized(HttpMethod.Post, "/api/v1/custom-fields", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> GetCustomFieldAsync(
+        this HttpClient client, string? accessToken, Guid id) =>
+        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/custom-fields/{id}", accessToken));
+
+    public static Task<HttpResponseMessage> ListCustomFieldsAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/custom-fields", accessToken));
+
+    public static Task<HttpResponseMessage> UpdateCustomFieldAsync(
+        this HttpClient client, string? accessToken, Guid id, object body)
+    {
+        var request = Authorized(HttpMethod.Put, $"/api/v1/custom-fields/{id}", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
     public static Task<HttpResponseMessage> AddNoteAsync(
         this HttpClient client, string? accessToken, Guid applicationId, object body)
     {
@@ -453,6 +489,24 @@ internal static class ApiClient
 
     public static async Task<IReadOnlyList<ActivityEntryView>> ReadActivityAsync(this HttpResponseMessage response) =>
         (await response.ReadPageAsync<ActivityEntryView>()).Items;
+
+    public static async Task<CustomFieldView> ReadCustomFieldAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var definition = await response.Content.ReadFromJsonAsync<CustomFieldView>();
+        return definition.ShouldNotBeNull();
+    }
+
+    /// <summary>The custom-field list is a bare array, not the paged envelope.</summary>
+    public static async Task<IReadOnlyList<CustomFieldView>> ReadCustomFieldListAsync(
+        this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var definitions = await response.Content.ReadFromJsonAsync<List<CustomFieldView>>();
+        return definitions.ShouldNotBeNull();
+    }
 
     public static async Task<InterviewView> ReadInterviewAsync(this HttpResponseMessage response)
     {

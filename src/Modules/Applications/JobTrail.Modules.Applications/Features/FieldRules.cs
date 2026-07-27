@@ -19,6 +19,18 @@ internal static class FieldRules
     public const int EmailMaxLength = 320;
     public const int PhoneMaxLength = 40;
     public const int NotesMaxLength = 2000;
+    public const int CustomFieldLabelMaxLength = 100;
+    public const int CustomFieldOptionMaxLength = 100;
+    public const int CustomFieldOptionsMaxCount = 50;
+
+    /// <summary>
+    /// How many custom fields one account may define, archived ones included -
+    /// their values are kept, so each still occupies a key in every application's
+    /// bag. Generous for the hand-entry product this is, and bounded on purpose:
+    /// it is what keeps the definitions list worth serving whole, and what stops
+    /// the JSON paths worth indexing from growing without limit.
+    /// </summary>
+    public const int CustomFieldsPerOwner = 50;
 
     /// <summary>An absolute http(s) URL - the only thing worth storing as a posting link.</summary>
     public static bool IsAbsoluteHttpUrl(string value) =>

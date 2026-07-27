@@ -50,6 +50,10 @@ internal sealed class ApplicationsDataErasureHandler(ApplicationsDbContext dbCon
             await dbContext.Campaigns.Where(c => c.OwnerId == ownerId).ExecuteDeleteAsync(cancellationToken);
             await dbContext.Companies.Where(c => c.OwnerId == ownerId).ExecuteDeleteAsync(cancellationToken);
 
+            // The fields the user defined. Their values went with the applications
+            // that carried them, so nothing is left pointing here.
+            await dbContext.CustomFields.Where(d => d.OwnerId == ownerId).ExecuteDeleteAsync(cancellationToken);
+
             // The events still owed on this user's behalf. Undelivered, they would
             // reach consumers after those consumers had erased the same user and
             // put the data back; delivered, they are retained personal data until
