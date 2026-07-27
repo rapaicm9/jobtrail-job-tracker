@@ -1,5 +1,6 @@
 using System.Net;
 using JobTrail.IntegrationTests.Infrastructure;
+using JobTrail.SharedKernel;
 using Shouldly;
 
 namespace JobTrail.IntegrationTests;
@@ -7,6 +8,8 @@ namespace JobTrail.IntegrationTests;
 [Collection(ApiCollection.Name)]
 public sealed class RegisterEndpointTests(ApiFixture fixture)
 {
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
     private readonly HttpClient _client = fixture.CreateClient();
 
     [Fact]
@@ -43,5 +46,36 @@ public sealed class RegisterEndpointTests(ApiFixture fixture)
 
         // Every unmet password rule arrives in one round trip.
         problem.Errors["password"].Length.ShouldBe(4);
+    }
+
+    [Fact]
+    public async Task The_new_account_is_announced_in_the_same_write_that_opens_it()
+    {
+        var tokens = await _client.RegisterNewUserAsync();
+        var userId = UserId.From(tokens.UserId);
+
+        // No polling: the account exists by the time the response is in hand, and
+        // so must its announcement. Everything the account needs to function -
+        // its plan, its campaign - is stood up from this row by modules that
+        // cannot read Identity's tables to notice an account they were never told
+        // about. Recorded a moment later instead, a crash in between would leave
+        // an account that can never file an application.
+        var announced = (await fixture.RegistrationAnnouncementsForAsync(userId, Ct)).ShouldHaveSingleItem();
+        announced.Payload.ShouldContain(tokens.UserId.ToString());
+    }
+
+    [Fact]
+    public async Task A_rejected_registration_announces_nothing()
+    {
+        var email = ApiClient.UniqueEmail();
+        var first = await (await _client.RegisterAsync(email)).ReadTokensAsync();
+
+        await (await _client.RegisterAsync(email)).ShouldBeProblemAsync(409, "registration.email_taken");
+
+        // One account, one announcement. The rejected attempt records nothing -
+        // and, since the announcement is written before the account it describes,
+        // this is what proves the two ride the same save rather than the row being
+        // committed on its own and orphaned.
+        (await fixture.RegistrationAnnouncementsForAsync(UserId.From(first.UserId), Ct)).ShouldHaveSingleItem();
     }
 }

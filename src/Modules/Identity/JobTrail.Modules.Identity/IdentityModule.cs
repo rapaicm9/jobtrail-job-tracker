@@ -101,7 +101,9 @@ public static class IdentityModule
     /// host registers, instead of a copy that would drift from it.
     /// </summary>
     internal static void RegisterOutboxEvents(OutboxEventRegistry registry) =>
-        registry.Register<UserDataDeletionRequested>();
+        registry
+            .Register<UserRegistered>()
+            .Register<UserDataDeletionRequested>();
 
     /// <summary>
     /// Registers the JwtBearer scheme that validates this module's access

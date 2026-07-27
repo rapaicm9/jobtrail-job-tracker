@@ -43,13 +43,36 @@ public sealed class CampaignProvisioningTests(ApiFixture fixture)
     {
         var userId = UserId.New();
 
-        // Two deliveries, each in its own scope - as the dispatcher would run them.
+        // Two deliveries, each in its own scope - the redelivery an at-least-once
+        // dispatcher makes when a row is claimed again after a failure.
         await ProvisionAsync(userId);
         await ProvisionAsync(userId);
 
         using var scope = fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
         (await db.Campaigns.CountAsync(c => c.OwnerId == userId, Ct)).ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task A_collision_does_not_swallow_the_next_account_in_the_batch()
+    {
+        var taken = UserId.New();
+        var fresh = UserId.New();
+
+        await ProvisionAsync(taken);
+
+        // One scope, two deliveries - the shape the outbox dispatcher runs a batch
+        // in, and the reason the swallowed collision has to detach what it added.
+        // Left tracked, the first delivery's failed insert would be re-attempted by
+        // the second delivery's save, fail on the same index, and be swallowed
+        // again - taking a brand new account's campaign with it, silently.
+        using var scope = fixture.CreateScope();
+        var handler = HandlerIn(scope);
+
+        await handler.HandleAsync(new UserRegistered(Guid.CreateVersion7(), taken), Ct);
+        await handler.HandleAsync(new UserRegistered(Guid.CreateVersion7(), fresh), Ct);
+
+        (await DefaultCampaignNameFor(fresh)).ShouldBe(Campaign.DefaultName);
     }
 
     [Fact]
@@ -83,17 +106,24 @@ public sealed class CampaignProvisioningTests(ApiFixture fixture)
         }
     }
 
-    /// <summary>Runs the handler once, the way a single event delivery would.</summary>
+    /// <summary>Runs the handler once in a scope of its own, as one delivery would.</summary>
     private async Task ProvisionAsync(UserId userId)
     {
         using var scope = fixture.CreateScope();
-        var handler = scope.ServiceProvider
+
+        await HandlerIn(scope).HandleAsync(new UserRegistered(Guid.CreateVersion7(), userId), Ct);
+    }
+
+    /// <summary>
+    /// The registered handler, resolved the way the dispatcher resolves it - so a
+    /// handler that stopped being registered fails here rather than passing on a
+    /// hand-built instance.
+    /// </summary>
+    private static CampaignProvisioningHandler HandlerIn(IServiceScope scope) =>
+        scope.ServiceProvider
             .GetServices<IEventHandler<UserRegistered>>()
             .OfType<CampaignProvisioningHandler>()
             .Single();
-
-        await handler.HandleAsync(new UserRegistered(userId), Ct);
-    }
 
     private async Task<string?> DefaultCampaignNameFor(UserId userId)
     {

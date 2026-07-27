@@ -1,9 +1,11 @@
+using JobTrail.Infrastructure.Outbox;
 using JobTrail.Modules.Identity.Authentication;
 using JobTrail.Modules.Identity.Contracts;
 using JobTrail.Modules.Identity.Domain;
+using JobTrail.Modules.Identity.Persistence;
 using JobTrail.SharedKernel;
-using JobTrail.SharedKernel.Events;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace JobTrail.Modules.Identity.Features.Register;
 
@@ -13,8 +15,8 @@ namespace JobTrail.Modules.Identity.Features.Register;
 /// </summary>
 internal sealed class RegisterHandler(
     UserManager<ApplicationUser> userManager,
-    TokenService tokenService,
-    IEventBus eventBus)
+    IdentityModuleDbContext dbContext,
+    TokenService tokenService)
 {
     public async Task<Result<AuthTokensResponse>> HandleAsync(
         RegisterRequest request, CancellationToken cancellationToken)
@@ -27,20 +29,32 @@ internal sealed class RegisterHandler(
             TimeZoneId = request.TimeZoneId ?? "Etc/UTC",
         };
 
+        // Announced before the account is written, and deliberately so. Identity's
+        // store saves through this same context, so the row goes to the database in
+        // the same SaveChanges as the user - the account and the announcement of it
+        // commit together or not at all, which is the whole point. Recording it
+        // afterwards would leave the gap this exists to close: an account created,
+        // the announcement lost to a crash, and a user who can never file an
+        // application because no campaign was ever made for them.
+        //
+        // The key is minted in the entity's constructor rather than by the database,
+        // so it is already known here.
+        var announcement = dbContext.Outbox.Add(OutboxMessage.For(
+            new UserRegistered(Guid.CreateVersion7(), UserId.From(user.Id))));
+
         var created = await userManager.CreateAsync(user, request.Password!);
         if (!created.Succeeded)
         {
+            // Identity's validators reject before the store is reached, so nothing
+            // was written - but the row above is still tracked, and a handler that
+            // leaves one behind is a handler that depends on nobody saving after
+            // it. Drop it: a rejected registration announces nothing.
+            announcement.State = EntityState.Detached;
             return ToError(created);
         }
 
-        var userId = UserId.From(user.Id);
         var tokens = await tokenService.IssueAsync(
-            userId, user.TokenVersion, request.DeviceLabel, cancellationToken);
-
-        // Announce the new account so the modules that own per-user state can
-        // stand it up. Published after the account exists and the sign-in
-        // succeeded; a lost event (in-process bus) is the outbox's problem later.
-        await eventBus.PublishAsync(new UserRegistered(userId), cancellationToken);
+            UserId.From(user.Id), user.TokenVersion, request.DeviceLabel, cancellationToken);
 
         return tokens.ToResponse();
     }

@@ -24,9 +24,9 @@ internal sealed class CampaignProvisioningHandler(ApplicationsDbContext dbContex
 {
     public async Task HandleAsync(UserRegistered integrationEvent, CancellationToken cancellationToken)
     {
-        dbContext.Campaigns.Add(new Campaign
+        var campaign = dbContext.Campaigns.Add(new Campaign
         {
-            OwnerId = integrationEvent.UserId,
+            OwnerId = integrationEvent.OwnerId,
             Name = Campaign.DefaultName,
             IsDefault = true,
         });
@@ -38,8 +38,13 @@ internal sealed class CampaignProvisioningHandler(ApplicationsDbContext dbContex
         catch (DbUpdateException e)
             when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // Already provisioned. Nothing to undo: the failed insert never
-            // committed, and this scope's context is discarded after the handler.
+            // Already provisioned, so there is nothing to write - but the insert
+            // that failed is still tracked, and it has to go. The outbox dispatcher
+            // delivers a whole batch in one scope, so this context outlives the
+            // delivery: left here, the row would be attempted again by the *next*
+            // account's save, fail on the same constraint, and swallow that
+            // account's campaign along with it.
+            campaign.State = EntityState.Detached;
         }
     }
 }
