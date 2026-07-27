@@ -77,6 +77,7 @@ public static class ApplicationsModule
         builder.Services.AddScoped<CompanyResolver>();
         builder.Services.AddScoped<CustomFieldValueResolver>();
         builder.Services.AddScoped<CustomFieldFilterResolver>();
+        builder.Services.AddScoped<CustomFieldSortResolver>();
         builder.Services.AddScoped<OwnershipGuard>();
         builder.Services.AddScoped<CreateApplicationHandler>();
         builder.Services.AddScoped<GetApplicationHandler>();

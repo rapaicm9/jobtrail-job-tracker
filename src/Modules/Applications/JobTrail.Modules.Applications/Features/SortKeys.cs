@@ -36,4 +36,37 @@ internal static class SortKeys
         && ticks <= DateTimeOffset.MaxValue.UtcTicks
             ? new DateTimeOffset(ticks, TimeSpan.Zero)
             : null;
+
+    /// <summary>An application that never answered the field being sorted by.</summary>
+    private const string Unanswered = "n:";
+
+    /// <summary>An application that did, with the answer following.</summary>
+    private const string AnsweredPrefix = "v:";
+
+    /// <summary>
+    /// The position in a custom-field sort, where the answer may be missing
+    /// entirely. Unanswered rows sort last, so a page can end inside that group and
+    /// the next page has to know it is resuming there rather than among the
+    /// answers - and an empty answer is a real answer, so the two cannot both be
+    /// the empty string. Hence the marker.
+    /// <para>
+    /// It stays inside the sort key rather than becoming a third field on the
+    /// cursor: the cursor is opaque by contract (ADR-0008), so its payload is free
+    /// to carry this without the wire format changing.
+    /// </para>
+    /// </summary>
+    public static string ForAnswer(string? answer) =>
+        answer is null ? Unanswered : AnsweredPrefix + answer;
+
+    /// <summary>
+    /// Reads that position back: whether the last row had answered, and what it
+    /// answered if so. Null when the key was not written by this list.
+    /// </summary>
+    public static (bool Answered, string Answer)? ToAnswer(string value) => value switch
+    {
+        Unanswered => (false, string.Empty),
+        _ when value.StartsWith(AnsweredPrefix, StringComparison.Ordinal) =>
+            (true, value[AnsweredPrefix.Length..]),
+        _ => null,
+    };
 }

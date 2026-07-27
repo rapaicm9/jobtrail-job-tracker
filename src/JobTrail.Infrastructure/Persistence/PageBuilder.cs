@@ -27,9 +27,28 @@ public static class PageBuilder
         int limit,
         Func<TEntity, TResponse> toResponse,
         Func<TEntity, Cursor> toCursor,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken) =>
+        FromRows(await ordered.Take(limit + 1).ToListAsync(cancellationToken), limit, toResponse, toCursor);
+
+    /// <summary>
+    /// The same envelope, from rows a caller has already read - for a list whose
+    /// ordering cannot be expressed in LINQ and so has to fetch its own
+    /// <c>limit + 1</c>. It must have asked for one more than it wants, exactly as
+    /// <see cref="BuildAsync{TEntity, TResponse}"/> does, or the "is there a next
+    /// page" answer is a guess.
+    /// <para>
+    /// Split out rather than duplicated because the off-by-one is the part that
+    /// goes wrong, and it should go wrong in one place or none.
+    /// </para>
+    /// </summary>
+    public static PagedResponse<TResponse> FromRows<TEntity, TResponse>(
+        List<TEntity> rows,
+        int limit,
+        Func<TEntity, TResponse> toResponse,
+        Func<TEntity, Cursor> toCursor)
     {
-        var rows = await ordered.Take(limit + 1).ToListAsync(cancellationToken);
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(toCursor);
 
         var hasMore = rows.Count > limit;
         if (hasMore)

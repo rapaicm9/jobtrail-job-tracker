@@ -84,4 +84,22 @@ internal static class CustomFieldErrors
     public static readonly Error QueryNotEntitled = Error.Forbidden(
         "custom_field.query_not_entitled",
         "Filtering and sorting by a custom field requires Pro.");
+
+    /// <summary>
+    /// A list was asked to order by a field that has no order. A multi-select
+    /// answer is a set, and any ordering of sets here would come down to which
+    /// option happened to be recorded first - better refused than invented.
+    /// </summary>
+    public static Error NotSortable(string label) =>
+        Error.Validation("custom_field.not_sortable", $"Applications cannot be sorted by '{label}'.");
+
+    /// <summary>
+    /// The cursor is shaped like a custom-field position but does not hold this
+    /// field's kind of answer - it was issued sorting by a different field.
+    /// Refused rather than restarted from the top, which would let a client page
+    /// the same rows forever without noticing.
+    /// </summary>
+    public static readonly Error SortCursorMismatch = Error.Validation(
+        "cursor.sort_mismatch",
+        "The cursor was issued for a different sort. Use the nextCursor returned by a previous page.");
 }
