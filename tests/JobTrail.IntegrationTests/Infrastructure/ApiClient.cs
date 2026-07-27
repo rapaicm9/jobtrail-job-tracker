@@ -237,8 +237,37 @@ internal static class ApiClient
         client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/applications/{id}", accessToken));
 
     public static Task<HttpResponseMessage> ListApplicationsAsync(
-        this HttpClient client, string? accessToken, int? limit = null, string? cursor = null) =>
-        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/applications" + Paging(limit, cursor), accessToken));
+        this HttpClient client,
+        string? accessToken,
+        int? limit = null,
+        string? cursor = null,
+        Guid? customFieldId = null,
+        string? customFieldValue = null)
+    {
+        var query = new List<string>();
+        if (customFieldId is { } fieldId)
+        {
+            query.Add($"customFieldId={fieldId}");
+        }
+
+        if (customFieldValue is not null)
+        {
+            query.Add($"customFieldValue={Uri.EscapeDataString(customFieldValue)}");
+        }
+
+        if (limit is { } requested)
+        {
+            query.Add($"limit={requested}");
+        }
+
+        if (cursor is not null)
+        {
+            query.Add($"cursor={Uri.EscapeDataString(cursor)}");
+        }
+
+        var uri = "/api/v1/applications" + (query.Count > 0 ? "?" + string.Join('&', query) : string.Empty);
+        return client.SendAsync(Authorized(HttpMethod.Get, uri, accessToken));
+    }
 
     public static Task<HttpResponseMessage> UpdateApplicationAsync(
         this HttpClient client, string? accessToken, Guid id, object body)

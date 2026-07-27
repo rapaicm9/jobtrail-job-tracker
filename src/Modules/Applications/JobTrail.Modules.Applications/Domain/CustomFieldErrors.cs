@@ -74,4 +74,14 @@ internal static class CustomFieldErrors
     /// <summary>A select was answered with something that is not one of its options.</summary>
     public static Error UnknownOption(string label, string option) =>
         Error.Validation("custom_field.unknown_option", $"'{option}' is not an option of '{label}'.");
+
+    /// <summary>
+    /// The caller asked a list to filter or sort by a custom field without the
+    /// entitlement to. Unlike reading values back - which stays open, or an account
+    /// that lost Pro could not interpret its own applications - searching by them is
+    /// the capability itself, and the plain list still returns everything.
+    /// </summary>
+    public static readonly Error QueryNotEntitled = Error.Forbidden(
+        "custom_field.query_not_entitled",
+        "Filtering and sorting by a custom field requires Pro.");
 }

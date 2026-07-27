@@ -153,6 +153,21 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             // this company" reads that follow them.
             application.HasIndex(a => a.CampaignId);
             application.HasIndex(a => a.CompanyId);
+
+            // One GIN index over the whole bag, for the containment tests the
+            // custom-field filter is built on.
+            //
+            // "Index only the paths actually queried" cannot be taken literally
+            // here: a path is a definition id, so the paths are per-account data,
+            // and indexing them individually would mean DDL driven by what users
+            // create. jsonb_path_ops is the answer instead - smaller and faster
+            // than the default class, and it supports exactly one operator, `@>`,
+            // which is exactly the one the filter uses. It does nothing for
+            // ordering; sorting by a custom field is a scan, which is the right
+            // trade at the size one person's search reaches.
+            application.HasIndex(a => a.CustomFieldValues)
+                .HasMethod("gin")
+                .HasOperators("jsonb_path_ops");
         });
 
         builder.Entity<Campaign>(campaign =>
