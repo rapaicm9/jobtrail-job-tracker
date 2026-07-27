@@ -242,7 +242,9 @@ internal static class ApiClient
         int? limit = null,
         string? cursor = null,
         Guid? customFieldId = null,
-        string? customFieldValue = null)
+        string? customFieldValue = null,
+        Guid? sortCustomFieldId = null,
+        string? sortDirection = null)
     {
         var query = new List<string>();
         if (customFieldId is { } fieldId)
@@ -253,6 +255,16 @@ internal static class ApiClient
         if (customFieldValue is not null)
         {
             query.Add($"customFieldValue={Uri.EscapeDataString(customFieldValue)}");
+        }
+
+        if (sortCustomFieldId is { } sortFieldId)
+        {
+            query.Add($"sortCustomFieldId={sortFieldId}");
+        }
+
+        if (sortDirection is not null)
+        {
+            query.Add($"sortDirection={Uri.EscapeDataString(sortDirection)}");
         }
 
         if (limit is { } requested)

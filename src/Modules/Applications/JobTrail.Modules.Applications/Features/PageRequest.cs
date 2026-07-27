@@ -15,6 +15,14 @@ internal enum SortKeyKind
     Date,
     Instant,
     Text,
+
+    /// <summary>
+    /// A custom-field answer, which may be absent. Its own kind so a cursor issued
+    /// under a custom-field sort is refused by the default one and the other way
+    /// round - the two order rows differently, so a cursor crossing between them
+    /// would silently repeat or skip.
+    /// </summary>
+    Answer,
 }
 
 /// <summary>
@@ -69,6 +77,7 @@ internal static class PagingParameters
         {
             SortKeyKind.Date => SortKeys.ToDate(position.SortKey) is not null,
             SortKeyKind.Instant => SortKeys.ToInstant(position.SortKey) is not null,
+            SortKeyKind.Answer => SortKeys.ToAnswer(position.SortKey) is not null,
             _ => true,
         };
 }

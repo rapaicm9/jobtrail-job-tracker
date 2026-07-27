@@ -29,6 +29,8 @@ internal static class ListApplicationsEndpoint
     private static async Task<Results<Ok<PagedResponse<ApplicationSummaryResponse>>, ProblemHttpResult>> HandleAsync(
         Guid? customFieldId,
         string? customFieldValue,
+        Guid? sortCustomFieldId,
+        string? sortDirection,
         int? limit,
         string? cursor,
         IUserContext userContext,
@@ -40,24 +42,60 @@ internal static class ListApplicationsEndpoint
             return Caller.MissingSubject.ToProblem();
         }
 
-        if (PagingParameters.Validate(limit, cursor, SortKeyKind.Date) is { } errors)
+        if (ValidateQuery(customFieldId, customFieldValue, sortCustomFieldId, sortDirection) is { } queryErrors)
+        {
+            return Problems.Validation(queryErrors);
+        }
+
+        // Which cursors this list accepts depends on how it is ordered, so the
+        // check has to know: a position in a custom-field sort means nothing to the
+        // default order, and the other way round.
+        var sortKey = sortCustomFieldId is null ? SortKeyKind.Date : SortKeyKind.Answer;
+        if (PagingParameters.Validate(limit, cursor, sortKey) is { } errors)
         {
             return Problems.Validation(errors);
         }
 
-        if (ValidateFilter(customFieldId, customFieldValue) is { } filterErrors)
-        {
-            return Problems.Validation(filterErrors);
-        }
-
         var filter = customFieldId is { } fieldId ? new CustomFieldFilter(fieldId, customFieldValue!) : null;
+        var sort = sortCustomFieldId is { } sortFieldId
+            ? new CustomFieldSort(sortFieldId, Descending(sortDirection))
+            : null;
 
         var result = await handler.HandleAsync(
-            ownerId, filter, PagingParameters.From(limit, cursor), cancellationToken);
+            ownerId, filter, sort, PagingParameters.From(limit, cursor), cancellationToken);
 
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)
             : result.Error.ToProblem();
+    }
+
+    /// <summary>Descending unless the client asked otherwise; the default list reads newest-first too.</summary>
+    private static bool Descending(string? sortDirection) =>
+        !string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+    private static Dictionary<string, string[]>? ValidateQuery(
+        Guid? customFieldId, string? customFieldValue, Guid? sortCustomFieldId, string? sortDirection)
+    {
+        var errors = new ValidationErrors();
+
+        ValidateFilter(customFieldId, customFieldValue, errors);
+
+        if (sortDirection is not null
+            && !string.Equals(sortDirection, "asc", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase))
+        {
+            errors.Add("sortDirection", "The sort direction must be asc or desc.");
+        }
+
+        // A direction with nothing to apply it to would be quietly ignored, and a
+        // client that believes it asked for an order it didn't get is the bug this
+        // avoids. The default order has no direction to choose.
+        if (sortDirection is not null && sortCustomFieldId is null)
+        {
+            errors.Add("sortCustomFieldId", "A sortDirection needs the sortCustomFieldId it orders by.");
+        }
+
+        return errors.ToResultOrNull();
     }
 
     /// <summary>
@@ -65,10 +103,8 @@ internal static class ListApplicationsEndpoint
     /// client error rather than a filter quietly ignored - a list that returns
     /// everything when it was asked to narrow is the kind of bug found late.
     /// </summary>
-    private static Dictionary<string, string[]>? ValidateFilter(Guid? customFieldId, string? customFieldValue)
+    private static void ValidateFilter(Guid? customFieldId, string? customFieldValue, ValidationErrors errors)
     {
-        var errors = new ValidationErrors();
-
         if (customFieldId is null && customFieldValue is not null)
         {
             errors.Add("customFieldId", "A customFieldValue needs the customFieldId it applies to.");
@@ -78,7 +114,5 @@ internal static class ListApplicationsEndpoint
         {
             errors.Add("customFieldValue", "A customFieldId needs the customFieldValue to match.");
         }
-
-        return errors.ToResultOrNull();
     }
 }
