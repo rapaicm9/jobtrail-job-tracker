@@ -1,4 +1,5 @@
 using JobTrail.Infrastructure.Events;
+using JobTrail.Infrastructure.Outbox;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Identity.Authentication;
 using JobTrail.Modules.Identity.Contracts;
@@ -76,6 +77,13 @@ public static class IdentityModule
         // Other modules register their own handler for the same event.
         builder.Services.AddEventHandler<UserDataDeletionRequested, AccountErasureHandler>();
 
+        // What this module owes the rest of the system, delivered durably. Erasure
+        // is a promise made synchronously and kept afterwards: lose the request
+        // between the 204 and the dispatch and nothing is erased at all, with the
+        // user already told otherwise. At-least-once delivery over handlers that
+        // are already idempotent is exactly the shape that promise needs.
+        builder.AddOutboxDispatcher<IdentityModuleDbContext>(RegisterOutboxEvents);
+
         // The module's public Contracts surface: the current caller and a narrow
         // read of user profile facts, both implemented internally. Other modules
         // depend on the interfaces; the implementations never cross the boundary.
@@ -85,6 +93,15 @@ public static class IdentityModule
 
         return builder;
     }
+
+    /// <summary>
+    /// Every event this module records for durable delivery, named in one place.
+    /// A method rather than a lambda at the call site so the test that holds the
+    /// module to publishing nothing unregistered can register exactly what the
+    /// host registers, instead of a copy that would drift from it.
+    /// </summary>
+    internal static void RegisterOutboxEvents(OutboxEventRegistry registry) =>
+        registry.Register<UserDataDeletionRequested>();
 
     /// <summary>
     /// Registers the JwtBearer scheme that validates this module's access

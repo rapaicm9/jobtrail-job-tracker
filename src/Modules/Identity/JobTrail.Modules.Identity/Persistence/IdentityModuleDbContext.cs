@@ -1,4 +1,7 @@
+using JobTrail.Infrastructure.Outbox;
+using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Identity.Domain;
+using JobTrail.SharedKernel;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -16,6 +19,20 @@ internal sealed class IdentityModuleDbContext(DbContextOptions<IdentityModuleDbC
     public const string Schema = "identity";
 
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+    /// <summary>
+    /// Events this module owes the rest of the system. It lives here, in this
+    /// module's store, so a row is written in the same transaction as the request
+    /// it records - which is the only reason the outbox works at all.
+    /// </summary>
+    public DbSet<OutboxMessage> Outbox => Set<OutboxMessage>();
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
+        // The outbox's owner column carries the strongly-typed id and stores as
+        // uuid. Identity's own tables key on a plain Guid - the account id is this
+        // module's own - so this exists for the outbox alone, and for whatever
+        // later table names its owner the way the rest of the system does.
+        builder.Properties<UserId>().HaveConversion<UserIdConverter>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -56,5 +73,7 @@ internal sealed class IdentityModuleDbContext(DbContextOptions<IdentityModuleDbC
                 .HasForeignKey(t => t.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        builder.MapOutbox();
     }
 }

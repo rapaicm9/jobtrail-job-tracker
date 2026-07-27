@@ -21,11 +21,10 @@ namespace JobTrail.Modules.Applications.Features.EraseData;
 /// </para>
 /// <para>
 /// The order is the one the foreign keys demand - applications before the
-/// campaigns they are restricted to - and the whole sequence is one transaction.
-/// Nothing retries this: it arrives on the in-process bus, where a failed handler
-/// is logged and dropped. Half an erasure would therefore be permanent, whereas an
-/// erasure that fails whole leaves the data intact and recoverable. Each statement
-/// is a set-based delete, so a redelivery simply finds nothing left to do.
+/// campaigns they are restricted to - and the whole sequence is one transaction,
+/// so this module is never left half-erased. The request is retried until every
+/// module's handler succeeds, and each statement here is a set-based delete, so a
+/// redelivery simply finds nothing left to do.
 /// </para>
 /// </summary>
 internal sealed class ApplicationsDataErasureHandler(ApplicationsDbContext dbContext)
@@ -34,7 +33,7 @@ internal sealed class ApplicationsDataErasureHandler(ApplicationsDbContext dbCon
     public async Task HandleAsync(
         UserDataDeletionRequested integrationEvent, CancellationToken cancellationToken)
     {
-        var ownerId = integrationEvent.UserId;
+        var ownerId = integrationEvent.OwnerId;
 
         // The retrying execution strategy refuses a transaction it did not start,
         // so the whole sequence is handed to it to replay as one.

@@ -23,7 +23,7 @@ internal sealed class BillingDataErasureHandler(BillingDbContext dbContext)
     public async Task HandleAsync(
         UserDataDeletionRequested integrationEvent, CancellationToken cancellationToken)
     {
-        var userId = integrationEvent.UserId;
+        var userId = integrationEvent.OwnerId;
 
         await dbContext.Purchases.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);
         await dbContext.Plans.Where(p => p.UserId == userId).ExecuteDeleteAsync(cancellationToken);

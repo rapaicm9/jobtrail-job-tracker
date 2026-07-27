@@ -70,6 +70,6 @@ public sealed class BillingErasureTests(ApiFixture fixture)
         using var scope = fixture.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
         var handler = new BillingDataErasureHandler(db);
-        await handler.HandleAsync(new UserDataDeletionRequested(userId), Ct);
+        await handler.HandleAsync(new UserDataDeletionRequested(Guid.CreateVersion7(), userId), Ct);
     }
 }

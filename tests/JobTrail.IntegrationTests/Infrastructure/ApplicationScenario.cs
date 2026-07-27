@@ -39,7 +39,12 @@ internal static class ApplicationScenario
             .SingleAsync(cancellationToken);
     }
 
-    private static async Task<bool> HasDefaultCampaignAsync(
+    /// <summary>
+    /// Whether the user still has the campaign registration provisions for them.
+    /// Both ends of the account's life read this: the seed waits for it to appear,
+    /// and erasure waits for it to go.
+    /// </summary>
+    public static async Task<bool> HasDefaultCampaignAsync(
         this ApiFixture fixture, UserId ownerId, CancellationToken cancellationToken)
     {
         using var scope = fixture.CreateScope();
