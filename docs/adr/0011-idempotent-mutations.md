@@ -9,7 +9,7 @@ A mobile client on a bad connection cannot tell a request that never arrived fro
 
 The pipeline makes one case worse than a duplicate. A retried transition is not a second move; it is an *illegal* one, because the application has already left the stage it was moving from. The user's phone flickered and the app says "you can't do that."
 
-ADR-0010 settled the same problem at the other end of the system: consumers dedupe redeliveries on `EventId`. This is the client-facing half.
+ADR-0009 settled the same problem at the other end of the system: consumers dedupe redeliveries on `EventId`. This is the client-facing half.
 
 ## Decision
 
