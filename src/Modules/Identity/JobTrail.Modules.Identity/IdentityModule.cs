@@ -5,6 +5,7 @@ using JobTrail.Modules.Identity.Authentication;
 using JobTrail.Modules.Identity.Contracts;
 using JobTrail.Modules.Identity.Domain;
 using JobTrail.Modules.Identity.Features.DeleteAccount;
+using JobTrail.Modules.Identity.Features.ExportAccount;
 using JobTrail.Modules.Identity.Features.GetAccount;
 using JobTrail.Modules.Identity.Features.Login;
 using JobTrail.Modules.Identity.Features.Logout;
@@ -13,6 +14,7 @@ using JobTrail.Modules.Identity.Features.Refresh;
 using JobTrail.Modules.Identity.Features.Register;
 using JobTrail.Modules.Identity.Features.UpdateAccount;
 using JobTrail.Modules.Identity.Persistence;
+using JobTrail.SharedKernel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -72,10 +74,16 @@ public static class IdentityModule
         builder.Services.AddScoped<GetAccountHandler>();
         builder.Services.AddScoped<UpdateAccountHandler>();
         builder.Services.AddScoped<DeleteAccountHandler>();
+        builder.Services.AddScoped<ExportAccountHandler>();
 
         // Identity's own reaction to an erasure request: delete its user rows.
         // Other modules register their own handler for the same event.
         builder.Services.AddEventHandler<UserDataDeletionRequested, AccountErasureHandler>();
+
+        // And its share of an export, which is the same fan-out read the other way
+        // round. Registered as one of many: the handler that composes the document
+        // takes every registered exporter and knows none of them by name.
+        builder.Services.AddScoped<IUserDataExporter, IdentityDataExporter>();
 
         // What this module owes the rest of the system, delivered durably. Erasure
         // is a promise made synchronously and kept afterwards: lose the request
@@ -158,6 +166,7 @@ public static class IdentityModule
         GetAccountEndpoint.Map(account);
         UpdateAccountEndpoint.Map(account);
         DeleteAccountEndpoint.Map(account);
+        ExportAccountEndpoint.Map(account);
 
         return account;
     }

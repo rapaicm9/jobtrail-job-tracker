@@ -209,6 +209,9 @@ internal static class ApiClient
     public static Task<HttpResponseMessage> GetAccountAsync(this HttpClient client, string? accessToken) =>
         client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/account", accessToken));
 
+    public static Task<HttpResponseMessage> ExportAccountAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/account/export", accessToken));
+
     public static Task<HttpResponseMessage> UpdateAccountAsync(
         this HttpClient client, string? accessToken, string? timeZoneId)
     {
