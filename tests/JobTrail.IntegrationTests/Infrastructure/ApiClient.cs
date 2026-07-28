@@ -80,6 +80,18 @@ internal sealed record CustomFieldView(
     DateTimeOffset? UpdatedAt);
 
 /// <summary>
+/// A campaign as a client sees it - declared here, not shared with the module, so a
+/// contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record CampaignView(
+    Guid Id,
+    string Name,
+    bool IsDefault,
+    int ApplicationCount,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? UpdatedAt);
+
+/// <summary>
 /// One page of a list, as a client sees it - declared here, not shared with the
 /// module, so a contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -388,6 +400,33 @@ internal static class ApiClient
         return client.SendAsync(request);
     }
 
+    public static Task<HttpResponseMessage> CreateCampaignAsync(
+        this HttpClient client, string? accessToken, object body)
+    {
+        var request = Authorized(HttpMethod.Post, "/api/v1/campaigns", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> GetCampaignAsync(
+        this HttpClient client, string? accessToken, Guid id) =>
+        client.SendAsync(Authorized(HttpMethod.Get, $"/api/v1/campaigns/{id}", accessToken));
+
+    public static Task<HttpResponseMessage> ListCampaignsAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/campaigns", accessToken));
+
+    public static Task<HttpResponseMessage> UpdateCampaignAsync(
+        this HttpClient client, string? accessToken, Guid id, object body)
+    {
+        var request = Authorized(HttpMethod.Put, $"/api/v1/campaigns/{id}", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> DeleteCampaignAsync(
+        this HttpClient client, string? accessToken, Guid id) =>
+        client.SendAsync(Authorized(HttpMethod.Delete, $"/api/v1/campaigns/{id}", accessToken));
+
     public static Task<HttpResponseMessage> AddNoteAsync(
         this HttpClient client, string? accessToken, Guid applicationId, object body)
     {
@@ -573,6 +612,23 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var definitions = await response.Content.ReadFromJsonAsync<List<CustomFieldView>>();
         return definitions.ShouldNotBeNull();
+    }
+
+    public static async Task<CampaignView> ReadCampaignAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var campaign = await response.Content.ReadFromJsonAsync<CampaignView>();
+        return campaign.ShouldNotBeNull();
+    }
+
+    /// <summary>The campaign list is a bare array, not the paged envelope.</summary>
+    public static async Task<IReadOnlyList<CampaignView>> ReadCampaignListAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var campaigns = await response.Content.ReadFromJsonAsync<List<CampaignView>>();
+        return campaigns.ShouldNotBeNull();
     }
 
     public static async Task<InterviewView> ReadInterviewAsync(this HttpResponseMessage response)

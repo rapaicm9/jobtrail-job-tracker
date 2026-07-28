@@ -22,6 +22,14 @@ internal static class FieldRules
     public const int CustomFieldLabelMaxLength = 100;
     public const int CustomFieldOptionMaxLength = 100;
     public const int CustomFieldOptionsMaxCount = 50;
+    public const int CampaignNameMaxLength = 100;
+
+    /// <summary>
+    /// How many campaigns one account may hold, the default included. A campaign is
+    /// a whole job search - a handful is a lot of them - and the cap is what keeps
+    /// the list worth serving whole, since a picker needs every campaign to render.
+    /// </summary>
+    public const int CampaignsPerOwner = 20;
 
     /// <summary>
     /// How many custom fields one account may define, archived ones included -

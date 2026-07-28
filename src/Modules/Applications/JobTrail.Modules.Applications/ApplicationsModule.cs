@@ -5,16 +5,20 @@ using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Features.AddNote;
 using JobTrail.Modules.Applications.Features.CreateApplication;
+using JobTrail.Modules.Applications.Features.CreateCampaign;
 using JobTrail.Modules.Applications.Features.CreateContact;
 using JobTrail.Modules.Applications.Features.CreateCustomField;
 using JobTrail.Modules.Applications.Features.CreateInterview;
+using JobTrail.Modules.Applications.Features.DeleteCampaign;
 using JobTrail.Modules.Applications.Features.EraseData;
 using JobTrail.Modules.Applications.Features.GetActivity;
 using JobTrail.Modules.Applications.Features.GetApplication;
+using JobTrail.Modules.Applications.Features.GetCampaign;
 using JobTrail.Modules.Applications.Features.GetContact;
 using JobTrail.Modules.Applications.Features.GetCustomField;
 using JobTrail.Modules.Applications.Features.GetInterview;
 using JobTrail.Modules.Applications.Features.ListApplications;
+using JobTrail.Modules.Applications.Features.ListCampaigns;
 using JobTrail.Modules.Applications.Features.ListContacts;
 using JobTrail.Modules.Applications.Features.ListCustomFields;
 using JobTrail.Modules.Applications.Features.ListInterviews;
@@ -22,6 +26,7 @@ using JobTrail.Modules.Applications.Features.ProvisionCampaign;
 using JobTrail.Modules.Applications.Features.SearchCompanies;
 using JobTrail.Modules.Applications.Features.TransitionApplication;
 using JobTrail.Modules.Applications.Features.UpdateApplication;
+using JobTrail.Modules.Applications.Features.UpdateCampaign;
 using JobTrail.Modules.Applications.Features.UpdateContact;
 using JobTrail.Modules.Applications.Features.UpdateCustomField;
 using JobTrail.Modules.Applications.Features.UpdateInterview;
@@ -104,6 +109,12 @@ public static class ApplicationsModule
         builder.Services.AddScoped<ListCustomFieldsHandler>();
         builder.Services.AddScoped<UpdateCustomFieldHandler>();
 
+        builder.Services.AddScoped<CreateCampaignHandler>();
+        builder.Services.AddScoped<GetCampaignHandler>();
+        builder.Services.AddScoped<ListCampaignsHandler>();
+        builder.Services.AddScoped<UpdateCampaignHandler>();
+        builder.Services.AddScoped<DeleteCampaignHandler>();
+
         return builder;
     }
 
@@ -171,5 +182,17 @@ public static class ApplicationsModule
         CreateCustomFieldEndpoint.Map(customFields);
         GetCustomFieldEndpoint.Map(customFields);
         UpdateCustomFieldEndpoint.Map(customFields);
+
+        // The account's job searches. Top-level rather than nested: an application
+        // belongs to a campaign, not the other way round, and the picker that offers
+        // them is drawn before any application exists. Only the create carries the
+        // Pro gate - holding more than one is the capability; reading, renaming and
+        // deleting act on campaigns the account already has.
+        var campaigns = api.MapGroup("/campaigns");
+        ListCampaignsEndpoint.Map(campaigns);
+        CreateCampaignEndpoint.Map(campaigns);
+        GetCampaignEndpoint.Map(campaigns);
+        UpdateCampaignEndpoint.Map(campaigns);
+        DeleteCampaignEndpoint.Map(campaigns);
     }
 }
