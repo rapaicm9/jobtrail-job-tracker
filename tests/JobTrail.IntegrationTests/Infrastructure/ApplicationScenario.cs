@@ -28,6 +28,24 @@ internal static class ApplicationScenario
         return tokens;
     }
 
+    /// <summary>
+    /// The same, with Pro unlocked - for the slices where the paid capability and
+    /// the default campaign are both needed. Both are provisioned off the one
+    /// registration event, so both are waited for.
+    /// </summary>
+    public static async Task<AuthTokens> RegisterProWithDefaultCampaignAsync(
+        this ApiFixture fixture, HttpClient client, CancellationToken cancellationToken)
+    {
+        var tokens = await fixture.RegisterProUserAsync(client, cancellationToken);
+
+        await Poll.UntilAsync(
+            () => fixture.HasDefaultCampaignAsync(UserId.From(tokens.UserId), cancellationToken),
+            "registration should provision the default campaign the campaign slices work from",
+            cancellationToken);
+
+        return tokens;
+    }
+
     public static async Task<Guid> DefaultCampaignIdAsync(
         this ApiFixture fixture, UserId ownerId, CancellationToken cancellationToken)
     {

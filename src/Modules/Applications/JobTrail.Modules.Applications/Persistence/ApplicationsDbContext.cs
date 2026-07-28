@@ -174,8 +174,15 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
         {
             campaign.HasKey(c => c.Id);
             campaign.Property(c => c.Id).HasDefaultValueSql("uuidv7()");
-            campaign.Property(c => c.Name).HasMaxLength(100).IsRequired();
+            campaign.Property(c => c.Name).HasMaxLength(FieldRules.CampaignNameMaxLength).IsRequired();
             campaign.Property(c => c.CreatedAt).HasDefaultValueSql("now()");
+
+            // Computed by the database so it cannot drift from the name, and stored
+            // rather than virtual because PostgreSQL will only index a stored
+            // generated column.
+            campaign.Property(c => c.NameNormalized)
+                .HasComputedColumnSql("lower(name)", stored: true)
+                .HasMaxLength(FieldRules.CampaignNameMaxLength);
 
             // Exactly one default campaign per user, enforced at the database. A
             // partial (filtered) unique index constrains only the default rows, so
@@ -184,6 +191,18 @@ internal sealed class ApplicationsDbContext(DbContextOptions<ApplicationsDbConte
             campaign.HasIndex(c => c.OwnerId)
                 .IsUnique()
                 .HasFilter("is_default");
+
+            // One campaign per name per user, compared case-insensitively. Total
+            // rather than partial, unlike the custom fields' index: a campaign has
+            // no archived state to free its name again.
+            campaign.HasIndex(c => new { c.OwnerId, c.NameNormalized }).IsUnique();
+
+            // The whole list is read per owner to fill a picker, and again by owner
+            // for erasure. The index above is partial and serves only the default,
+            // so a plain "this user's campaigns" needs its own. Ordered as the list
+            // reads them, which puts the default first for free - it is always the
+            // oldest, having been created with the account.
+            campaign.HasIndex(c => new { c.OwnerId, c.CreatedAt, c.Id });
         });
 
         builder.Entity<Company>(company =>
