@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using JobTrail.Modules.Billing.Contracts;
 using JobTrail.SharedKernel;
 
 namespace JobTrail.Modules.Identity.Features.ExportAccount;
@@ -21,10 +22,24 @@ namespace JobTrail.Modules.Identity.Features.ExportAccount;
 /// whose shape depends on that would be a document that changes for no reason.
 /// </para>
 /// </summary>
-internal sealed class ExportAccountHandler(IEnumerable<IUserDataExporter> exporters, TimeProvider timeProvider)
+internal sealed class ExportAccountHandler(
+    IEnumerable<IUserDataExporter> exporters,
+    IEntitlementQuery entitlements,
+    TimeProvider timeProvider)
 {
-    public async Task<byte[]> HandleAsync(UserId userId, CancellationToken cancellationToken)
+    public async Task<Result<byte[]>> HandleAsync(UserId userId, CancellationToken cancellationToken)
     {
+        // The route policy has already refused an unentitled caller, so this never
+        // fires through the endpoint. It fires if the endpoint is ever mapped
+        // without its policy, or if this handler is called from somewhere that is
+        // not that endpoint - the gate belongs to the operation, not to one route.
+        // Checked before anything is gathered: an export nobody may have is not
+        // worth the reads.
+        if (!await entitlements.HasEntitlementAsync(userId, Entitlement.Export, cancellationToken))
+        {
+            return AccountErrors.ExportNotEntitled;
+        }
+
         var document = new JsonObject
         {
             // Enough for a reader to know what they are holding a year later,

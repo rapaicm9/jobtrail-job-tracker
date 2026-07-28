@@ -41,9 +41,14 @@ internal static class ExportAccountEndpoint
             return CurrentUser.MissingSubject.ToProblem();
         }
 
-        var document = await handler.HandleAsync(userId, cancellationToken);
+        var result = await handler.HandleAsync(userId, cancellationToken);
+        if (result.IsFailure)
+        {
+            return result.Error.ToProblem();
+        }
+
         var today = timeProvider.GetUtcNow().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
-        return TypedResults.File(document, "application/json", $"jobtrail-export-{today}.json");
+        return TypedResults.File(result.Value, "application/json", $"jobtrail-export-{today}.json");
     }
 }

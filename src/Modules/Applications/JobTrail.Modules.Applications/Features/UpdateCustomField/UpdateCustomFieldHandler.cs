@@ -1,6 +1,7 @@
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Persistence;
+using JobTrail.Modules.Billing.Contracts;
 using JobTrail.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -17,11 +18,21 @@ namespace JobTrail.Modules.Applications.Features.UpdateCustomField;
 /// loaded first and the rule applied to what was stored.
 /// </para>
 /// </summary>
-internal sealed class UpdateCustomFieldHandler(ApplicationsDbContext dbContext, TimeProvider timeProvider)
+internal sealed class UpdateCustomFieldHandler(
+    ApplicationsDbContext dbContext, IEntitlementQuery entitlements, TimeProvider timeProvider)
 {
     public async Task<Result<CustomFieldResponse>> HandleAsync(
         UserId ownerId, Guid id, UpdateCustomFieldRequest request, CancellationToken cancellationToken)
     {
+        // Checked before the field is even looked up, so an unentitled caller is
+        // refused for the reason that actually applies rather than told a field
+        // they may not edit does not exist. See the create handler for why a
+        // route-gated command re-checks at all.
+        if (!await entitlements.HasEntitlementAsync(ownerId, Entitlement.CustomFields, cancellationToken))
+        {
+            return CustomFieldErrors.DefinitionsNotEntitled;
+        }
+
         var definition = await dbContext.CustomFields
             .FirstOrDefaultAsync(d => d.Id == id && d.OwnerId == ownerId, cancellationToken);
         if (definition is null)

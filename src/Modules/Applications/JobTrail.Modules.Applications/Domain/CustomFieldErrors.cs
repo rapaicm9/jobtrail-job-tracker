@@ -53,6 +53,19 @@ internal static class CustomFieldErrors
         "Setting custom-field values requires Pro. Values already recorded are kept and stay readable.");
 
     /// <summary>
+    /// The caller tried to define or edit a field without the entitlement to. The
+    /// route policy answers this first and a caller will never see it; it exists so
+    /// the handler refuses on its own terms rather than trusting that it was only
+    /// ever reached through the endpoint that guards it.
+    /// <para>
+    /// Distinct from <see cref="ValuesNotEntitled"/>, which a caller does see:
+    /// answering a field is refused inside a request both tiers are allowed to make.
+    /// </para>
+    /// </summary>
+    public static readonly Error DefinitionsNotEntitled = Error.Forbidden(
+        "custom_field.definitions_not_entitled", "Defining custom fields requires Pro.");
+
+    /// <summary>
     /// A value was sent for a field the caller does not have. Another user's field
     /// reads the same way - the lookup is owner-scoped, so it is simply not theirs
     /// to answer.
