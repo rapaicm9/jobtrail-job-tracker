@@ -3,12 +3,14 @@ using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Billing.Authorization;
 using JobTrail.Modules.Billing.Contracts;
 using JobTrail.Modules.Billing.Features.EraseData;
+using JobTrail.Modules.Billing.Features.ExportData;
 using JobTrail.Modules.Billing.Features.GetPlan;
 using JobTrail.Modules.Billing.Features.GrantPro;
 using JobTrail.Modules.Billing.Features.ProvisionPlan;
 using JobTrail.Modules.Billing.Features.PurchasePro;
 using JobTrail.Modules.Billing.Persistence;
 using JobTrail.Modules.Identity.Contracts;
+using JobTrail.SharedKernel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
@@ -44,6 +46,11 @@ public static class BillingModule
         // an erasure request takes the plan and its purchases back out again.
         builder.Services.AddEventHandler<UserRegistered, PlanProvisioningHandler>();
         builder.Services.AddEventHandler<UserDataDeletionRequested, BillingDataErasureHandler>();
+
+        // Billing's share of an account export - the plan and the purchases behind
+        // it. Registered as one of many; the module composing the export never
+        // learns this one exists.
+        builder.Services.AddScoped<IUserDataExporter, BillingDataExporter>();
 
         // The entitlement seam other modules gate on, and the purchase flow that
         // moves a plan onto Pro behind the mocked payment provider.

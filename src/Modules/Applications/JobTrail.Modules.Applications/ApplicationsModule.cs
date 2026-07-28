@@ -11,6 +11,7 @@ using JobTrail.Modules.Applications.Features.CreateCustomField;
 using JobTrail.Modules.Applications.Features.CreateInterview;
 using JobTrail.Modules.Applications.Features.DeleteCampaign;
 using JobTrail.Modules.Applications.Features.EraseData;
+using JobTrail.Modules.Applications.Features.ExportData;
 using JobTrail.Modules.Applications.Features.GetActivity;
 using JobTrail.Modules.Applications.Features.GetApplication;
 using JobTrail.Modules.Applications.Features.GetCampaign;
@@ -32,6 +33,7 @@ using JobTrail.Modules.Applications.Features.UpdateCustomField;
 using JobTrail.Modules.Applications.Features.UpdateInterview;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Identity.Contracts;
+using JobTrail.SharedKernel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -68,6 +70,10 @@ public static class ApplicationsModule
         // And gives everything back on the way out: this module's share of the
         // erasure fan-out, from its own schema only.
         builder.Services.AddEventHandler<UserDataDeletionRequested, ApplicationsDataErasureHandler>();
+
+        // And hands it all over on request: this module's share of an account
+        // export, which is the largest of them - the whole record of a job search.
+        builder.Services.AddScoped<IUserDataExporter, ApplicationsDataExporter>();
 
         // The clock every handler here dates its writes by. Registered defensively:
         // the module should stand up whether or not another one got here first.
