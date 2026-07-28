@@ -1,5 +1,6 @@
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Persistence;
+using JobTrail.Modules.Billing.Contracts;
 using JobTrail.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -11,11 +12,20 @@ namespace JobTrail.Modules.Applications.Features.CreateCampaign;
 /// name's shape; what is left needs the database - the account's campaign budget,
 /// and whether the name is already in use.
 /// </summary>
-internal sealed class CreateCampaignHandler(ApplicationsDbContext dbContext)
+internal sealed class CreateCampaignHandler(ApplicationsDbContext dbContext, IEntitlementQuery entitlements)
 {
     public async Task<Result<CampaignResponse>> HandleAsync(
         UserId ownerId, CreateCampaignRequest request, CancellationToken cancellationToken)
     {
+        // The route policy has already refused an unentitled caller, so this never
+        // fires through the endpoint. It fires if the endpoint is ever mapped
+        // without its policy, or if this handler is called from somewhere that is
+        // not that endpoint - the gate belongs to the operation, not to one route.
+        if (!await entitlements.HasEntitlementAsync(ownerId, Entitlement.MultipleCampaigns, cancellationToken))
+        {
+            return CampaignErrors.NotEntitled;
+        }
+
         var held = await dbContext.Campaigns.CountAsync(c => c.OwnerId == ownerId, cancellationToken);
         if (held >= FieldRules.CampaignsPerOwner)
         {

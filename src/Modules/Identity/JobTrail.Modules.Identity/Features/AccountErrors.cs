@@ -13,4 +13,13 @@ internal static class AccountErrors
     /// </summary>
     public static readonly Error NotFound =
         Error.NotFound("account.not_found", "The account no longer exists.");
+
+    /// <summary>
+    /// The caller asked for an export without the entitlement to one. The route
+    /// policy answers this first and a caller will never see it; it exists so the
+    /// handler refuses on its own terms rather than trusting that it was only ever
+    /// reached through the endpoint that guards it.
+    /// </summary>
+    public static readonly Error ExportNotEntitled =
+        Error.Forbidden("account.export_not_entitled", "Exporting your data requires Pro.");
 }

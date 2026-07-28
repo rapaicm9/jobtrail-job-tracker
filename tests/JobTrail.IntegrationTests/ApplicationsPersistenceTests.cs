@@ -1,3 +1,4 @@
+using System.Text.Json;
 using JobTrail.IntegrationTests.Infrastructure;
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Persistence;
@@ -177,6 +178,66 @@ public sealed class ApplicationsPersistenceTests(ApiFixture fixture)
 
             mine.ShouldHaveSingleItem().OwnerId.ShouldBe(owner);
         }
+    }
+
+    [Fact]
+    public async Task Reassigning_an_equal_answer_bag_leaves_the_column_alone()
+    {
+        var ownerId = UserId.New();
+        var campaignId = await SeedCampaignAsync(ownerId);
+        var fieldId = Guid.CreateVersion7();
+        var id = await SeedApplicationWithAnswerAsync(ownerId, campaignId, fieldId, "Platform");
+
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
+        var application = await db.Applications.SingleAsync(a => a.Id == id, Ct);
+
+        // What every edit of an application does: build a fresh bag and assign it.
+        // The stored answers are identical, so nothing about this application's
+        // custom fields has changed.
+        application.CustomFieldValues = BagOf(fieldId, "Platform");
+
+        // The comparer compares the documents, not the references. Without it every
+        // edit of an application - including the ones that never touch a custom
+        // field - would rewrite the jsonb column.
+        db.Entry(application).Property(a => a.CustomFieldValues).IsModified.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task A_changed_answer_bag_is_still_seen_as_changed()
+    {
+        var ownerId = UserId.New();
+        var campaignId = await SeedCampaignAsync(ownerId);
+        var fieldId = Guid.CreateVersion7();
+        var id = await SeedApplicationWithAnswerAsync(ownerId, campaignId, fieldId, "Platform");
+
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
+        var application = await db.Applications.SingleAsync(a => a.Id == id, Ct);
+
+        application.CustomFieldValues = BagOf(fieldId, "Infrastructure");
+
+        // The other half of the claim: comparing documents must not make the
+        // property look unchanged when the answer actually moved.
+        db.Entry(application).Property(a => a.CustomFieldValues).IsModified.ShouldBeTrue();
+    }
+
+    /// <summary>One answer, as the raw JSON scalar its type calls for.</summary>
+    private static CustomFieldValues BagOf(Guid fieldId, string answer) =>
+        CustomFieldValues.From([new(fieldId, JsonSerializer.SerializeToElement(answer))]);
+
+    private async Task<Guid> SeedApplicationWithAnswerAsync(
+        UserId owner, Guid campaignId, Guid fieldId, string answer)
+    {
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>();
+
+        var application = NewApplication(owner, campaignId);
+        application.CustomFieldValues = BagOf(fieldId, answer);
+        db.Applications.Add(application);
+        await db.SaveChangesAsync(Ct);
+
+        return application.Id;
     }
 
     /// <summary>

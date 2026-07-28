@@ -20,6 +20,15 @@ internal static class CampaignErrors
     public static Error NameTaken(string name) =>
         Error.Conflict("campaign.name_taken", $"A campaign named '{name}' already exists.");
 
+    /// <summary>
+    /// The caller tried to open another campaign without the entitlement to hold
+    /// one. The route policy answers this first and a caller will never see it; it
+    /// exists so the handler refuses on its own terms rather than trusting that it
+    /// was only ever reached through the endpoint that guards it.
+    /// </summary>
+    public static readonly Error NotEntitled = Error.Forbidden(
+        "campaign.not_entitled", "Holding more than one campaign requires Pro.");
+
     /// <summary>The account is at its campaign limit. The default counts - it is one of them.</summary>
     public static Error LimitReached(int limit) =>
         Error.Conflict("campaign.limit_reached", $"An account may hold {limit} campaigns.");
