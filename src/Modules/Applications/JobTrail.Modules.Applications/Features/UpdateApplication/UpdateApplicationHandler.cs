@@ -24,6 +24,7 @@ internal sealed class UpdateApplicationHandler(
     ApplicationsDbContext dbContext,
     CompanyResolver companyResolver,
     CustomFieldValueResolver customFieldValues,
+    OwnershipGuard ownership,
     IEntitlementQuery entitlements,
     TimeProvider timeProvider)
 {
@@ -42,6 +43,12 @@ internal sealed class UpdateApplicationHandler(
             return ApplicationErrors.OfferDeadlineRequiresOffer;
         }
 
+        var campaignId = request.CampaignId!.Value;
+        if (!await ownership.OwnsCampaignAsync(ownerId, campaignId, cancellationToken))
+        {
+            return ApplicationErrors.UnknownCampaign(campaignId);
+        }
+
         var company = await companyResolver.ResolveAsync(
             ownerId, request.CompanyId, request.CompanyName, cancellationToken);
         if (company.IsFailure)
@@ -54,13 +61,16 @@ internal sealed class UpdateApplicationHandler(
             return refusal;
         }
 
-        // Where the deadlines stood before the replace. An event is owed only where
-        // one actually moved: a client re-sending an unchanged record - which a full
-        // replace invites - would otherwise have Notifications rescheduling the same
-        // reminder on every edit.
+        // Where the deadlines and the campaign stood before the replace. An event is
+        // owed only where one actually moved: a client re-sending an unchanged
+        // record - which a full replace invites - would otherwise have Notifications
+        // rescheduling the same reminder, and Analytics re-attributing the same
+        // application, on every edit.
         var previousDeadline = application.ApplicationDeadline;
         var previousOfferDeadline = application.OfferDecisionDeadline;
+        var previousCampaignId = application.CampaignId;
 
+        application.CampaignId = campaignId;
         application.CompanyId = company.Value;
         application.Role = request.Role!.Trim();
         application.Compensation = ApplicationFieldMapping.ToMoney(request.Compensation);
@@ -77,7 +87,7 @@ internal sealed class UpdateApplicationHandler(
         var now = timeProvider.GetUtcNow();
         application.UpdatedAt = now;
 
-        Announce(application, ownerId, previousDeadline, previousOfferDeadline, now);
+        Announce(application, ownerId, previousDeadline, previousOfferDeadline, previousCampaignId, now);
 
         await dbContext.SaveChangesAsync(cancellationToken);
 
@@ -138,8 +148,25 @@ internal sealed class UpdateApplicationHandler(
         UserId ownerId,
         DateOnly? previousDeadline,
         DateOnly? previousOfferDeadline,
+        Guid previousCampaignId,
         DateTimeOffset now)
     {
+        // A move states both ends, so a consumer can apply it without having seen
+        // the moves before it. Nothing schedules from this today; it is recorded
+        // because a read model rebuilt from its event stream can never recover a
+        // move that was never announced.
+        if (application.CampaignId != previousCampaignId)
+        {
+            dbContext.Outbox.Add(OutboxMessage.For(
+                new ApplicationMovedToCampaign(
+                    Guid.CreateVersion7(),
+                    application.Id,
+                    ownerId,
+                    previousCampaignId,
+                    application.CampaignId,
+                    now)));
+        }
+
         if (application.ApplicationDeadline != previousDeadline)
         {
             dbContext.Outbox.Add(OutboxMessage.For(

@@ -310,11 +310,16 @@ public sealed class CustomFieldValueTests(ApiFixture fixture)
         AuthTokens tokens, Guid id, Dictionary<string, object?>? customFields) =>
         await (await UpdateRequestAsync(tokens, id, customFields)).ReadApplicationAsync();
 
-    private Task<HttpResponseMessage> UpdateRequestAsync(
+    private async Task<HttpResponseMessage> UpdateRequestAsync(
         AuthTokens tokens, Guid id, Dictionary<string, object?>? customFields) =>
-        _client.UpdateApplicationAsync(tokens.AccessToken, id, new
+        await _client.UpdateApplicationAsync(tokens.AccessToken, id, new
         {
             role = "Engineer",
+
+            // A replace has to carry the campaign, and everything here was opened
+            // in the account's default - the campaign is not what these tests are
+            // about, so they put it back where it was.
+            campaignId = await fixture.DefaultCampaignIdAsync(UserId.From(tokens.UserId), Ct),
             appliedDate = "2026-07-20",
             customFields,
         });

@@ -1,3 +1,5 @@
+using JobTrail.Infrastructure.Outbox;
+using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Domain;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Persistence;
@@ -17,10 +19,11 @@ namespace JobTrail.Modules.Applications.Features.DeleteCampaign;
 /// to receive them, which is also why the default itself cannot be deleted.
 /// </para>
 /// <para>
-/// Both statements are one transaction, so there is no instant where the campaign is
-/// gone and its applications are not yet home. The restricted foreign key is the
-/// backstop for exactly that: get the order wrong and the delete fails loudly
-/// instead of orphaning anything.
+/// Everything is one transaction, so there is no instant where the campaign is gone
+/// and its applications are not yet home, and no instant where they have moved
+/// without the move being announced. The restricted foreign key is the backstop for
+/// the first: get the order wrong and the delete fails loudly instead of orphaning
+/// anything.
 /// </para>
 /// </summary>
 internal sealed class DeleteCampaignHandler(ApplicationsDbContext dbContext, TimeProvider timeProvider)
@@ -55,6 +58,26 @@ internal sealed class DeleteCampaignHandler(ApplicationsDbContext dbContext, Tim
 
         var now = timeProvider.GetUtcNow();
 
+        // Which applications are about to move. Only their ids: the move itself is
+        // set-based, and this read exists solely because each one owes an event and
+        // an event has to name the application it is about.
+        var moving = await dbContext.Applications
+            .Where(a => a.CampaignId == id && a.OwnerId == ownerId)
+            .Select(a => a.Id)
+            .ToListAsync(cancellationToken);
+
+        // Built once, outside the transaction that writes them. The execution
+        // strategy may replay the block below, and adding these instances a second
+        // time is a no-op on entities the change tracker already holds - whereas
+        // constructing fresh ones each attempt would duplicate the rows, and mint
+        // new event ids for occurrences that consumers must be able to recognize as
+        // the same.
+        var announcements = moving
+            .Select(applicationId => OutboxMessage.For(
+                new ApplicationMovedToCampaign(
+                    Guid.CreateVersion7(), applicationId, ownerId, id, defaultId.Value, now)))
+            .ToList();
+
         // The retrying execution strategy refuses a transaction it did not start, so
         // the whole sequence is handed to it to replay as one.
         var strategy = dbContext.Database.CreateExecutionStrategy();
@@ -78,6 +101,9 @@ internal sealed class DeleteCampaignHandler(ApplicationsDbContext dbContext, Tim
             await dbContext.Campaigns
                 .Where(c => c.Id == id && c.OwnerId == ownerId)
                 .ExecuteDeleteAsync(cancellationToken);
+
+            dbContext.Outbox.AddRange(announcements);
+            await dbContext.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
         });

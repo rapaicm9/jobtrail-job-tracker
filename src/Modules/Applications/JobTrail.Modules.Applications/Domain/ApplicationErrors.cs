@@ -41,6 +41,14 @@ internal static class ApplicationErrors
         Error.Failure("application.no_default_campaign", "This account has no default campaign.");
 
     /// <summary>
+    /// The request names a campaign the caller does not own (or that does not
+    /// exist). A bad reference in a request is a validation failure - a 422, not a
+    /// 404 about the campaign, which would confirm whose it is.
+    /// </summary>
+    public static Error UnknownCampaign(Guid campaignId) =>
+        Error.Validation("application.unknown_campaign", $"No campaign with id {campaignId} exists.");
+
+    /// <summary>
     /// An offer-decision deadline was set on an application that has no offer yet.
     /// The deadline only means something once the application is at <c>Offer</c>, so
     /// setting it earlier is a validation failure - a 422.

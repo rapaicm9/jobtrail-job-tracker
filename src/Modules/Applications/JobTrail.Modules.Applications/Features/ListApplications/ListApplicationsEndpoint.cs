@@ -9,11 +9,11 @@ using Microsoft.AspNetCore.Routing;
 namespace JobTrail.Modules.Applications.Features.ListApplications;
 
 /// <summary>
-/// <c>GET /applications?customFieldId=&amp;customFieldValue=</c> - one page of the
-/// caller's own applications as list rows, newest first, optionally narrowed to
-/// those answering one of the account's custom fields with a given value. Scoped
-/// to the token's subject; a user never sees another's. Takes <c>limit</c> and the
-/// <c>cursor</c> a previous page returned.
+/// <c>GET /applications?campaignId=&amp;customFieldId=&amp;customFieldValue=</c> - one
+/// page of the caller's own applications as list rows, newest first, optionally
+/// narrowed to one campaign and to those answering one of the account's custom
+/// fields with a given value. Scoped to the token's subject; a user never sees
+/// another's. Takes <c>limit</c> and the <c>cursor</c> a previous page returned.
 /// <para>
 /// The two filter parameters travel together: an id says which field, a value says
 /// what to match, and one without the other is a request that cannot be answered.
@@ -27,6 +27,7 @@ internal static class ListApplicationsEndpoint
         applications.MapGet("", HandleAsync).RequireAuthorization();
 
     private static async Task<Results<Ok<PagedResponse<ApplicationSummaryResponse>>, ProblemHttpResult>> HandleAsync(
+        Guid? campaignId,
         Guid? customFieldId,
         string? customFieldValue,
         Guid? sortCustomFieldId,
@@ -62,7 +63,7 @@ internal static class ListApplicationsEndpoint
             : null;
 
         var result = await handler.HandleAsync(
-            ownerId, filter, sort, PagingParameters.From(limit, cursor), cancellationToken);
+            ownerId, campaignId, filter, sort, PagingParameters.From(limit, cursor), cancellationToken);
 
         return result.IsSuccess
             ? TypedResults.Ok(result.Value)

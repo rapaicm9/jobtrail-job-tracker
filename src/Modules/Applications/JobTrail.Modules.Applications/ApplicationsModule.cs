@@ -130,6 +130,7 @@ public static class ApplicationsModule
             .Register<ApplicationStageChanged>()
             .Register<ApplicationReachedTerminal>()
             .Register<ApplicationReopened>()
+            .Register<ApplicationMovedToCampaign>()
             .Register<ApplicationDeadlineSet>()
             .Register<OfferDecisionDeadlineSet>()
             .Register<InterviewScheduled>()

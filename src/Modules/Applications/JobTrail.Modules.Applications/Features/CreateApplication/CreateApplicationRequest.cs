@@ -11,6 +11,13 @@ namespace JobTrail.Modules.Applications.Features.CreateApplication;
 /// <see cref="CompanyName"/> to create-or-reuse one by name (at most one of the two).
 /// <see cref="AppliedDate"/> defaults to the caller's local today when omitted.
 /// <para>
+/// <see cref="CampaignId"/> is optional and names the campaign to open the
+/// application in; omitted, it lands in the account's default. A Free account has
+/// only its default to name, so the field costs it nothing - and no entitlement is
+/// checked here, because placing an application in a campaign the account already
+/// holds is not the paid capability. Opening a second campaign is.
+/// </para>
+/// <para>
 /// <see cref="CustomFields"/> answers the fields the account defined for itself,
 /// keyed by definition id, each value the raw JSON its field's type calls for.
 /// Writing them needs the entitlement, which the handler checks - the endpoint
@@ -19,6 +26,7 @@ namespace JobTrail.Modules.Applications.Features.CreateApplication;
 /// </summary>
 internal sealed record CreateApplicationRequest(
     string? Role,
+    Guid? CampaignId,
     Guid? CompanyId,
     string? CompanyName,
     MoneyRequest? Compensation,

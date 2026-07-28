@@ -253,12 +253,18 @@ internal static class ApiClient
         string? accessToken,
         int? limit = null,
         string? cursor = null,
+        Guid? campaignId = null,
         Guid? customFieldId = null,
         string? customFieldValue = null,
         Guid? sortCustomFieldId = null,
         string? sortDirection = null)
     {
         var query = new List<string>();
+        if (campaignId is { } campaign)
+        {
+            query.Add($"campaignId={campaign}");
+        }
+
         if (customFieldId is { } fieldId)
         {
             query.Add($"customFieldId={fieldId}");
