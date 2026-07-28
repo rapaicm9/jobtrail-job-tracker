@@ -56,6 +56,7 @@ public sealed class ApplicationDeadlineEventTests(ApiFixture fixture)
         await ReplaceAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
             applicationDeadline = "2026-09-01",
         });
@@ -76,6 +77,7 @@ public sealed class ApplicationDeadlineEventTests(ApiFixture fixture)
         await ReplaceAsync(tokens.AccessToken, created.Id, new
         {
             role = "Senior Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
             applicationDeadline = "2026-08-05",
         });
@@ -97,6 +99,7 @@ public sealed class ApplicationDeadlineEventTests(ApiFixture fixture)
         await ReplaceAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
         });
 
@@ -118,6 +121,7 @@ public sealed class ApplicationDeadlineEventTests(ApiFixture fixture)
         await ReplaceAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
             offerDecisionDeadline = "2026-09-15",
         });
@@ -138,6 +142,7 @@ public sealed class ApplicationDeadlineEventTests(ApiFixture fixture)
         var response = await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
             offerDecisionDeadline = "2026-09-15",
         });
@@ -157,6 +162,7 @@ public sealed class ApplicationDeadlineEventTests(ApiFixture fixture)
         var response = await _client.UpdateApplicationAsync(stranger.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
             applicationDeadline = "2026-09-01",
         });

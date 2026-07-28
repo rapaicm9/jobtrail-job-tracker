@@ -18,4 +18,7 @@ internal sealed class OwnershipGuard(ApplicationsDbContext dbContext)
 
     public Task<bool> OwnsCompanyAsync(UserId ownerId, Guid companyId, CancellationToken cancellationToken) =>
         dbContext.Companies.AnyAsync(c => c.Id == companyId && c.OwnerId == ownerId, cancellationToken);
+
+    public Task<bool> OwnsCampaignAsync(UserId ownerId, Guid campaignId, CancellationToken cancellationToken) =>
+        dbContext.Campaigns.AnyAsync(c => c.Id == campaignId && c.OwnerId == ownerId, cancellationToken);
 }

@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore;
 namespace JobTrail.Modules.Applications.Features.CreateApplication;
 
 /// <summary>
-/// Opens a new application for the caller. It lands in the account's default
-/// campaign (multiple campaigns is a Pro, later concern), references a company
+/// Opens a new application for the caller. It lands in the campaign the request
+/// names, or the account's default when it names none, references a company
 /// resolved from the request, and starts at <c>Applied</c>. The application, any
 /// newly-created company, and the first activity entry commit together, so the
 /// timeline is never missing its opening row. When the client omits the applied
@@ -22,6 +22,7 @@ internal sealed class CreateApplicationHandler(
     ApplicationsDbContext dbContext,
     CompanyResolver companyResolver,
     CustomFieldValueResolver customFieldValues,
+    OwnershipGuard ownership,
     IEntitlementQuery entitlements,
     IUserProfileQuery profileQuery,
     TimeProvider timeProvider)
@@ -29,13 +30,10 @@ internal sealed class CreateApplicationHandler(
     public async Task<Result<ApplicationResponse>> HandleAsync(
         UserId ownerId, CreateApplicationRequest request, CancellationToken cancellationToken)
     {
-        var campaignId = await dbContext.Campaigns
-            .Where(c => c.OwnerId == ownerId && c.IsDefault)
-            .Select(c => (Guid?)c.Id)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (campaignId is null)
+        var campaign = await ResolveCampaignAsync(ownerId, request.CampaignId, cancellationToken);
+        if (campaign.IsFailure)
         {
-            return ApplicationErrors.NoDefaultCampaign;
+            return campaign.Error;
         }
 
         var company = await companyResolver.ResolveAsync(
@@ -73,7 +71,7 @@ internal sealed class CreateApplicationHandler(
             // same SaveChanges.
             Id = Guid.CreateVersion7(),
             OwnerId = ownerId,
-            CampaignId = campaignId.Value,
+            CampaignId = campaign.Value,
             CompanyId = company.Value,
             Role = request.Role!.Trim(),
             Compensation = ApplicationFieldMapping.ToMoney(request.Compensation),
@@ -125,6 +123,35 @@ internal sealed class CreateApplicationHandler(
         // CreatedAt and Stage are database-generated; EF reads them back onto the
         // entity after the insert, so the response is complete without a re-read.
         return application.ToResponse();
+    }
+
+    /// <summary>
+    /// The campaign this application opens in: the one the request names, checked
+    /// as the caller's own, or the account's default when it names none.
+    /// <para>
+    /// A campaign the caller does not own is a 422 rather than a 404 - it is a bad
+    /// reference inside a request body, and answering 404 would say whose it is. A
+    /// missing default is neither: every account is provisioned one at
+    /// registration, so its absence is an invariant breach, not something the
+    /// client did.
+    /// </para>
+    /// </summary>
+    private async Task<Result<Guid>> ResolveCampaignAsync(
+        UserId ownerId, Guid? requested, CancellationToken cancellationToken)
+    {
+        if (requested is { } campaignId)
+        {
+            return await ownership.OwnsCampaignAsync(ownerId, campaignId, cancellationToken)
+                ? campaignId
+                : ApplicationErrors.UnknownCampaign(campaignId);
+        }
+
+        var defaultId = await dbContext.Campaigns
+            .Where(c => c.OwnerId == ownerId && c.IsDefault)
+            .Select(c => (Guid?)c.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return defaultId is { } id ? id : ApplicationErrors.NoDefaultCampaign;
     }
 
     private async Task<DateOnly> ResolveLocalTodayAsync(UserId ownerId, CancellationToken cancellationToken)

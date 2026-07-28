@@ -17,22 +17,26 @@ namespace JobTrail.Modules.Applications.Features.ListApplications;
 /// By default they come newest-applied first, tie-broken by id (a UUIDv7, so
 /// time-ordered) - two applications sent on the same day are common, and without
 /// the tiebreak a page edge could repeat or skip one. A custom-field sort replaces
-/// that ordering; a custom-field filter narrows either.
+/// that ordering; a custom-field filter narrows either, and so does a campaign.
 /// </para>
 /// <para>
-/// Both are Pro, and the check sits here rather than on the route because both
-/// tiers read their applications - it is the optional parameters that are out of
-/// reach, not the call.
+/// The custom-field parameters are Pro, and the check sits here rather than on the
+/// route because both tiers read their applications - it is those parameters that
+/// are out of reach, not the call. Narrowing to a campaign is not gated: a Free
+/// account has one campaign, and a downgraded account still has to be able to look
+/// inside the ones it holds.
 /// </para>
 /// </summary>
 internal sealed class ListApplicationsHandler(
     ApplicationsDbContext dbContext,
     CustomFieldFilterResolver filterResolver,
     CustomFieldSortResolver sortResolver,
+    OwnershipGuard ownership,
     IEntitlementQuery entitlements)
 {
     public async Task<Result<PagedResponse<ApplicationSummaryResponse>>> HandleAsync(
         UserId ownerId,
+        Guid? campaignId,
         CustomFieldFilter? filter,
         CustomFieldSort? sort,
         PageRequest page,
@@ -42,6 +46,14 @@ internal sealed class ListApplicationsHandler(
             && !await entitlements.HasEntitlementAsync(ownerId, Entitlement.CustomFields, cancellationToken))
         {
             return CustomFieldErrors.QueryNotEntitled;
+        }
+
+        // A campaign that is not the caller's own is refused rather than answered
+        // with an empty page - an empty page already means "nothing matched", and a
+        // client cannot tell a mistyped id from a campaign it has emptied.
+        if (campaignId is { } id && !await ownership.OwnsCampaignAsync(ownerId, id, cancellationToken))
+        {
+            return ApplicationErrors.UnknownCampaign(id);
         }
 
         string? probe = null;
@@ -58,22 +70,27 @@ internal sealed class ListApplicationsHandler(
 
         if (sort is null)
         {
-            return await ByAppliedDateAsync(ownerId, probe, page, cancellationToken);
+            return await ByAppliedDateAsync(ownerId, campaignId, probe, page, cancellationToken);
         }
 
         var plan = await sortResolver.ResolveAsync(ownerId, sort, cancellationToken);
         return plan.IsFailure
             ? plan.Error
-            : await ByAnswerAsync(ownerId, probe, plan.Value, page, cancellationToken);
+            : await ByAnswerAsync(ownerId, campaignId, probe, plan.Value, page, cancellationToken);
     }
 
     /// <summary>The default order, which LINQ expresses and the composite index serves.</summary>
     private Task<PagedResponse<ApplicationSummaryResponse>> ByAppliedDateAsync(
-        UserId ownerId, string? probe, PageRequest page, CancellationToken cancellationToken)
+        UserId ownerId, Guid? campaignId, string? probe, PageRequest page, CancellationToken cancellationToken)
     {
         var query = dbContext.Applications
             .AsNoTracking()
             .Where(a => a.OwnerId == ownerId);
+
+        if (campaignId is { } id)
+        {
+            query = query.Where(a => a.CampaignId == id);
+        }
 
         if (probe is not null)
         {
@@ -122,6 +139,7 @@ internal sealed class ListApplicationsHandler(
     /// </summary>
     private async Task<Result<PagedResponse<ApplicationSummaryResponse>>> ByAnswerAsync(
         UserId ownerId,
+        Guid? campaignId,
         string? probe,
         CustomFieldSortPlan plan,
         PageRequest page,
@@ -142,6 +160,15 @@ internal sealed class ListApplicationsHandler(
         };
 
         var where = new StringBuilder("a.owner_id = @owner");
+
+        // Every narrowing the LINQ path applies has to be applied here too: this
+        // query is written whole, so a filter omitted from it is a filter the client
+        // asked for and silently did not get.
+        if (campaignId is { } id)
+        {
+            parameters.Add(new NpgsqlParameter("campaignId", id));
+            where.Append(" AND a.campaign_id = @campaignId");
+        }
 
         if (probe is not null)
         {

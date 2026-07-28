@@ -26,6 +26,7 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
         var updated = await (await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
         {
             role = "Staff Backend Engineer",
+            campaignId = created.CampaignId,
             companyName = "Acme Corp",
             compensation = new { amount = 150_000m, currency = "usd" },
             location = "Remote",
@@ -66,6 +67,7 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
         var updated = await (await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
         })).ReadApplicationAsync();
 
@@ -82,6 +84,7 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
         var updated = await (await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
         })).ReadApplicationAsync();
 
@@ -97,6 +100,7 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
         var response = await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
             offerDecisionDeadline = "2026-08-15",
         });
@@ -114,6 +118,7 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
         var updated = await (await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
         {
             role = "Engineer",
+            campaignId = created.CampaignId,
             appliedDate = created.AppliedDate.ToString("O"),
             offerDecisionDeadline = "2026-08-15",
         })).ReadApplicationAsync();
@@ -132,6 +137,7 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
         var response = await _client.UpdateApplicationAsync(mine.AccessToken, mineApp.Id, new
         {
             role = "Engineer",
+            campaignId = mineApp.CampaignId,
             appliedDate = mineApp.AppliedDate.ToString("O"),
             companyId = theirCompany,
         });
@@ -140,14 +146,17 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task Requires_an_applied_date_and_a_role()
+    public async Task Requires_a_role_an_applied_date_and_a_campaign()
     {
         var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
         var created = await CreateAsync(tokens.AccessToken, new { role = "Engineer" });
 
+        // The three a replace cannot default: create fills the date and the campaign
+        // in for a client that omits them, but an edit is sent by something that
+        // already has the record in front of it.
         var response = await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new { role = "  " });
 
-        await response.ShouldBeValidationProblemAsync("role", "appliedDate");
+        await response.ShouldBeValidationProblemAsync("role", "appliedDate", "campaignId");
     }
 
     [Fact]
@@ -160,6 +169,7 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
         var response = await _client.UpdateApplicationAsync(other.AccessToken, application.Id, new
         {
             role = "Engineer",
+            campaignId = application.CampaignId,
             appliedDate = application.AppliedDate.ToString("O"),
         });
 
