@@ -42,6 +42,7 @@ public sealed class FeatureGatedEndpointTests(ApiFixture fixture)
     private static readonly string[] Expected =
     [
         $"GET /api/v{{version:apiVersion}}/account/export -> {FeaturePolicy.For(Entitlement.Export)}",
+        $"GET /api/v{{version:apiVersion}}/analytics/insights -> {FeaturePolicy.For(Entitlement.FullAnalytics)}",
         $"POST /api/v{{version:apiVersion}}/campaigns/ -> {FeaturePolicy.For(Entitlement.MultipleCampaigns)}",
         $"POST /api/v{{version:apiVersion}}/custom-fields/ -> {FeaturePolicy.For(Entitlement.CustomFields)}",
         $"PUT /api/v{{version:apiVersion}}/custom-fields/{{id:guid}} -> {FeaturePolicy.For(Entitlement.CustomFields)}",
