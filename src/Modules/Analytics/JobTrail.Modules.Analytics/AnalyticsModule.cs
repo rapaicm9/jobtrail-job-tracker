@@ -1,10 +1,13 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Analytics.Features.EraseData;
+using JobTrail.Modules.Analytics.Features.GetOverview;
 using JobTrail.Modules.Analytics.Features.ProjectApplicationFacts;
 using JobTrail.Modules.Analytics.Persistence;
 using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Identity.Contracts;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -52,10 +55,32 @@ public static class AnalyticsModule
         // fan-out, from its own schema only.
         builder.Services.AddEventHandler<UserDataDeletionRequested, AnalyticsDataErasureHandler>();
 
+        builder.Services.AddScoped<GetOverviewHandler>();
+
         // The clock every handler here dates its writes by. Registered defensively:
         // the module should stand up whether or not another one got here first.
         builder.Services.TryAddSingleton(TimeProvider.System);
 
         return builder;
+    }
+
+    /// <summary>
+    /// Maps the Analytics module's authenticated slices onto the host's versioned
+    /// API group, under <c>/analytics</c>. Takes the host's general per-IP budget.
+    /// Returns the group so the host can layer its own policy.
+    /// <para>
+    /// The dashboard is a read surface, so nothing here is gated at the route: the
+    /// Free figures are every account's, and the paid ones carry
+    /// <c>Feature:FullAnalytics</c> on the endpoints that serve them rather than on
+    /// this group.
+    /// </para>
+    /// </summary>
+    public static RouteGroupBuilder MapAnalyticsEndpoints(this IEndpointRouteBuilder api)
+    {
+        var analytics = api.MapGroup("/analytics");
+
+        GetOverviewEndpoint.Map(analytics);
+
+        return analytics;
     }
 }

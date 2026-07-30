@@ -43,6 +43,16 @@ internal sealed record CompanySummary(Guid Id, string Name);
 internal sealed record MoneyView(decimal Amount, string Currency);
 
 /// <summary>
+/// The dashboard's Free figures as a client sees them - declared here, not shared
+/// with the module, so a contract change breaks these tests rather than silently
+/// retargeting them.
+/// </summary>
+internal sealed record AnalyticsOverview(int TotalApplied, IReadOnlyList<PipelineStageCountView> Pipeline);
+
+/// <summary>One column of the pipeline snapshot, as a client sees it.</summary>
+internal sealed record PipelineStageCountView(string Stage, int Count);
+
+/// <summary>
 /// The custom-field answers as a client sees them, keyed by definition id.
 /// <para>
 /// A dictionary with value equality, because the views that carry it are records
@@ -436,6 +446,15 @@ internal static class ApiClient
         this HttpClient client, string? accessToken, Guid id) =>
         client.SendAsync(Authorized(HttpMethod.Delete, $"/api/v1/campaigns/{id}", accessToken));
 
+    public static Task<HttpResponseMessage> GetAnalyticsOverviewAsync(
+        this HttpClient client, string? accessToken, Guid? campaignId = null) =>
+        client.SendAsync(Authorized(
+            HttpMethod.Get,
+            campaignId is { } id
+                ? $"/api/v1/analytics/overview?campaignId={id}"
+                : "/api/v1/analytics/overview",
+            accessToken));
+
     public static Task<HttpResponseMessage> AddNoteAsync(
         this HttpClient client, string? accessToken, Guid applicationId, object body)
     {
@@ -629,6 +648,14 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var campaign = await response.Content.ReadFromJsonAsync<CampaignView>();
         return campaign.ShouldNotBeNull();
+    }
+
+    public static async Task<AnalyticsOverview> ReadOverviewAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var overview = await response.Content.ReadFromJsonAsync<AnalyticsOverview>();
+        return overview.ShouldNotBeNull();
     }
 
     /// <summary>The campaign list is a bare array, not the paged envelope.</summary>
