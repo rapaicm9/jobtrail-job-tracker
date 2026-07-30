@@ -3,7 +3,7 @@ namespace JobTrail.Worker;
 /// <summary>
 /// Placeholder background service so the host has something to run and the
 /// skeleton can be orchestrated end to end. The real work - Redis Streams
-/// consumers for push delivery and the Hangfire server for scheduled reminder
+/// consumers for push delivery and the Quartz.NET scheduler for reminder
 /// evaluation - replaces this.
 /// </summary>
 public sealed class Worker(ILogger<Worker> logger) : BackgroundService
