@@ -4,6 +4,7 @@ using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Applications.Features;
 using JobTrail.Modules.Applications.Features.AddNote;
+using JobTrail.Modules.Applications.Features.ChartCustomField;
 using JobTrail.Modules.Applications.Features.CreateApplication;
 using JobTrail.Modules.Applications.Features.CreateCampaign;
 using JobTrail.Modules.Applications.Features.CreateContact;
@@ -83,6 +84,11 @@ public static class ApplicationsModule
         // misses one of these cannot catch up by reading our tables, so the event
         // is recorded with the change and delivered until its handlers succeed.
         builder.AddOutboxDispatcher<ApplicationsDbContext>(RegisterOutboxEvents);
+
+        // This module's first published query. Analytics charts the custom fields
+        // by asking for figures rather than reading the bag, because no event
+        // carries an answer and none ever will.
+        builder.Services.AddScoped<ICustomFieldChartQuery, CustomFieldChartQuery>();
 
         builder.Services.AddScoped<SearchCompaniesHandler>();
         builder.Services.AddScoped<CompanyResolver>();

@@ -43,7 +43,7 @@ Applied to the features that exist:
 | Custom-field definitions | `POST`, `PUT` on `/custom-fields` | `GET` single and list |
 | Custom-field values | writing the bag (handler), filtering/sorting a list by one | reading the bag on every application |
 | Multiple campaigns | `POST /campaigns` | `GET`, `PUT`, `DELETE` on `/campaigns`; placing an application in one held |
-| Full analytics | `GET /analytics/insights` | `GET /analytics/overview`; every application endpoint |
+| Full analytics | `GET /analytics/insights`, `GET /analytics/custom-fields/{id}` | `GET /analytics/overview`; every application endpoint; reading custom-field definitions |
 
 **Two things look like reads and are not**, and both are gated:
 

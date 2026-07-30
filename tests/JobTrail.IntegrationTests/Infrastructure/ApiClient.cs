@@ -85,6 +85,26 @@ internal sealed record BreakdownsView(
 internal sealed record BreakdownSliceView(string? Value, int Count);
 
 /// <summary>
+/// A custom-field panel as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record CustomFieldChartView(
+    Guid DefinitionId,
+    string Label,
+    string Type,
+    int Applications,
+    IReadOnlyList<CategoryBucketView>? Categories,
+    NumberSummaryView? Numbers,
+    IReadOnlyList<PeriodBucketView>? Periods);
+
+internal sealed record CategoryBucketView(string? Value, int Count);
+
+internal sealed record NumberSummaryView(
+    int Answered, decimal Minimum, decimal LowerQuartile, decimal Median, decimal UpperQuartile, decimal Maximum);
+
+internal sealed record PeriodBucketView(DateOnly PeriodStart, int Count);
+
+/// <summary>
 /// The custom-field answers as a client sees them, keyed by definition id.
 /// <para>
 /// A dictionary with value equality, because the views that carry it are records
@@ -487,6 +507,15 @@ internal static class ApiClient
                 : "/api/v1/analytics/overview",
             accessToken));
 
+    public static Task<HttpResponseMessage> GetCustomFieldChartAsync(
+        this HttpClient client, string? accessToken, Guid definitionId, Guid? campaignId = null) =>
+        client.SendAsync(Authorized(
+            HttpMethod.Get,
+            campaignId is { } id
+                ? $"/api/v1/analytics/custom-fields/{definitionId}?campaignId={id}"
+                : $"/api/v1/analytics/custom-fields/{definitionId}",
+            accessToken));
+
     public static Task<HttpResponseMessage> GetAnalyticsInsightsAsync(
         this HttpClient client, string? accessToken, Guid? campaignId = null) =>
         client.SendAsync(Authorized(
@@ -697,6 +726,14 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var overview = await response.Content.ReadFromJsonAsync<AnalyticsOverview>();
         return overview.ShouldNotBeNull();
+    }
+
+    public static async Task<CustomFieldChartView> ReadCustomFieldChartAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var chart = await response.Content.ReadFromJsonAsync<CustomFieldChartView>();
+        return chart.ShouldNotBeNull();
     }
 
     public static async Task<AnalyticsInsights> ReadInsightsAsync(this HttpResponseMessage response)

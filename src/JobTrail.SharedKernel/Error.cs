@@ -20,6 +20,19 @@ public enum ErrorType
     /// endpoint both tiers may call, carrying one part only one of them may write.
     /// </summary>
     Forbidden,
+
+    /// <summary>
+    /// The caller is known, the request understood and permitted, and something
+    /// this request depends on is not answering. Distinct from
+    /// <see cref="Failure"/>, which says the work went wrong: here nothing was
+    /// attempted incorrectly, and the same request is likely to succeed later.
+    /// <para>
+    /// Raised where one part of a response is served by a dependency that can fail
+    /// on its own, and saying so is better than reporting a broken server or - far
+    /// worse - an empty result that reads as a real answer.
+    /// </para>
+    /// </summary>
+    Unavailable,
 }
 
 /// <summary>
@@ -43,4 +56,6 @@ public sealed record Error(string Code, string Message, ErrorType Type = ErrorTy
     public static Error Unauthorized(string code, string message) => new(code, message, ErrorType.Unauthorized);
 
     public static Error Forbidden(string code, string message) => new(code, message, ErrorType.Forbidden);
+
+    public static Error Unavailable(string code, string message) => new(code, message, ErrorType.Unavailable);
 }
