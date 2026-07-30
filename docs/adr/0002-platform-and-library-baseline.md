@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
+- **Amended:** 2026-07-31 — background jobs are Quartz.NET, not Hangfire; the stated licensing stance and the job library had contradicted each other since this record was written. See *Revision history*.
 
 ## Context
 
@@ -18,7 +19,7 @@ The stack needs to stay supported for years, avoid recurring cost while pre-reve
   - mapping = hand-written extension methods;
   - messaging (MVP) = Redis Streams + a transactional outbox; if a broker is ever needed, Wolverine (MIT) then Rebus (MIT);
   - assertions = Shouldly / AwesomeAssertions.
-- **Background jobs:** Hangfire (LGPL v3, used unmodified) with PostgreSQL storage, plus Worker Service consumers.
+- **Background jobs:** **Quartz.NET (Apache 2.0)** with a persistent ADO job store on PostgreSQL, plus Worker Service consumers. Originally Hangfire, revised 2026-07-31 — see *Revision history*.
 - **Observability:** Serilog + OpenTelemetry over OTLP.
 
 Re-verify versions and licences before each is first added.
@@ -33,3 +34,9 @@ Re-verify versions and licences before each is first added.
 
 - **Mediator + AutoMapper defaults** — rejected on licensing and on the value of explicit, dependency-free handlers for a small codebase.
 - **MongoDB / a document DB** for flexible data — rejected; PostgreSQL JSONB (see ADR-0004) covers the semi-structured need without a second datastore.
+- **Hangfire for background jobs** — the original choice, rejected 2026-07-31 before it was ever added. Its core and its PostgreSQL storage provider are both LGPL v3 (or a paid commercial subscription), which made it the only copyleft dependency in a stack whose stance bullet above reads "MIT / first-party only" and whose stated consequence is "zero licensing exposure". This record carried that contradiction as an explicit carve-out — *"LGPL v3, used unmodified"* — which is legally sound for a NuGet reference and is still an exception this stack does not otherwise make. Quartz.NET is Apache 2.0 and needs no carve-out. Its dashboard is the real loss; see ADR 0006.
+
+## Revision history
+
+- **2026-07-16 — original.** The pinned runtime, web, data and orchestration stack; the MIT/first-party licensing stance and the four libraries it rules out.
+- **2026-07-31 — background jobs are Quartz.NET.** Triggered by this record's own instruction to *re-verify versions and licences before each is first added*, at the point Sprint 10 was about to add one. Hangfire's core and its PostgreSQL storage are LGPL v3; the stance bullet two lines above says MIT/first-party only. The carve-out was deliberate when written and is simply unnecessary — Apache 2.0 buys the same capability with no exception to explain. Nothing else in the stack moved.
