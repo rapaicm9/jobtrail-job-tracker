@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using JobTrail.Modules.Analytics.Persistence;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Billing.Persistence;
 using JobTrail.Modules.Identity.Persistence;
@@ -83,6 +84,8 @@ public sealed class ApiFixture : IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<BillingDbContext>()
             .Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>()
+            .Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>()
             .Database.MigrateAsync();
     }
 

@@ -6,6 +6,7 @@ using Asp.Versioning;
 using JobTrail.Api;
 using JobTrail.Api.Idempotency;
 using JobTrail.Infrastructure.Events;
+using JobTrail.Modules.Analytics;
 using JobTrail.Modules.Applications;
 using JobTrail.Modules.Billing;
 using JobTrail.Modules.Identity;
@@ -53,6 +54,16 @@ builder.AddBillingModule();
 // The core aggregate: applications and the pipeline. Persistence only for now;
 // the aggregate's behaviour and endpoints arrive in later slices.
 builder.AddApplicationsModule();
+
+// The dashboard's read model, built from the events the module above publishes.
+// Persistence only for now; the projections and endpoints arrive in later slices.
+//
+// After Applications on purpose, and it is load-bearing rather than tidy: handlers
+// for one event run in registration order, and this module's reaction to an
+// erasure has to come after the reaction that deletes the events still owed on
+// that user's behalf. The other way round, an owed event delivered in between
+// would rebuild a row for an account that had just been erased.
+builder.AddAnalyticsModule();
 
 // The module also owns validation of its own access tokens; the host just
 // turns the scheme on and layers authorization over it.
