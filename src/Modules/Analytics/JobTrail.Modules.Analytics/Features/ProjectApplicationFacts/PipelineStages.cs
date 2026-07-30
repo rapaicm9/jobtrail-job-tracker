@@ -38,6 +38,28 @@ internal static class PipelineStages
     private const string Rejected = "Rejected";
 
     /// <summary>
+    /// The live pipeline in the order a person walks it. Only these four have an
+    /// order: an application ends on exactly one outcome and the outcomes are not
+    /// ranked against each other, so there is no honest sequence to put them in.
+    /// </summary>
+    private static readonly string[] Ordered = [Applied, Screening, Interview, Offer];
+
+    /// <summary>
+    /// Where a stage sorts in a snapshot. The pipeline in its own order first, then
+    /// everything else - outcomes, and any stage this module has never heard of -
+    /// after it, left to the caller to break alphabetically.
+    /// <para>
+    /// Enough to render a stable list without claiming to know the whole set, which
+    /// is the line this module holds everywhere it touches a stage name.
+    /// </para>
+    /// </summary>
+    public static int Order(string stage)
+    {
+        var index = Array.IndexOf(Ordered, stage);
+        return index >= 0 ? index : Ordered.Length;
+    }
+
+    /// <summary>
     /// Whether arriving at this stage means the employer came back.
     /// <para>
     /// Deliberately not "any move off Applied". Being ghosted is the <em>absence</em>
