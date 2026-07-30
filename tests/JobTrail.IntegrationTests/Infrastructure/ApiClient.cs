@@ -53,6 +53,38 @@ internal sealed record AnalyticsOverview(int TotalApplied, IReadOnlyList<Pipelin
 internal sealed record PipelineStageCountView(string Stage, int Count);
 
 /// <summary>
+/// The paid dashboard as a client sees it - declared here, not shared with the
+/// module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record AnalyticsInsights(
+    FunnelView Funnel,
+    RatesView Rates,
+    TimingView Timing,
+    IReadOnlyList<TrendPointView> Trend,
+    BreakdownsView Breakdowns);
+
+internal sealed record FunnelView(
+    int Total, int Responded, int ReachedScreening, int ReachedInterview, int ReachedOffer);
+
+internal sealed record RatesView(double? Response, double? Interview, double? Offer);
+
+internal sealed record TimingView(
+    double? MedianDaysToFirstResponse,
+    int FirstResponseSamples,
+    double? MedianDaysToOffer,
+    int OfferSamples,
+    IReadOnlyList<StageDurationView> TimeInStage);
+
+internal sealed record StageDurationView(string Stage, double? MedianDays, int Samples);
+
+internal sealed record TrendPointView(DateOnly WeekStarting, int Count);
+
+internal sealed record BreakdownsView(
+    IReadOnlyList<BreakdownSliceView> Source, IReadOnlyList<BreakdownSliceView> WorkMode);
+
+internal sealed record BreakdownSliceView(string? Value, int Count);
+
+/// <summary>
 /// The custom-field answers as a client sees them, keyed by definition id.
 /// <para>
 /// A dictionary with value equality, because the views that carry it are records
@@ -455,6 +487,15 @@ internal static class ApiClient
                 : "/api/v1/analytics/overview",
             accessToken));
 
+    public static Task<HttpResponseMessage> GetAnalyticsInsightsAsync(
+        this HttpClient client, string? accessToken, Guid? campaignId = null) =>
+        client.SendAsync(Authorized(
+            HttpMethod.Get,
+            campaignId is { } id
+                ? $"/api/v1/analytics/insights?campaignId={id}"
+                : "/api/v1/analytics/insights",
+            accessToken));
+
     public static Task<HttpResponseMessage> AddNoteAsync(
         this HttpClient client, string? accessToken, Guid applicationId, object body)
     {
@@ -656,6 +697,14 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var overview = await response.Content.ReadFromJsonAsync<AnalyticsOverview>();
         return overview.ShouldNotBeNull();
+    }
+
+    public static async Task<AnalyticsInsights> ReadInsightsAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var insights = await response.Content.ReadFromJsonAsync<AnalyticsInsights>();
+        return insights.ShouldNotBeNull();
     }
 
     /// <summary>The campaign list is a bare array, not the paged envelope.</summary>

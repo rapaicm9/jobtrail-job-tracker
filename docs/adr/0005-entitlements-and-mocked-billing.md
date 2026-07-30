@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
-- **Amended:** 2026-07-28 — what a gate actually covers, once three features had answered it differently. See *Revision history*.
+- **Amended:** 2026-07-30 — "never gate reading" was too broad as written; a capability may be expressed as a read. See *Revision history*.
 
 ## Context
 
@@ -31,7 +31,7 @@ The pattern behind all three is that the entitlement buys the capability to *acq
 **An entitlement gates acquisition, not possession.** Concretely:
 
 - **Gate the act that creates or grows what the entitlement pays for** — defining a field, recording an answer, opening a second campaign. That act is the capability.
-- **Never gate reading.** Anything an account holds stays fully readable, on its own endpoints and inside every payload that already carried it. This is not a courtesy: without it a client cannot render what it is still storing.
+- **Never gate reading data the account holds.** Anything an account has recorded stays fully readable, on its own endpoints and inside every payload that already carried it. This is not a courtesy: without it a client cannot render what it is still storing. What may be gated is a *capability* that happens to be expressed as a read — the distinction is whether refusing it withholds the user's own record, or only work performed over it.
 - **Never gate the operations that reduce or maintain what is already held** — renaming, archiving, deleting, reassigning. An account must always be able to get back to a shape the free tier allows. A gate that traps data is worse than no gate.
 - **Where the gated thing is part of a payload rather than a whole call, the check moves into the handler** and covers that part only. Sending it unentitled is a **403** (`ErrorType.Forbidden` — a known caller and an understood request that is not permitted); omitting it leaves what is stored untouched.
 - **Absent means "unchanged", never "cleared", for a gated portion of a full-replace request.** This is the rule that makes retention real, and it means the entitlement is read on *every* such request — the absent case is precisely the one whose meaning depends on it.
@@ -43,8 +43,14 @@ Applied to the features that exist:
 | Custom-field definitions | `POST`, `PUT` on `/custom-fields` | `GET` single and list |
 | Custom-field values | writing the bag (handler), filtering/sorting a list by one | reading the bag on every application |
 | Multiple campaigns | `POST /campaigns` | `GET`, `PUT`, `DELETE` on `/campaigns`; placing an application in one held |
+| Full analytics | `GET /analytics/insights` | `GET /analytics/overview`; every application endpoint |
 
-Filtering and sorting a list by a custom field is gated, and is the one case that looks like a read but is not: searching by custom fields is the capability itself, and the ungated list still returns every application.
+**Two things look like reads and are not**, and both are gated:
+
+- **Filtering and sorting a list by a custom field.** Searching by custom fields is the capability itself, and the ungated list still returns every application.
+- **The paid dashboard.** The funnel, the rates, the time metrics, the trend and the breakdowns are analysis performed over the account's record, not the record itself. Refusing it withholds no application: `/applications` returns everything, and `/analytics/overview` still gives the pipeline snapshot and the total. What the paid tier sells is the work, and a capability priced as work is gated wherever it is invoked from.
+
+The test both cases pass and the rule turns on: **can the account still see everything it recorded?** If yes, gating the computation is a price on the analysis. If no, the gate has become a lock on the user's own data, and the rule above forbids it.
 
 ## Consequences
 
@@ -70,3 +76,4 @@ Filtering and sorting a list by a custom field is gated, and is the one case tha
 
 - **2026-07-16 — original.** Plan state, the policy mechanism, the mocked provider.
 - **2026-07-28 — what a gate covers** *(recorded separately at the time as ADR 0015)*. Added after custom-field definitions, custom-field values and multiple campaigns had each answered the question differently and each answer had to be argued from scratch. The acquisition-not-possession rule, and the table above, are what those three arguments have in common.
+- **2026-07-30 — "never gate reading" was too broad, and the paid dashboard is what showed it.** As written, the rule forbade gating the Pro analytics endpoints — which contradicts the tier the product sells and would leave `Feature:FullAnalytics` with nothing to do. The record already carried the resolution as a footnote about custom-field filtering, described there as "the one case that looks like a read but is not"; full analytics makes it two, which is enough to promote it from an exception to a rule. Restated: an entitlement never gates reading *data the account holds*, but may gate a capability that happens to be expressed as a read. The test is whether refusing it withholds the user's own record — `/applications` and `/analytics/overview` stay open, so what the gate prices is the analysis rather than the data.

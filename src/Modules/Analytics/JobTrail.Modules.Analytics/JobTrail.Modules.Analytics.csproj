@@ -13,6 +13,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The interval and median arithmetic is pure, and its own tests drive it
+         directly - no host and no database. -->
+    <InternalsVisibleTo Include="JobTrail.Modules.Analytics.Tests" />
     <!-- The integration fixture applies this module's migrations to the
          container database, and asserts the read model's shape against it. -->
     <InternalsVisibleTo Include="JobTrail.IntegrationTests" />
@@ -27,5 +30,9 @@
     <ProjectReference Include="..\..\Applications\JobTrail.Modules.Applications.Contracts\JobTrail.Modules.Applications.Contracts.csproj" />
     <!-- Consumes Identity's UserDataDeletionRequested to erase its own rows. -->
     <ProjectReference Include="..\..\Identity\JobTrail.Modules.Identity.Contracts\JobTrail.Modules.Identity.Contracts.csproj" />
+    <!-- Names the Feature:* policy that gates the paid dashboard and re-checks it
+         in the handler. Contracts only: the entitlement check itself stays
+         Billing's, and this module never learns what a plan is. -->
+    <ProjectReference Include="..\..\Billing\JobTrail.Modules.Billing.Contracts\JobTrail.Modules.Billing.Contracts.csproj" />
   </ItemGroup>
 </Project>

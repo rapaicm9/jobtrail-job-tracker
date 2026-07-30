@@ -1,6 +1,7 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
 using JobTrail.Modules.Analytics.Features.EraseData;
+using JobTrail.Modules.Analytics.Features.GetInsights;
 using JobTrail.Modules.Analytics.Features.GetOverview;
 using JobTrail.Modules.Analytics.Features.ProjectApplicationFacts;
 using JobTrail.Modules.Analytics.Persistence;
@@ -56,6 +57,7 @@ public static class AnalyticsModule
         builder.Services.AddEventHandler<UserDataDeletionRequested, AnalyticsDataErasureHandler>();
 
         builder.Services.AddScoped<GetOverviewHandler>();
+        builder.Services.AddScoped<GetInsightsHandler>();
 
         // The clock every handler here dates its writes by. Registered defensively:
         // the module should stand up whether or not another one got here first.
@@ -80,6 +82,7 @@ public static class AnalyticsModule
         var analytics = api.MapGroup("/analytics");
 
         GetOverviewEndpoint.Map(analytics);
+        GetInsightsEndpoint.Map(analytics);
 
         return analytics;
     }

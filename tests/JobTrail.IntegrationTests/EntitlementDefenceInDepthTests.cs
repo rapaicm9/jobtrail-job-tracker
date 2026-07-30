@@ -1,4 +1,5 @@
 using JobTrail.IntegrationTests.Infrastructure;
+using JobTrail.Modules.Analytics.Features.GetInsights;
 using JobTrail.Modules.Applications.Features.CreateCampaign;
 using JobTrail.Modules.Applications.Features.CreateCustomField;
 using JobTrail.Modules.Applications.Features.UpdateCustomField;
@@ -95,7 +96,25 @@ public sealed class EntitlementDefenceInDepthTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task And_all_four_go_through_for_a_pro_account()
+    public async Task Reading_the_paid_dashboard_refuses_a_free_account()
+    {
+        var ownerId = await FreeAccountAsync();
+
+        using var scope = fixture.CreateScope();
+        var handler = scope.ServiceProvider.GetRequiredService<GetInsightsHandler>();
+
+        // The one gated read in the system, and the reason it is gated: the
+        // account's own record stays open to it, but the analysis over it is what
+        // the paid tier sells.
+        var result = await handler.HandleAsync(ownerId, campaignId: null, Ct);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Type.ShouldBe(ErrorType.Forbidden);
+        result.Error.Code.ShouldBe("analytics.full_analytics_not_entitled");
+    }
+
+    [Fact]
+    public async Task And_all_five_go_through_for_a_pro_account()
     {
         // The other half of the claim: the guard refuses the unentitled without
         // standing in the way of everyone else. Without this, every test above
@@ -121,6 +140,10 @@ public sealed class EntitlementDefenceInDepthTests(ApiFixture fixture)
             .HandleAsync(ownerId, Ct);
         export.IsSuccess.ShouldBeTrue();
         export.Value.ShouldNotBeEmpty();
+
+        var insights = await scope.ServiceProvider.GetRequiredService<GetInsightsHandler>()
+            .HandleAsync(ownerId, campaignId: null, Ct);
+        insights.IsSuccess.ShouldBeTrue();
     }
 
     /// <summary>
