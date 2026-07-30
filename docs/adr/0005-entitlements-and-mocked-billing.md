@@ -2,7 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
-- **Amended:** 2026-07-30 — "never gate reading" was too broad as written; a capability may be expressed as a read. See *Revision history*.
+- **Amended:** 2026-07-30 — "never gate reading" was too broad as written; a capability may be expressed as a read. The weekly goal is the first feature the rules were applied to rather than derived from. See *Revision history*.
 
 ## Context
 
@@ -44,8 +44,15 @@ Applied to the features that exist:
 | Custom-field values | writing the bag (handler), filtering/sorting a list by one | reading the bag on every application |
 | Multiple campaigns | `POST /campaigns` | `GET`, `PUT`, `DELETE` on `/campaigns`; placing an application in one held |
 | Full analytics | `GET /analytics/insights`, `GET /analytics/custom-fields/{id}` | `GET /analytics/overview`; every application endpoint; reading custom-field definitions |
+| Weekly goal | `PUT /analytics/goal` | `GET` and `DELETE /analytics/goal` |
 
-**Two things look like reads and are not**, and both are gated:
+**The weekly goal is the first feature these rules were applied to rather than derived from**, and it answers the two questions the consequences below say a new paid feature has to answer. The act of acquisition is *setting a target*, so the gate is on the write and nowhere else. What an account must still be able to do with what it acquired is see the number it typed — refusing that would withhold its own record — and stop tracking it, which is the only way back to the shape the free tier allows. Gating the delete would be the campaign trap again: an account left holding a goal it could neither change nor be rid of.
+
+It also runs one step past the existing entries. Because the read is open, the response has to answer for an account that has no goal — and progress on its own, with no target beside it, is a bare weekly application count, which is a figure the paid trend sells. So **the count is withheld when the target is absent**: progress is progress *toward* something, and an ungated route must not become a side door onto a paid figure. Nothing is withheld from an account that once set a goal, which is the case the retention rule is actually about.
+
+It shares `Feature:FullAnalytics` rather than adding an entitlement of its own. In v1 one purchase unlocks everything, so a sixth member would express a distinction that does not exist yet; the enum's shape means adding one later is a one-line change and no caller moves.
+
+**Two things look like reads and are not**, and both are gated — the goal's read is not among them, being the account's own number:
 
 - **Filtering and sorting a list by a custom field.** Searching by custom fields is the capability itself, and the ungated list still returns every application.
 - **The paid dashboard.** The funnel, the rates, the time metrics, the trend and the breakdowns are analysis performed over the account's record, not the record itself. Refusing it withholds no application: `/applications` returns everything, and `/analytics/overview` still gives the pipeline snapshot and the total. What the paid tier sells is the work, and a capability priced as work is gated wherever it is invoked from.
@@ -71,9 +78,11 @@ The test both cases pass and the rule turns on: **can the account still see ever
 - **Reclaim on downgrade** (delete the extra campaigns, drop the answers) — rejected outright. The user entered that data; losing it because a plan changed is the kind of thing that is never forgiven, and it makes any future subscription model hostile.
 - **Read-only enforced by hiding** (return the data but refuse to serve the definitions that explain it) — rejected; it is the same stranding with extra steps.
 - **A single "is Pro" check at the edge of every module** — rejected. It cannot express a gate that covers one field of one payload, and it would put the plan model in front of every module instead of behind `IEntitlementQuery`.
+- **A `Feature:WeeklyGoal` entitlement of its own**, since the product's feature matrix lists the goal on its own line — rejected for now. v1 sells one lifetime unlock, so a sixth member would encode a split that nothing enforces, while costing a policy, a doc claim and a migration of every caller if it is ever collapsed back. Splitting it out later is a one-line change by construction.
 
 ## Revision history
 
 - **2026-07-16 — original.** Plan state, the policy mechanism, the mocked provider.
 - **2026-07-28 — what a gate covers** *(recorded separately at the time as ADR 0015)*. Added after custom-field definitions, custom-field values and multiple campaigns had each answered the question differently and each answer had to be argued from scratch. The acquisition-not-possession rule, and the table above, are what those three arguments have in common.
 - **2026-07-30 — "never gate reading" was too broad, and the paid dashboard is what showed it.** As written, the rule forbade gating the Pro analytics endpoints — which contradicts the tier the product sells and would leave `Feature:FullAnalytics` with nothing to do. The record already carried the resolution as a footnote about custom-field filtering, described there as "the one case that looks like a read but is not"; full analytics makes it two, which is enough to promote it from an exception to a rule. Restated: an entitlement never gates reading *data the account holds*, but may gate a capability that happens to be expressed as a read. The test is whether refusing it withholds the user's own record — `/applications` and `/analytics/overview` stay open, so what the gate prices is the analysis rather than the data.
+- **2026-07-30 — the weekly goal, and the first feature these rules decided rather than described.** Every entry in the table above was written after the fact, from a gate that had already been argued out feature by feature; the goal is the first one the record answered in advance, and it needed no new rule. Acquisition is setting a target, so the write is gated and the read and the delete are not — the delete especially, or a downgraded account holds a goal it can neither change nor drop. One thing did have to be settled that the earlier entries never faced: with the read open, what an account *without* a goal is shown. Progress on its own is a bare weekly application count, which the paid trend sells, so it is withheld until there is a target to measure it against. Recorded here rather than only in ADR 0016 because it is the gating rule, not the read model, that forces it. The goal shares `Feature:FullAnalytics`; a sixth entitlement is in the alternatives.

@@ -9,12 +9,6 @@ namespace JobTrail.Modules.Analytics.Features;
 /// keeps its own copy by design: the mapping is small and reads better beside the
 /// endpoints that use it, and a module can let its own status mapping diverge
 /// without disturbing the others.
-/// <para>
-/// Narrower than its siblings, and it should stay that way while it can. This
-/// module's endpoints take no request body, so there is nothing to validate into a
-/// field-keyed 422 - the helper for that arrives if and when a slice needs it,
-/// rather than sitting here unused.
-/// </para>
 /// </summary>
 internal static class Problems
 {
@@ -27,6 +21,16 @@ internal static class Problems
             detail: error.Message,
             statusCode: StatusOf(error.Type),
             extensions: new Dictionary<string, object?> { ["code"] = error.Code });
+
+    /// <summary>
+    /// Field-keyed request-validation failures as a 422 - not the framework's
+    /// default 400.
+    /// </summary>
+    public static ProblemHttpResult Validation(IDictionary<string, string[]> errors) =>
+        TypedResults.Problem(new HttpValidationProblemDetails(errors)
+        {
+            Status = StatusCodes.Status422UnprocessableEntity,
+        });
 
     private static int StatusOf(ErrorType type) => type switch
     {

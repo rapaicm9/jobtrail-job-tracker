@@ -156,11 +156,8 @@ internal sealed class CreateApplicationHandler(
 
     private async Task<DateOnly> ResolveLocalTodayAsync(UserId ownerId, CancellationToken cancellationToken)
     {
-        var nowUtc = timeProvider.GetUtcNow();
         var timezoneId = await profileQuery.GetTimezoneAsync(ownerId, cancellationToken);
 
-        return timezoneId is not null && TimeZoneInfo.TryFindSystemTimeZoneById(timezoneId, out var timezone)
-            ? DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(nowUtc, timezone).DateTime)
-            : DateOnly.FromDateTime(nowUtc.UtcDateTime);
+        return LocalDate.TodayIn(timeProvider.GetUtcNow(), timezoneId);
     }
 }
