@@ -46,6 +46,10 @@ public sealed class FeatureGatedEndpointTests(ApiFixture fixture)
         "GET /api/v{version:apiVersion}/analytics/custom-fields/{definitionId:guid} -> "
             + $"{FeaturePolicy.For(Entitlement.FullAnalytics)}",
         $"POST /api/v{{version:apiVersion}}/campaigns/ -> {FeaturePolicy.For(Entitlement.MultipleCampaigns)}",
+
+        // Setting a weekly target is gated; reading it back and clearing it are
+        // not, so GET and DELETE on this same path are deliberately absent.
+        $"PUT /api/v{{version:apiVersion}}/analytics/goal -> {FeaturePolicy.For(Entitlement.FullAnalytics)}",
         $"POST /api/v{{version:apiVersion}}/custom-fields/ -> {FeaturePolicy.For(Entitlement.CustomFields)}",
         $"PUT /api/v{{version:apiVersion}}/custom-fields/{{id:guid}} -> {FeaturePolicy.For(Entitlement.CustomFields)}",
     ];

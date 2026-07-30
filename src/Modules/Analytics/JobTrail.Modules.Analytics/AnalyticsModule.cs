@@ -1,10 +1,14 @@
 using JobTrail.Infrastructure.Events;
 using JobTrail.Infrastructure.Persistence;
+using JobTrail.Modules.Analytics.Features;
+using JobTrail.Modules.Analytics.Features.ClearWeeklyGoal;
 using JobTrail.Modules.Analytics.Features.EraseData;
 using JobTrail.Modules.Analytics.Features.GetCustomFieldChart;
 using JobTrail.Modules.Analytics.Features.GetInsights;
 using JobTrail.Modules.Analytics.Features.GetOverview;
+using JobTrail.Modules.Analytics.Features.GetWeeklyGoal;
 using JobTrail.Modules.Analytics.Features.ProjectApplicationFacts;
+using JobTrail.Modules.Analytics.Features.SetWeeklyGoal;
 using JobTrail.Modules.Analytics.Persistence;
 using JobTrail.Modules.Applications.Contracts;
 using JobTrail.Modules.Identity.Contracts;
@@ -61,6 +65,13 @@ public static class AnalyticsModule
         builder.Services.AddScoped<GetInsightsHandler>();
         builder.Services.AddScoped<GetCustomFieldChartHandler>();
 
+        // The weekly goal - the one thing here the account states rather than the
+        // events. The reader is shared by the slice that returns it and the slice
+        // that sets it, so a write answers with what a read would say.
+        builder.Services.AddScoped<WeeklyGoalReader>();
+        builder.Services.AddScoped<SetWeeklyGoalHandler>();
+        builder.Services.AddScoped<ClearWeeklyGoalHandler>();
+
         // The clock every handler here dates its writes by. Registered defensively:
         // the module should stand up whether or not another one got here first.
         builder.Services.TryAddSingleton(TimeProvider.System);
@@ -73,10 +84,12 @@ public static class AnalyticsModule
     /// API group, under <c>/analytics</c>. Takes the host's general per-IP budget.
     /// Returns the group so the host can layer its own policy.
     /// <para>
-    /// The dashboard is a read surface, so nothing here is gated at the route: the
-    /// Free figures are every account's, and the paid ones carry
-    /// <c>Feature:FullAnalytics</c> on the endpoints that serve them rather than on
-    /// this group.
+    /// Nothing here is gated at the group, and the goal routes are why that matters
+    /// rather than merely being tidy: they mix tiers within one path. Setting a
+    /// target is Pro, while reading it and clearing it are open to every account,
+    /// so a policy on this group would trap a downgraded account's own goal.
+    /// <c>Feature:FullAnalytics</c> goes on the individual endpoints that sell
+    /// something.
     /// </para>
     /// </summary>
     public static RouteGroupBuilder MapAnalyticsEndpoints(this IEndpointRouteBuilder api)
@@ -86,6 +99,10 @@ public static class AnalyticsModule
         GetOverviewEndpoint.Map(analytics);
         GetInsightsEndpoint.Map(analytics);
         GetCustomFieldChartEndpoint.Map(analytics);
+
+        GetWeeklyGoalEndpoint.Map(analytics);
+        SetWeeklyGoalEndpoint.Map(analytics);
+        ClearWeeklyGoalEndpoint.Map(analytics);
 
         return analytics;
     }

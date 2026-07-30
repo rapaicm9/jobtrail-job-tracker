@@ -11,10 +11,11 @@ using Shouldly;
 namespace JobTrail.IntegrationTests;
 
 /// <summary>
-/// Analytics' share of the erasure fan-out. One table, so one delete - but it
-/// ships with the projections rather than after them, because the moment the read
-/// model starts being filled, an account deletion that leaves it behind is an
-/// erasure that reports success while data remains.
+/// Analytics' share of the erasure fan-out: the base rows built from the account's
+/// events, and the weekly goal it set itself. It shipped with the projections
+/// rather than after them, because the moment the read model starts being filled,
+/// an account deletion that leaves it behind is an erasure that reports success
+/// while data remains - and the goal joined it for the same reason.
 /// </summary>
 [Collection(ApiCollection.Name)]
 public sealed class AnalyticsErasureTests(ApiFixture fixture)
@@ -26,11 +27,14 @@ public sealed class AnalyticsErasureTests(ApiFixture fixture)
     [Fact]
     public async Task An_account_deletion_takes_the_read_model_with_it()
     {
-        var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
+        var tokens = await fixture.RegisterProWithDefaultCampaignAsync(_client, Ct);
         var ownerId = UserId.From(tokens.UserId);
 
         var created = await (await _client.CreateApplicationAsync(
             tokens.AccessToken, new { role = "Engineer" })).ReadApplicationAsync();
+
+        (await _client.SetWeeklyGoalAsync(tokens.AccessToken, new { target = 8 }))
+            .IsSuccessStatusCode.ShouldBeTrue();
 
         // Wait for the projection, or the erasure below would prove nothing.
         await Poll.UntilAsync(
@@ -41,8 +45,8 @@ public sealed class AnalyticsErasureTests(ApiFixture fixture)
         (await _client.DeleteAccountAsync(tokens.AccessToken)).IsSuccessStatusCode.ShouldBeTrue();
 
         await Poll.UntilAsync(
-            async () => await RowCountAsync(ownerId) == 0,
-            "deleting the account should erase the analytics rows behind it",
+            async () => await RowCountAsync(ownerId) == 0 && await GoalCountAsync(ownerId) == 0,
+            "deleting the account should erase the analytics rows behind it, goal included",
             Ct);
 
         (await FactsExistAsync(created.Id)).ShouldBeFalse();
@@ -57,7 +61,10 @@ public sealed class AnalyticsErasureTests(ApiFixture fixture)
         await EraseAsync(mine);
 
         (await RowCountAsync(mine)).ShouldBe(0);
+        (await GoalCountAsync(mine)).ShouldBe(0);
+
         (await RowCountAsync(theirs)).ShouldBeGreaterThan(0);
+        (await GoalCountAsync(theirs)).ShouldBe(1);
     }
 
     [Fact]
@@ -108,13 +115,21 @@ public sealed class AnalyticsErasureTests(ApiFixture fixture)
             "Analytics must erase after Applications has removed the events still owed for the user");
     }
 
+    /// <summary>
+    /// An account holding both of the things this module keeps for a user - a
+    /// projected row and an authored one - so an erasure that only remembered the
+    /// first would fail these tests rather than pass them quietly.
+    /// </summary>
     private async Task<UserId> SeedAsync()
     {
-        var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
+        var tokens = await fixture.RegisterProWithDefaultCampaignAsync(_client, Ct);
         var ownerId = UserId.From(tokens.UserId);
 
         await (await _client.CreateApplicationAsync(
             tokens.AccessToken, new { role = "Engineer" })).ReadApplicationAsync();
+
+        (await _client.SetWeeklyGoalAsync(tokens.AccessToken, new { target = 8 }))
+            .IsSuccessStatusCode.ShouldBeTrue();
 
         await Poll.UntilAsync(
             async () => await RowCountAsync(ownerId) > 0,
@@ -139,6 +154,14 @@ public sealed class AnalyticsErasureTests(ApiFixture fixture)
         var db = scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>();
 
         return await db.ApplicationFacts.CountAsync(f => f.OwnerId == ownerId, Ct);
+    }
+
+    private async Task<int> GoalCountAsync(UserId ownerId)
+    {
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>();
+
+        return await db.WeeklyGoals.CountAsync(g => g.OwnerId == ownerId, Ct);
     }
 
     private async Task<bool> FactsExistAsync(Guid applicationId)

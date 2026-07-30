@@ -53,6 +53,13 @@ internal sealed record AnalyticsOverview(int TotalApplied, IReadOnlyList<Pipelin
 internal sealed record PipelineStageCountView(string Stage, int Count);
 
 /// <summary>
+/// The weekly goal as a client sees it. Both figures are nullable and that is the
+/// contract, not laxity: an account with no goal is shown neither a target nor a
+/// count.
+/// </summary>
+internal sealed record WeeklyGoalView(int? Target, int? Applied, DateOnly WeekStart);
+
+/// <summary>
 /// The paid dashboard as a client sees it - declared here, not shared with the
 /// module, so a contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -525,6 +532,20 @@ internal static class ApiClient
                 : "/api/v1/analytics/insights",
             accessToken));
 
+    public static Task<HttpResponseMessage> GetWeeklyGoalAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/analytics/goal", accessToken));
+
+    public static Task<HttpResponseMessage> SetWeeklyGoalAsync(
+        this HttpClient client, string? accessToken, object body)
+    {
+        var request = Authorized(HttpMethod.Put, "/api/v1/analytics/goal", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> ClearWeeklyGoalAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Delete, "/api/v1/analytics/goal", accessToken));
+
     public static Task<HttpResponseMessage> AddNoteAsync(
         this HttpClient client, string? accessToken, Guid applicationId, object body)
     {
@@ -734,6 +755,14 @@ internal static class ApiClient
             $"expected a success status but got {(int)response.StatusCode}");
         var chart = await response.Content.ReadFromJsonAsync<CustomFieldChartView>();
         return chart.ShouldNotBeNull();
+    }
+
+    public static async Task<WeeklyGoalView> ReadWeeklyGoalAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var goal = await response.Content.ReadFromJsonAsync<WeeklyGoalView>();
+        return goal.ShouldNotBeNull();
     }
 
     public static async Task<AnalyticsInsights> ReadInsightsAsync(this HttpResponseMessage response)

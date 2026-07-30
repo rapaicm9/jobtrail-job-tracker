@@ -8,7 +8,8 @@ namespace JobTrail.Modules.Analytics.Persistence;
 /// <summary>
 /// The Analytics module's private store, inside its own <c>analytics</c> schema:
 /// one base row per application, from which every figure the dashboard shows is
-/// aggregated on read.
+/// aggregated on read - plus the one thing here the account states rather than the
+/// events, its weekly goal.
 /// <para>
 /// There is no outbox here, and its absence is deliberate rather than an omission
 /// - every other module's context maps one. Analytics is a read model. It
@@ -20,6 +21,8 @@ internal sealed class AnalyticsDbContext(DbContextOptions<AnalyticsDbContext> op
     public const string Schema = "analytics";
 
     public DbSet<ApplicationFacts> ApplicationFacts => Set<ApplicationFacts>();
+
+    public DbSet<WeeklyGoal> WeeklyGoals => Set<WeeklyGoal>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder builder) =>
         // Owner columns carry the strongly-typed id and store as uuid; one place,
@@ -65,6 +68,25 @@ internal sealed class AnalyticsDbContext(DbContextOptions<AnalyticsDbContext> op
             // reaches is not worth designing against - the read model aggregates
             // rather than counting precisely because that trade is available.
             facts.HasIndex(f => new { f.OwnerId, f.CampaignId });
+        });
+
+        builder.Entity<WeeklyGoal>(goal =>
+        {
+            // The owner is the key, so the database holds the one-goal-per-account
+            // rule instead of a handler remembering to check for a second row. Not
+            // generated: it arrives with the caller, like the application id above
+            // and unlike every id this system mints.
+            goal.HasKey(g => g.OwnerId);
+            goal.Property(g => g.OwnerId).ValueGeneratedNever();
+
+            goal.Property(g => g.CreatedAt).HasDefaultValueSql("now()");
+
+            // No index beyond the key: the key is the only way this table is ever
+            // read, and there is no second dimension to narrow by - the goal
+            // deliberately spans the account rather than one campaign.
+            //
+            // No foreign key to the account either, for the reason the base row
+            // above gives: the owner lives in another module's schema.
         });
     }
 }

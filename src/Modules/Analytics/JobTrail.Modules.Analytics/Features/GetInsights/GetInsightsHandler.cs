@@ -136,13 +136,9 @@ internal sealed class GetInsightsHandler(AnalyticsDbContext dbContext, IEntitlem
     private static TrendPoint[] Trend(List<ApplicationTimeline> timelines) =>
         [.. timelines
             .Where(timeline => timeline.AppliedDate is not null)
-            .GroupBy(timeline => WeekStarting(timeline.AppliedDate!.Value))
+            .GroupBy(timeline => IsoWeek.WeekStarting(timeline.AppliedDate!.Value))
             .OrderBy(week => week.Key)
             .Select(week => new TrendPoint(week.Key, week.Count()))];
-
-    /// <summary>The Monday of the week a date falls in - ISO weeks, as Postgres counts them.</summary>
-    private static DateOnly WeekStarting(DateOnly date) =>
-        date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 
     /// <summary>
     /// One categorical breakdown, largest slice first. The "not recorded" slice is
