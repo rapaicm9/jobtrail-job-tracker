@@ -43,6 +43,8 @@ public sealed class FeatureGatedEndpointTests(ApiFixture fixture)
     [
         $"GET /api/v{{version:apiVersion}}/account/export -> {FeaturePolicy.For(Entitlement.Export)}",
         $"GET /api/v{{version:apiVersion}}/analytics/insights -> {FeaturePolicy.For(Entitlement.FullAnalytics)}",
+        "GET /api/v{version:apiVersion}/analytics/custom-fields/{definitionId:guid} -> "
+            + $"{FeaturePolicy.For(Entitlement.FullAnalytics)}",
         $"POST /api/v{{version:apiVersion}}/campaigns/ -> {FeaturePolicy.For(Entitlement.MultipleCampaigns)}",
         $"POST /api/v{{version:apiVersion}}/custom-fields/ -> {FeaturePolicy.For(Entitlement.CustomFields)}",
         $"PUT /api/v{{version:apiVersion}}/custom-fields/{{id:guid}} -> {FeaturePolicy.For(Entitlement.CustomFields)}",

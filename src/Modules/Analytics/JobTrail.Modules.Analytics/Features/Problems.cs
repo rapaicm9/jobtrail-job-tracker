@@ -35,6 +35,11 @@ internal static class Problems
         ErrorType.Conflict => StatusCodes.Status409Conflict,
         ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
         ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+
+        // A dependency this module reads through, not this module. 503 rather than
+        // 500 says the request was fine and is worth repeating - which is exactly
+        // what one degraded panel on an otherwise working dashboard means.
+        ErrorType.Unavailable => StatusCodes.Status503ServiceUnavailable,
         _ => StatusCodes.Status500InternalServerError,
     };
 }
