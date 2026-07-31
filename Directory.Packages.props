@@ -87,6 +87,19 @@
     <PackageVersion Include="Aspire.StackExchange.Redis" Version="13.4.6" />
   </ItemGroup>
 
+  <ItemGroup Label="Background jobs">
+    <!--
+      Quartz.NET, Apache 2.0 - licence re-verified at adoption per ADR-0002,
+      which is what moved this off Hangfire (LGPL v3) before either was added.
+      3.19.1 across all three: Hosting drags the other two, and central
+      transitive pinning wants one stated version for each, exactly as EF Core
+      above needed.
+    -->
+    <PackageVersion Include="Quartz" Version="3.19.1" />
+    <PackageVersion Include="Quartz.Extensions.Hosting" Version="3.19.1" />
+    <PackageVersion Include="Quartz.Serialization.SystemTextJson" Version="3.19.1" />
+  </ItemGroup>
+
   <ItemGroup Label="Testing">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageVersion Include="xunit.v3" Version="3.2.2" />

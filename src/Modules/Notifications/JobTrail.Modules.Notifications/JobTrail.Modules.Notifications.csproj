@@ -5,6 +5,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <!-- The schedule the worker runs this module's jobs on. It lives here rather
+         than in that host because the jobs are this module's own, and because the
+         job store's tables are in this module's schema. -->
+    <PackageReference Include="Quartz" />
+    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Quartz.Serialization.SystemTextJson" />
   </ItemGroup>
 
   <ItemGroup>
