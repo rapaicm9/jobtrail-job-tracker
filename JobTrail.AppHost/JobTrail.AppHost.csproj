@@ -25,6 +25,7 @@
     -->
     <ProjectReference Include="..\src\JobTrail.Api\JobTrail.Api.csproj" />
     <ProjectReference Include="..\src\JobTrail.Worker\JobTrail.Worker.csproj" />
+    <ProjectReference Include="..\src\JobTrail.MigrationService\JobTrail.MigrationService.csproj" />
   </ItemGroup>
 
 </Project>

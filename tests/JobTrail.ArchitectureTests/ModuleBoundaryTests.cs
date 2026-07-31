@@ -90,7 +90,7 @@ public sealed class ModuleBoundaryTests
             .NotDependOnAny(
                 Types()
                     .That()
-                    .ResideInAssembly(AssemblyNamed(ApiAssembly), AssemblyNamed(WorkerAssembly)))
+                    .ResideInAssembly(Hosts()[0], Hosts()[1..]))
             .Because(
                 "dependencies point inward: hosts compose modules, modules never reach back. "
                 + "A module that knows its host cannot be extracted or reused by the other host.")
@@ -103,7 +103,8 @@ public sealed class ModuleBoundaryTests
         var everythingElse = ModuleNames
             .Select(ImplementationOf)
             .Concat(ModuleNames.Select(ContractsOf))
-            .Concat([InfrastructureAssembly, ApiAssembly, WorkerAssembly])
+            .Concat([InfrastructureAssembly])
+            .Concat(HostAssemblies)
             .Select(AssemblyNamed)
             .ToArray();
 

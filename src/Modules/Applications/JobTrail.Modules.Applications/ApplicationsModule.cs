@@ -65,6 +65,10 @@ public static class ApplicationsModule
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<ApplicationsDbContext>();
 
+        // This module's share of the deploy-time migration run, registered beside
+        // the context it migrates so the two cannot drift apart.
+        builder.Services.AddModuleMigrator<ApplicationsDbContext>();
+
         // Every new account gets its default campaign, off Identity's UserRegistered.
         builder.Services.AddEventHandler<UserRegistered, CampaignProvisioningHandler>();
 

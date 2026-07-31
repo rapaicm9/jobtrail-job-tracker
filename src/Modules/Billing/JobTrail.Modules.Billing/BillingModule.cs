@@ -42,6 +42,10 @@ public static class BillingModule
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<BillingDbContext>();
 
+        // This module's share of the deploy-time migration run, registered beside
+        // the context it migrates so the two cannot drift apart.
+        builder.Services.AddModuleMigrator<BillingDbContext>();
+
         // Every new account gets its Free plan, off Identity's UserRegistered;
         // an erasure request takes the plan and its purchases back out again.
         builder.Services.AddEventHandler<UserRegistered, PlanProvisioningHandler>();

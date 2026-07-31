@@ -32,6 +32,10 @@ public static class NotificationsModule
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<NotificationsDbContext>();
 
+        // This module's share of the deploy-time migration run, registered beside
+        // the context it migrates so the two cannot drift apart.
+        builder.Services.AddModuleMigrator<NotificationsDbContext>();
+
         return builder;
     }
 }

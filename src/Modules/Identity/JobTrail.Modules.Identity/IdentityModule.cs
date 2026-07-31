@@ -50,6 +50,10 @@ public static class IdentityModule
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<IdentityModuleDbContext>();
 
+        // This module's share of the deploy-time migration run, registered beside
+        // the context it migrates so the two cannot drift apart.
+        builder.Services.AddModuleMigrator<IdentityModuleDbContext>();
+
         builder.Services
             .AddIdentityCore<ApplicationUser>(options =>
             {

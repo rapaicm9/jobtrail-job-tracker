@@ -27,7 +27,8 @@ public sealed class PersistenceBoundaryTests
         var outsideThisModule = ModuleNames
             .Where(m => m != module)
             .Select(ImplementationOf)
-            .Concat([ApiAssembly, WorkerAssembly, InfrastructureAssembly])
+            .Concat(HostAssemblies)
+            .Concat([InfrastructureAssembly])
             .Select(AssemblyNamed)
             .ToArray();
 
