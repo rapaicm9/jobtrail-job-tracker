@@ -3,6 +3,7 @@ using JobTrail.Modules.Analytics.Persistence;
 using JobTrail.Modules.Applications.Persistence;
 using JobTrail.Modules.Billing.Persistence;
 using JobTrail.Modules.Identity.Persistence;
+using JobTrail.Modules.Notifications.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
@@ -86,6 +87,8 @@ public sealed class ApiFixture : IAsyncLifetime
         await scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>()
             .Database.MigrateAsync();
         await scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>()
+            .Database.MigrateAsync();
+        await scope.ServiceProvider.GetRequiredService<NotificationsDbContext>()
             .Database.MigrateAsync();
     }
 
