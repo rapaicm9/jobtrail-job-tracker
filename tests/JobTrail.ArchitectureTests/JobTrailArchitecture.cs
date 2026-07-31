@@ -15,9 +15,18 @@ internal static class JobTrailArchitecture
 {
     internal const string SharedKernelAssembly = "JobTrail.SharedKernel";
     internal const string InfrastructureAssembly = "JobTrail.Infrastructure";
+
     internal const string ApiAssembly = "JobTrail.Api";
     internal const string WorkerAssembly = "JobTrail.Worker";
     internal const string MigrationServiceAssembly = "JobTrail.MigrationService";
+
+    /// <summary>
+    /// Quartz.NET. Loaded not because it is ours but because a rule can only speak
+    /// about types the architecture has been given: "only one module knows about
+    /// the scheduler" is unprovable unless the scheduler's own types are here to
+    /// point at.
+    /// </summary>
+    internal const string SchedulerAssembly = "Quartz";
 
     /// <summary>
     /// Every process that composes modules. They are what the "modules never
@@ -59,7 +68,7 @@ internal static class JobTrailArchitecture
     /// </summary>
     private static readonly Dictionary<string, Assembly> LoadedAssemblies =
         HostAssemblies
-        .Concat([SharedKernelAssembly, InfrastructureAssembly])
+        .Concat([SharedKernelAssembly, InfrastructureAssembly, SchedulerAssembly])
         .Concat(ModuleNames.Select(ImplementationOf))
         .Concat(ModuleNames.Select(ContractsOf))
         .ToDictionary(name => name, name => Assembly.Load(name));
