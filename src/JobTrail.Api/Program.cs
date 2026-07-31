@@ -10,6 +10,7 @@ using JobTrail.Modules.Analytics;
 using JobTrail.Modules.Applications;
 using JobTrail.Modules.Billing;
 using JobTrail.Modules.Identity;
+using JobTrail.Modules.Notifications;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,15 @@ builder.AddApplicationsModule();
 // that user's behalf. The other way round, an owed event delivered in between
 // would rebuild a row for an account that had just been erased.
 builder.AddAnalyticsModule();
+
+// The reminder engine's store. This host is where reminders are armed - it is
+// where the dispatcher runs and the date-bearing events arrive - while the worker
+// composes the same module to deliver them.
+//
+// After Applications for the reason the module above gives: an erasure here has to
+// follow the one that deletes the events still owed on that account's behalf, or
+// one of them would arm a reminder for an account that has just been erased.
+builder.AddNotificationsModule();
 
 // The module also owns validation of its own access tokens; the host just
 // turns the scheme on and layers authorization over it.
