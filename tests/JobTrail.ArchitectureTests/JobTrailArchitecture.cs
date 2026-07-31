@@ -17,6 +17,20 @@ internal static class JobTrailArchitecture
     internal const string InfrastructureAssembly = "JobTrail.Infrastructure";
     internal const string ApiAssembly = "JobTrail.Api";
     internal const string WorkerAssembly = "JobTrail.Worker";
+    internal const string MigrationServiceAssembly = "JobTrail.MigrationService";
+
+    /// <summary>
+    /// Every process that composes modules. They are what the "modules never
+    /// depend on a host" and "a store is private to its module" rules are stated
+    /// against, so a host added later has to be named here or it silently escapes
+    /// both.
+    /// </summary>
+    internal static readonly string[] HostAssemblies =
+    [
+        ApiAssembly,
+        WorkerAssembly,
+        MigrationServiceAssembly,
+    ];
 
     /// <summary>
     /// Bounded contexts. One module = one schema = one DbContext.
@@ -44,18 +58,16 @@ internal static class JobTrailArchitecture
     /// very rules it is asserting.
     /// </summary>
     private static readonly Dictionary<string, Assembly> LoadedAssemblies =
-        new[]
-        {
-            ApiAssembly,
-            WorkerAssembly,
-            SharedKernelAssembly,
-            InfrastructureAssembly,
-        }
+        HostAssemblies
+        .Concat([SharedKernelAssembly, InfrastructureAssembly])
         .Concat(ModuleNames.Select(ImplementationOf))
         .Concat(ModuleNames.Select(ContractsOf))
         .ToDictionary(name => name, name => Assembly.Load(name));
 
     internal static Assembly AssemblyNamed(string name) => LoadedAssemblies[name];
+
+    /// <summary>Every host assembly, in the form the rule builders take them.</summary>
+    internal static Assembly[] Hosts() => [.. HostAssemblies.Select(AssemblyNamed)];
 
     internal static readonly Architecture Architecture = new ArchLoader()
         .LoadAssemblies([.. LoadedAssemblies.Values])

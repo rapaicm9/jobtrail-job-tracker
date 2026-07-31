@@ -21,12 +21,15 @@
 
   <ItemGroup>
     <!--
-      The two hosts transitively reference every module, its Contracts, the
+      The hosts transitively reference every module, its Contracts, the
       SharedKernel and Infrastructure, which puts all production assemblies in
-      this project's output where the loader can find them.
+      this project's output where the loader can find them. Every host is named
+      here, because the rules that keep modules from depending on one are stated
+      against exactly this set.
     -->
     <ProjectReference Include="..\..\src\JobTrail.Api\JobTrail.Api.csproj" />
     <ProjectReference Include="..\..\src\JobTrail.Worker\JobTrail.Worker.csproj" />
+    <ProjectReference Include="..\..\src\JobTrail.MigrationService\JobTrail.MigrationService.csproj" />
   </ItemGroup>
 
 </Project>

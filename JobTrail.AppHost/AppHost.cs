@@ -24,18 +24,27 @@ var database = postgres.AddDatabase("jobtrail");
 // reconstructable, so it runs without a persistent volume.
 var cache = builder.AddRedis("cache");
 
+// Schema first. A one-shot that applies every module's migrations and exits;
+// both hosts wait for it to succeed, so neither can start against a database that
+// is a migration behind. Nothing migrates on startup - two instances of a host
+// racing to alter one schema is the failure this shape exists to prevent.
+var migrations = builder.AddProject<Projects.JobTrail_MigrationService>("migrations")
+    .WithReference(database)
+    .WaitFor(database);
+
 // The API host: serves the modules, depends on both backing services.
 builder.AddProject<Projects.JobTrail_Api>("api")
     .WithReference(database)
     .WithReference(cache)
-    .WaitFor(database)
+    .WaitForCompletion(migrations)
     .WaitFor(cache);
 
-// The worker host: Hangfire (Postgres storage) + Redis Streams consumers.
+// The worker host: the Quartz.NET scheduler over the Postgres job store. Redis
+// Streams consumers for push delivery arrive with the mobile client.
 builder.AddProject<Projects.JobTrail_Worker>("worker")
     .WithReference(database)
     .WithReference(cache)
-    .WaitFor(database)
+    .WaitForCompletion(migrations)
     .WaitFor(cache);
 
 builder.Build().Run();

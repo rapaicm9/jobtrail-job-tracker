@@ -42,6 +42,10 @@ public static class AnalyticsModule
         // to the context registered above, without owning its configuration.
         builder.EnrichNpgsqlDbContext<AnalyticsDbContext>();
 
+        // This module's share of the deploy-time migration run, registered beside
+        // the context it migrates so the two cannot drift apart.
+        builder.Services.AddModuleMigrator<AnalyticsDbContext>();
+
         // Everything the read model is built from. Each of these is an upsert on
         // the application id, so redelivery is harmless and the order they arrive
         // in does not decide what the row ends up saying.

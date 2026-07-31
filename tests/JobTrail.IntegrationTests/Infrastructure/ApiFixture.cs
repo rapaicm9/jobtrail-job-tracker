@@ -1,10 +1,5 @@
 using System.Security.Cryptography;
-using JobTrail.Modules.Analytics.Persistence;
-using JobTrail.Modules.Applications.Persistence;
-using JobTrail.Modules.Billing.Persistence;
-using JobTrail.Modules.Identity.Persistence;
-using JobTrail.Modules.Notifications.Persistence;
-using Microsoft.EntityFrameworkCore;
+using JobTrail.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 using Testcontainers.Redis;
@@ -77,19 +72,15 @@ public sealed class ApiFixture : IAsyncLifetime
 
         _factory = new JobTrailApiFactory(BuildSettings());
 
-        // Deploy-time migrations, test-time equivalent: apply each module's
-        // migrations before the first request needs its schema.
+        // The deploy-time migration run, in the test host - the same fan-out the
+        // one-shot process drives, rather than a list of contexts kept in step by
+        // hand. A module added later is migrated here because it registered a
+        // migrator, which is also the property the suite is asserting.
         using var scope = _factory.Services.CreateScope();
-        await scope.ServiceProvider.GetRequiredService<IdentityModuleDbContext>()
-            .Database.MigrateAsync();
-        await scope.ServiceProvider.GetRequiredService<BillingDbContext>()
-            .Database.MigrateAsync();
-        await scope.ServiceProvider.GetRequiredService<ApplicationsDbContext>()
-            .Database.MigrateAsync();
-        await scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>()
-            .Database.MigrateAsync();
-        await scope.ServiceProvider.GetRequiredService<NotificationsDbContext>()
-            .Database.MigrateAsync();
+        foreach (var migrator in scope.ServiceProvider.GetServices<IModuleMigrator>())
+        {
+            await migrator.MigrateAsync(CancellationToken.None);
+        }
     }
 
     public async ValueTask DisposeAsync()
