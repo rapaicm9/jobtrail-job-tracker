@@ -1,0 +1,42 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Jobspect.Api/Jobspect.Api.csproj" />
+    <Project Path="src/Jobspect.Infrastructure/Jobspect.Infrastructure.csproj" />
+    <Project Path="src/Jobspect.MigrationService/Jobspect.MigrationService.csproj" />
+    <Project Path="src/Jobspect.ServiceDefaults/Jobspect.ServiceDefaults.csproj" />
+    <Project Path="src/Jobspect.SharedKernel/Jobspect.SharedKernel.csproj" />
+    <Project Path="src/Jobspect.Worker/Jobspect.Worker.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Analytics/">
+    <Project Path="src/Modules/Analytics/Jobspect.Modules.Analytics.Contracts/Jobspect.Modules.Analytics.Contracts.csproj" />
+    <Project Path="src/Modules/Analytics/Jobspect.Modules.Analytics/Jobspect.Modules.Analytics.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Applications/">
+    <Project Path="src/Modules/Applications/Jobspect.Modules.Applications.Contracts/Jobspect.Modules.Applications.Contracts.csproj" />
+    <Project Path="src/Modules/Applications/Jobspect.Modules.Applications/Jobspect.Modules.Applications.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Billing/">
+    <Project Path="src/Modules/Billing/Jobspect.Modules.Billing.Contracts/Jobspect.Modules.Billing.Contracts.csproj" />
+    <Project Path="src/Modules/Billing/Jobspect.Modules.Billing/Jobspect.Modules.Billing.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Identity/">
+    <Project Path="src/Modules/Identity/Jobspect.Modules.Identity.Contracts/Jobspect.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/Modules/Identity/Jobspect.Modules.Identity/Jobspect.Modules.Identity.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Notifications/">
+    <Project Path="src/Modules/Notifications/Jobspect.Modules.Notifications.Contracts/Jobspect.Modules.Notifications.Contracts.csproj" />
+    <Project Path="src/Modules/Notifications/Jobspect.Modules.Notifications/Jobspect.Modules.Notifications.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Jobspect.ArchitectureTests/Jobspect.ArchitectureTests.csproj" />
+    <Project Path="tests/Jobspect.Infrastructure.Tests/Jobspect.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Jobspect.IntegrationTests/Jobspect.IntegrationTests.csproj" />
+    <Project Path="tests/Jobspect.Modules.Analytics.Tests/Jobspect.Modules.Analytics.Tests.csproj" />
+    <Project Path="tests/Jobspect.Modules.Applications.Tests/Jobspect.Modules.Applications.Tests.csproj" />
+    <Project Path="tests/Jobspect.Modules.Billing.Tests/Jobspect.Modules.Billing.Tests.csproj" />
+    <Project Path="tests/Jobspect.Modules.Identity.Tests/Jobspect.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/Jobspect.SharedKernel.Tests/Jobspect.SharedKernel.Tests.csproj" />
+  </Folder>
+  <Project Path="Jobspect.AppHost/Jobspect.AppHost.csproj" />
+</Solution>

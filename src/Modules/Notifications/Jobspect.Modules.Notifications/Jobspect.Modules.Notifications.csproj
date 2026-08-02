@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <!-- The schedule the worker runs this module's jobs on. It lives here rather
+         than in that host because the jobs are this module's own, and because the
+         job store's tables are in this module's schema. -->
+    <PackageReference Include="Quartz" />
+    <PackageReference Include="Quartz.Extensions.Hosting" />
+    <PackageReference Include="Quartz.Serialization.SystemTextJson" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The integration fixture applies this module's migrations to the
+         container database, and asserts the store's shape against it. -->
+    <InternalsVisibleTo Include="Jobspect.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jobspect.Modules.Notifications.Contracts\Jobspect.Modules.Notifications.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Jobspect.SharedKernel\Jobspect.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\Jobspect.Infrastructure\Jobspect.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
