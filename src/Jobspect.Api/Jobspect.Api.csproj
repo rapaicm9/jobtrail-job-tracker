@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <!-- WebApplicationFactory needs to see the (internal) Program marker. -->
+    <InternalsVisibleTo Include="Jobspect.IntegrationTests" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Http" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" />
+    <PackageReference Include="Aspire.StackExchange.Redis" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Jobspect.ServiceDefaults\Jobspect.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Jobspect.Modules.Identity\Jobspect.Modules.Identity.csproj" />
+    <ProjectReference Include="..\Modules\Applications\Jobspect.Modules.Applications\Jobspect.Modules.Applications.csproj" />
+    <ProjectReference Include="..\Modules\Analytics\Jobspect.Modules.Analytics\Jobspect.Modules.Analytics.csproj" />
+    <ProjectReference Include="..\Modules\Notifications\Jobspect.Modules.Notifications\Jobspect.Modules.Notifications.csproj" />
+    <ProjectReference Include="..\Modules\Billing\Jobspect.Modules.Billing\Jobspect.Modules.Billing.csproj" />
+    <ProjectReference Include="..\Jobspect.Infrastructure\Jobspect.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

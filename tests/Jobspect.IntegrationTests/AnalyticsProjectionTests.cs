@@ -1,0 +1,608 @@
+using Jobspect.IntegrationTests.Infrastructure;
+using Jobspect.Modules.Analytics;
+using Jobspect.Modules.Analytics.Domain;
+using Jobspect.Modules.Analytics.Features.ProjectApplicationFacts;
+using Jobspect.Modules.Analytics.Persistence;
+using Jobspect.Modules.Applications.Contracts;
+using Jobspect.SharedKernel;
+using Jobspect.SharedKernel.Events;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Shouldly;
+
+namespace Jobspect.IntegrationTests;
+
+/// <summary>
+/// The read model being filled from the events, in two layers.
+/// <para>
+/// The first is the wiring: a real request over HTTP, and the base row appearing
+/// behind it through the real outbox. The second is the arithmetic, driven by
+/// handing the projections events directly - because the cases worth proving are
+/// redelivery and out-of-order arrival, and a live dispatcher cannot be asked to
+/// produce either on demand. Both run against the real database; the upserts are
+/// SQL, so there is nothing here a fake could answer for.
+/// </para>
+/// </summary>
+[Collection(ApiCollection.Name)]
+public sealed class AnalyticsProjectionTests(ApiFixture fixture)
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    // Whole seconds, so nothing here depends on how PostgreSQL rounds.
+    private static readonly DateTimeOffset T1 = new(2026, 3, 1, 9, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T2 = new(2026, 3, 8, 9, 0, 0, TimeSpan.Zero);
+    private static readonly DateTimeOffset T3 = new(2026, 3, 15, 9, 0, 0, TimeSpan.Zero);
+
+    // Fixed rather than minted per history, so two applications given the same
+    // events really are given the same events - otherwise the two rows differ on
+    // the very columns the comparison exists to check.
+    private static readonly Guid OpenedCampaign = Guid.CreateVersion7();
+    private static readonly Guid MovedCampaign = Guid.CreateVersion7();
+    private static readonly Guid Company = Guid.CreateVersion7();
+
+    private readonly HttpClient _client = fixture.CreateClient();
+
+    // ---------------------------------------------------------------- wiring
+
+    [Fact]
+    public async Task A_recorded_application_reaches_the_read_model()
+    {
+        var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
+        var campaignId = await fixture.DefaultCampaignIdAsync(UserId.From(tokens.UserId), Ct);
+
+        var created = await (await _client.CreateApplicationAsync(tokens.AccessToken, new
+        {
+            role = "Platform Engineer",
+            source = "LinkedIn",
+            workMode = "hybrid",
+            appliedDate = "2026-03-01",
+        })).ReadApplicationAsync();
+
+        var facts = await WaitForFactsAsync(created.Id, f => f.AppliedDate is not null);
+
+        facts.OwnerId.ShouldBe(UserId.From(tokens.UserId));
+        facts.CampaignId.ShouldBe(campaignId);
+        facts.AppliedDate.ShouldBe(new DateOnly(2026, 3, 1));
+        facts.Source.ShouldBe("LinkedIn");
+        facts.WorkMode.ShouldBe("Hybrid");
+
+        // A brand-new application has no transition to announce, so the row's
+        // stage comes from the submission - without it the pipeline snapshot
+        // would not count it at all.
+        facts.Stage.ShouldBe("Applied");
+        facts.StageEnteredAt.ShouldNotBeNull();
+
+        // Nothing has happened to it yet.
+        facts.Outcome.ShouldBeNull();
+        facts.FirstResponseAt.ShouldBeNull();
+        facts.ReachedScreeningAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_transition_moves_the_row_and_fills_the_funnel()
+    {
+        var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
+        var created = await (await _client.CreateApplicationAsync(
+            tokens.AccessToken, new { role = "Engineer" })).ReadApplicationAsync();
+
+        await ShouldSucceedAsync(
+            _client.TransitionApplicationAsync(tokens.AccessToken, created.Id, "Screening"));
+
+        var facts = await WaitForFactsAsync(created.Id, f => f.Stage == "Screening");
+
+        facts.ReachedScreeningAt.ShouldNotBeNull();
+        facts.FirstResponseAt.ShouldBe(facts.ReachedScreeningAt);
+        facts.ClosedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Closing_an_application_records_the_outcome()
+    {
+        var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
+        var created = await (await _client.CreateApplicationAsync(
+            tokens.AccessToken, new { role = "Engineer" })).ReadApplicationAsync();
+
+        await ShouldSucceedAsync(
+            _client.TransitionApplicationAsync(tokens.AccessToken, created.Id, "Rejected"));
+
+        // The stage change and the closure are announced as two events in one
+        // transaction, and both have to land - they carry the same instant, so a
+        // strict "newer wins" comparison would drop whichever arrived second.
+        var facts = await WaitForFactsAsync(created.Id, f => f.Outcome is not null);
+
+        facts.Stage.ShouldBe("Rejected");
+        facts.Outcome.ShouldBe("Rejected");
+        facts.ClosedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Moving_campaign_follows_the_application()
+    {
+        var tokens = await fixture.RegisterProWithDefaultCampaignAsync(_client, Ct);
+        var destination = await (await _client.CreateCampaignAsync(
+            tokens.AccessToken, new { name = "Second search" })).ReadCampaignAsync();
+
+        var created = await (await _client.CreateApplicationAsync(
+            tokens.AccessToken, new { role = "Engineer" })).ReadApplicationAsync();
+
+        await ShouldSucceedAsync(_client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
+        {
+            role = created.Role,
+            campaignId = destination.Id,
+            appliedDate = created.AppliedDate.ToString("O"),
+        }));
+
+        var facts = await WaitForFactsAsync(created.Id, f => f.CampaignId == destination.Id);
+        facts.CampaignId.ShouldBe(destination.Id);
+    }
+
+    // ------------------------------------------------------------- arithmetic
+
+    [Fact]
+    public async Task Redelivering_an_event_changes_nothing()
+    {
+        var (id, owner) = NewApplication();
+        var moved = new ApplicationStageChanged(Guid.CreateVersion7(), id, owner, "Applied", "Screening", T1);
+
+        await ApplyAsync(moved);
+        var once = await FactsAsync(id);
+
+        await ApplyAsync(moved);
+        var twice = await FactsAsync(id);
+
+        twice.Stage.ShouldBe(once.Stage);
+        twice.StageEnteredAt.ShouldBe(once.StageEnteredAt);
+        twice.StageRecordedAt.ShouldBe(once.StageRecordedAt);
+        twice.ReachedScreeningAt.ShouldBe(once.ReachedScreeningAt);
+        twice.FirstResponseAt.ShouldBe(once.FirstResponseAt);
+    }
+
+    [Fact]
+    public async Task An_older_move_arriving_late_does_not_win()
+    {
+        var (id, owner) = NewApplication();
+
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), id, owner, "Screening", "Interview", T2));
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), id, owner, "Applied", "Screening", T1));
+
+        // Back to front, and the row still says where the application actually is.
+        var facts = await FactsAsync(id);
+        facts.Stage.ShouldBe("Interview");
+        facts.StageEnteredAt.ShouldBe(T2);
+    }
+
+    [Fact]
+    public async Task An_older_move_arriving_late_still_fills_its_own_funnel_step()
+    {
+        // The regression test for the shape this was nearly built with. Guarding
+        // the whole update with a WHERE would make a stale event skip everything,
+        // including the funnel timestamps - which are supposed to be immune to
+        // ordering. The stage must not move backwards, and the step must still be
+        // recorded.
+        var (id, owner) = NewApplication();
+
+        await ApplyAsync(new ApplicationStageChanged(Guid.CreateVersion7(), id, owner, "Applied", "Offer", T2));
+        await ApplyAsync(new ApplicationStageChanged(Guid.CreateVersion7(), id, owner, "Applied", "Screening", T1));
+
+        var facts = await FactsAsync(id);
+
+        facts.Stage.ShouldBe("Offer");
+        facts.ReachedOfferAt.ShouldBe(T2);
+        facts.ReachedScreeningAt.ShouldBe(T1);
+
+        // And the earliest response wins, whichever order the moves arrived in.
+        facts.FirstResponseAt.ShouldBe(T1);
+    }
+
+    [Fact]
+    public async Task The_funnel_reads_the_same_whichever_order_the_moves_arrive_in()
+    {
+        var (forwardId, forwardOwner) = NewApplication();
+        var (reverseId, reverseOwner) = NewApplication();
+
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), forwardId, forwardOwner, "Applied", "Screening", T1));
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), forwardId, forwardOwner, "Screening", "Interview", T2));
+
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), reverseId, reverseOwner, "Screening", "Interview", T2));
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), reverseId, reverseOwner, "Applied", "Screening", T1));
+
+        var forward = await FactsAsync(forwardId);
+        var reverse = await FactsAsync(reverseId);
+
+        reverse.ReachedScreeningAt.ShouldBe(forward.ReachedScreeningAt);
+        reverse.ReachedInterviewAt.ShouldBe(forward.ReachedInterviewAt);
+        reverse.FirstResponseAt.ShouldBe(forward.FirstResponseAt);
+    }
+
+    [Fact]
+    public async Task A_reopening_clears_the_outcome_whichever_order_it_arrives_in()
+    {
+        var (inOrderId, inOrderOwner) = NewApplication();
+        await ApplyAsync(new ApplicationReachedTerminal(
+            Guid.CreateVersion7(), inOrderId, inOrderOwner, "Screening", "Rejected", T1));
+        await ApplyAsync(new ApplicationReopened(
+            Guid.CreateVersion7(), inOrderId, inOrderOwner, "Rejected", "Applied", T2));
+
+        var reopened = await FactsAsync(inOrderId);
+        reopened.Outcome.ShouldBeNull();
+        reopened.ClosedAt.ShouldBeNull();
+
+        // The same two the other way round: a closure redelivered after the
+        // reopening must not re-close it.
+        var (reversedId, reversedOwner) = NewApplication();
+        await ApplyAsync(new ApplicationReopened(
+            Guid.CreateVersion7(), reversedId, reversedOwner, "Rejected", "Applied", T2));
+        await ApplyAsync(new ApplicationReachedTerminal(
+            Guid.CreateVersion7(), reversedId, reversedOwner, "Screening", "Rejected", T1));
+
+        var stillOpen = await FactsAsync(reversedId);
+        stillOpen.Outcome.ShouldBeNull();
+        stillOpen.ClosedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task A_move_and_the_closure_it_amounts_to_share_an_instant_and_both_land()
+    {
+        // The pair a terminal transition writes in one transaction. They carry the
+        // same OccurredAt, so a strictly-newer comparison would let whichever
+        // arrived first discard the other; they write disjoint columns, so a tie
+        // has to apply.
+        var (id, owner) = NewApplication();
+
+        await ApplyAsync(new ApplicationReachedTerminal(
+            Guid.CreateVersion7(), id, owner, "Applied", "Ghosted", T1));
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), id, owner, "Applied", "Ghosted", T1));
+
+        var facts = await FactsAsync(id);
+        facts.Stage.ShouldBe("Ghosted");
+        facts.Outcome.ShouldBe("Ghosted");
+        facts.ClosedAt.ShouldBe(T1);
+    }
+
+    [Fact]
+    public async Task Silence_and_the_users_own_withdrawal_are_not_responses()
+    {
+        var (ghosted, ghostedOwner) = NewApplication();
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), ghosted, ghostedOwner, "Applied", "Ghosted", T1));
+        (await FactsAsync(ghosted)).FirstResponseAt.ShouldBeNull();
+
+        var (withdrawn, withdrawnOwner) = NewApplication();
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), withdrawn, withdrawnOwner, "Applied", "Withdrawn", T1));
+        (await FactsAsync(withdrawn)).FirstResponseAt.ShouldBeNull();
+
+        // A rejection is an answer, unwelcome as it is.
+        var (rejected, rejectedOwner) = NewApplication();
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), rejected, rejectedOwner, "Applied", "Rejected", T1));
+        (await FactsAsync(rejected)).FirstResponseAt.ShouldBe(T1);
+    }
+
+    [Fact]
+    public async Task A_row_that_starts_from_a_transition_heals_when_its_submission_lands()
+    {
+        // The case the nullable columns exist for. The stage change creates the
+        // row without a campaign or an applied date; the submission fills them in
+        // without disturbing where the application has got to.
+        var (id, owner) = NewApplication();
+        var campaignId = Guid.CreateVersion7();
+
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), id, owner, "Applied", "Interview", T2));
+
+        var partial = await FactsAsync(id);
+        partial.CampaignId.ShouldBeNull();
+        partial.AppliedDate.ShouldBeNull();
+        partial.Stage.ShouldBe("Interview");
+
+        await ApplyAsync(new ApplicationSubmitted(
+            Guid.CreateVersion7(), id, owner, campaignId, null, new DateOnly(2026, 3, 1), "Referral", "Remote", T1));
+
+        var healed = await FactsAsync(id);
+        healed.CampaignId.ShouldBe(campaignId);
+        healed.AppliedDate.ShouldBe(new DateOnly(2026, 3, 1));
+        healed.Source.ShouldBe("Referral");
+
+        // The submission carries the opening stage, which is older news than the
+        // transition already recorded.
+        healed.Stage.ShouldBe("Interview");
+        healed.StageEnteredAt.ShouldBe(T2);
+    }
+
+    [Fact]
+    public async Task An_unrecognised_stage_is_stored_without_claiming_a_funnel_step()
+    {
+        // Nothing publishes this today. The point is that if the pipeline ever
+        // grows a stage this module has not heard of, delivery does not start
+        // throwing - a projection that throws parks its outbox row and stops the
+        // fact reaching anyone.
+        var (id, owner) = NewApplication();
+
+        await ApplyAsync(new ApplicationStageChanged(
+            Guid.CreateVersion7(), id, owner, "Applied", "Shortlisted", T1));
+
+        var facts = await FactsAsync(id);
+        facts.Stage.ShouldBe("Shortlisted");
+        facts.ReachedScreeningAt.ShouldBeNull();
+        facts.ReachedInterviewAt.ShouldBeNull();
+        facts.ReachedOfferAt.ShouldBeNull();
+        facts.FirstResponseAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task The_earliest_booking_is_the_one_kept()
+    {
+        var (id, owner) = NewApplication();
+        var interviewId = Guid.CreateVersion7();
+
+        // A round booked, then moved later - the event is republished with the
+        // same interview id each time.
+        await ApplyAsync(new InterviewScheduled(Guid.CreateVersion7(), id, interviewId, owner, T2, T1));
+        await ApplyAsync(new InterviewScheduled(Guid.CreateVersion7(), id, interviewId, owner, T3, T2));
+
+        (await FactsAsync(id)).FirstInterviewScheduledAt.ShouldBe(T2);
+    }
+
+    [Fact]
+    public async Task An_older_campaign_move_arriving_late_does_not_win()
+    {
+        // The second watermark. The stage group's is exercised several times
+        // above; this one guards a single column written by two different events,
+        // and nothing had asked it to refuse a stale write.
+        var (id, owner) = NewApplication();
+        var first = Guid.CreateVersion7();
+        var second = Guid.CreateVersion7();
+        var third = Guid.CreateVersion7();
+
+        await ApplyAsync(new ApplicationMovedToCampaign(Guid.CreateVersion7(), id, owner, first, second, T2));
+        await ApplyAsync(new ApplicationMovedToCampaign(Guid.CreateVersion7(), id, owner, first, third, T1));
+
+        (await FactsAsync(id)).CampaignId.ShouldBe(second);
+    }
+
+    [Fact]
+    public async Task A_late_submission_fills_what_only_it_carries_without_moving_the_campaign_back()
+    {
+        // The campaign group's version of the funnel case above, and the reason the
+        // guard sits on the assignment rather than the statement. A submission
+        // arriving after a move it predates must not drag the campaign back to
+        // where the application started - and must still deposit the applied date,
+        // the source and the work mode, which no other event carries at all.
+        var (id, owner) = NewApplication();
+        var opened = Guid.CreateVersion7();
+        var moved = Guid.CreateVersion7();
+
+        await ApplyAsync(new ApplicationMovedToCampaign(Guid.CreateVersion7(), id, owner, opened, moved, T2));
+        await ApplyAsync(new ApplicationSubmitted(
+            Guid.CreateVersion7(), id, owner, opened, CompanyId: null,
+            new DateOnly(2026, 3, 1), "Referral", "Remote", T1));
+
+        var facts = await FactsAsync(id);
+
+        facts.CampaignId.ShouldBe(moved);
+        facts.AppliedDate.ShouldBe(new DateOnly(2026, 3, 1));
+        facts.Source.ShouldBe("Referral");
+        facts.WorkMode.ShouldBe("Remote");
+    }
+
+    [Fact]
+    public async Task A_whole_history_redelivered_leaves_the_row_as_it_was()
+    {
+        // Redelivery is proven above for one projection. At-least-once applies to
+        // all six, and each writes a different way - unguarded dimensions, guarded
+        // latest-wins columns, and monotone ones - so the claim is worth making
+        // against the whole set rather than the simplest member of it.
+        var (id, owner) = NewApplication();
+        var history = HistoryFor(id, owner);
+
+        foreach (var integrationEvent in history)
+        {
+            await ApplyAsync(integrationEvent);
+        }
+
+        var once = Snapshot.Of(await FactsAsync(id));
+
+        foreach (var integrationEvent in history)
+        {
+            await ApplyAsync(integrationEvent);
+        }
+
+        Snapshot.Of(await FactsAsync(id)).ShouldBe(once);
+    }
+
+    [Fact]
+    public async Task A_whole_history_delivered_backwards_reaches_the_same_row()
+    {
+        // The half a replay-only test passes without exercising. Two applications
+        // given the same six events, one in order and one in reverse, must end up
+        // saying exactly the same thing - which is the property the watermarks and
+        // the LEAST columns exist to provide, asserted over all of them at once
+        // rather than one column at a time.
+        var (forwardId, forwardOwner) = NewApplication();
+        var (backwardId, backwardOwner) = NewApplication();
+
+        foreach (var integrationEvent in HistoryFor(forwardId, forwardOwner))
+        {
+            await ApplyAsync(integrationEvent);
+        }
+
+        foreach (var integrationEvent in HistoryFor(backwardId, backwardOwner).Reverse())
+        {
+            await ApplyAsync(integrationEvent);
+        }
+
+        Snapshot.Of(await FactsAsync(backwardId)).ShouldBe(Snapshot.Of(await FactsAsync(forwardId)));
+    }
+
+    [Fact]
+    public void An_interview_cancellation_is_not_projected_here()
+    {
+        // ADR 0016 decided this module does not consume InterviewCancelled: the
+        // column it would touch records that a round was once booked, which
+        // cancelling does not undo, and un-setting a monotone column would destroy
+        // the property that makes it safe. A decision nothing enforced until now -
+        // adding the handler would have been a one-line change that broke no test.
+        //
+        // Scoped to this module's own assembly: another module consuming the event
+        // is not this record's business.
+        using var scope = fixture.CreateScope();
+
+        var handlers = scope.ServiceProvider
+            .GetServices<IEventHandler<InterviewCancelled>>()
+            .Where(handler => handler.GetType().Assembly == typeof(AnalyticsModule).Assembly);
+
+        handlers.ShouldBeEmpty();
+    }
+
+    // ----------------------------------------------------------------- helpers
+
+    private static (Guid Id, UserId Owner) NewApplication() => (Guid.CreateVersion7(), UserId.New());
+
+    /// <summary>
+    /// One application's whole life: an event of every type this module consumes,
+    /// in the order they would really have occurred. Every column of the base row
+    /// is written by at least one of them, which is what makes a comparison of the
+    /// resulting rows worth anything.
+    /// <para>
+    /// <b>The closure and the reopening each travel with the stage change they
+    /// amount to, at the same instant, because that is what the transition slice
+    /// really publishes</b> - a move always emits <c>ApplicationStageChanged</c>,
+    /// and adds the terminal or reopening event beside it. Writing the history
+    /// without that pairing produces a row nothing can produce: a reopening
+    /// delivered first bumps the stage watermark while carrying no stage of its
+    /// own, so every earlier move is then refused and the application keeps no
+    /// stage at all. That is not a defect in the projections - the two events write
+    /// disjoint columns and the tie rule lands both - but it is a reminder that
+    /// these events are only safe in the company they are published in.
+    /// </para>
+    /// </summary>
+    private static IReadOnlyList<IIntegrationEvent> HistoryFor(Guid id, UserId owner)
+    {
+        var reopenedAt = T3.AddDays(1);
+
+        return
+        [
+            new ApplicationSubmitted(
+                Guid.CreateVersion7(), id, owner, OpenedCampaign, Company,
+                new DateOnly(2026, 3, 1), "Referral", "Remote", T1),
+            new ApplicationStageChanged(Guid.CreateVersion7(), id, owner, "Applied", "Screening", T2),
+            new InterviewScheduled(Guid.CreateVersion7(), id, Guid.CreateVersion7(), owner, T3.AddDays(7), T2),
+            new ApplicationMovedToCampaign(Guid.CreateVersion7(), id, owner, OpenedCampaign, MovedCampaign, T2),
+
+            // Closed, and then reopened - each as the pair the pipeline publishes.
+            new ApplicationStageChanged(Guid.CreateVersion7(), id, owner, "Screening", "Rejected", T3),
+            new ApplicationReachedTerminal(Guid.CreateVersion7(), id, owner, "Screening", "Rejected", T3),
+            new ApplicationStageChanged(Guid.CreateVersion7(), id, owner, "Rejected", "Screening", reopenedAt),
+            new ApplicationReopened(Guid.CreateVersion7(), id, owner, "Rejected", "Screening", reopenedAt),
+        ];
+    }
+
+    /// <summary>
+    /// Everything a base row says, minus what identifies it and when it happened to
+    /// be inserted. Two rows built from the same events should be equal on this and
+    /// on nothing else - <c>CreatedAt</c> records arrival, which is exactly the
+    /// thing no figure may depend on.
+    /// </summary>
+    private sealed record Snapshot(
+        Guid? CampaignId,
+        Guid? CompanyId,
+        DateOnly? AppliedDate,
+        string? Source,
+        string? WorkMode,
+        string? Stage,
+        string? Outcome,
+        DateTimeOffset? StageEnteredAt,
+        DateTimeOffset? ClosedAt,
+        DateTimeOffset? StageRecordedAt,
+        DateTimeOffset? CampaignRecordedAt,
+        DateTimeOffset? FirstResponseAt,
+        DateTimeOffset? ReachedScreeningAt,
+        DateTimeOffset? ReachedInterviewAt,
+        DateTimeOffset? ReachedOfferAt,
+        DateTimeOffset? FirstInterviewScheduledAt)
+    {
+        public static Snapshot Of(ApplicationFacts facts) => new(
+            facts.CampaignId,
+            facts.CompanyId,
+            facts.AppliedDate,
+            facts.Source,
+            facts.WorkMode,
+            facts.Stage,
+            facts.Outcome,
+            facts.StageEnteredAt,
+            facts.ClosedAt,
+            facts.StageRecordedAt,
+            facts.CampaignRecordedAt,
+            facts.FirstResponseAt,
+            facts.ReachedScreeningAt,
+            facts.ReachedInterviewAt,
+            facts.ReachedOfferAt,
+            facts.FirstInterviewScheduledAt);
+    }
+
+    private static async Task ShouldSucceedAsync(Task<HttpResponseMessage> request) =>
+        (await request).IsSuccessStatusCode.ShouldBeTrue();
+
+    /// <summary>
+    /// Hands one event to the projection that handles it, against the real store.
+    /// Constructed rather than resolved by interface: a second module registering a
+    /// handler for the same event would otherwise silently change what these
+    /// assert. The HTTP tests above are what prove the registrations.
+    /// </summary>
+    private async Task ApplyAsync(IIntegrationEvent integrationEvent)
+    {
+        using var scope = fixture.CreateScope();
+        var writer = scope.ServiceProvider.GetRequiredService<ApplicationFactsWriter>();
+
+        Task handled = integrationEvent switch
+        {
+            ApplicationSubmitted e => new ApplicationSubmittedProjection(writer).HandleAsync(e, Ct),
+            ApplicationStageChanged e => new ApplicationStageChangedProjection(writer).HandleAsync(e, Ct),
+            ApplicationReachedTerminal e => new ApplicationReachedTerminalProjection(writer).HandleAsync(e, Ct),
+            ApplicationReopened e => new ApplicationReopenedProjection(writer).HandleAsync(e, Ct),
+            ApplicationMovedToCampaign e => new ApplicationMovedToCampaignProjection(writer).HandleAsync(e, Ct),
+            InterviewScheduled e => new InterviewScheduledProjection(writer).HandleAsync(e, Ct),
+            _ => throw new ArgumentOutOfRangeException(nameof(integrationEvent)),
+        };
+
+        await handled;
+    }
+
+    private async Task<ApplicationFacts> FactsAsync(Guid applicationId)
+    {
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>();
+
+        return await db.ApplicationFacts
+            .AsNoTracking()
+            .SingleAsync(f => f.ApplicationId == applicationId, Ct);
+    }
+
+    private async Task<ApplicationFacts> WaitForFactsAsync(
+        Guid applicationId, Func<ApplicationFacts, bool> until)
+    {
+        await Poll.UntilAsync(
+            async () =>
+            {
+                using var scope = fixture.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<AnalyticsDbContext>();
+                var facts = await db.ApplicationFacts
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(f => f.ApplicationId == applicationId, Ct);
+
+                return facts is not null && until(facts);
+            },
+            $"the read model should catch up with application {applicationId}",
+            Ct);
+
+        return await FactsAsync(applicationId);
+    }
+}

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- The module defines its own minimal-API endpoints; the framework
+         reference brings in ASP.NET Core without making this a host. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The state-machine unit tests drive the aggregate's internal API directly. -->
+    <InternalsVisibleTo Include="Jobspect.Modules.Applications.Tests" />
+    <!-- The integration fixture applies this module's migrations to the
+         container database; everything else it does goes over HTTP. -->
+    <InternalsVisibleTo Include="Jobspect.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jobspect.Modules.Applications.Contracts\Jobspect.Modules.Applications.Contracts.csproj" />
+    <!-- Consumes Identity's UserRegistered to provision the default campaign;
+         a Contracts reference only, never the module implementation. -->
+    <ProjectReference Include="..\..\Identity\Jobspect.Modules.Identity.Contracts\Jobspect.Modules.Identity.Contracts.csproj" />
+    <!-- Names the Feature:* policy that gates the Pro custom-field endpoints.
+         Contracts only: the entitlement check itself stays Billing's, and this
+         module never learns what a plan is. -->
+    <ProjectReference Include="..\..\Billing\Jobspect.Modules.Billing.Contracts\Jobspect.Modules.Billing.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Jobspect.SharedKernel\Jobspect.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\Jobspect.Infrastructure\Jobspect.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

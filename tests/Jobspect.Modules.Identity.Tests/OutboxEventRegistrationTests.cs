@@ -1,0 +1,50 @@
+using System.Reflection;
+using Jobspect.Infrastructure.Outbox;
+using Jobspect.Modules.Identity.Contracts;
+using Jobspect.SharedKernel.Events;
+using Shouldly;
+
+namespace Jobspect.Modules.Identity.Tests;
+
+/// <summary>
+/// An event the module records but never registers is a row nobody can deliver:
+/// the dispatcher cannot turn the name back into a type, so it retries to the
+/// attempt limit and parks the row. On this module's one outbox event that means
+/// an erasure the user was promised and nothing carries out. The compiler cannot
+/// catch a missing registration, so this walks the module's contract surface and
+/// holds the registration to it.
+/// </summary>
+public sealed class OutboxEventRegistrationTests
+{
+    [Fact]
+    public void Registers_every_outbox_event_on_the_modules_contract_surface()
+    {
+        var registry = new OutboxEventRegistry();
+        IdentityModule.RegisterOutboxEvents(registry);
+
+        foreach (var eventType in OutboxEventTypes())
+        {
+            registry.IsRegistered(DeclaredNameOf(eventType))
+                .ShouldBeTrue(
+                    $"{eventType.Name} is an outbox event, but nothing registers it for delivery - "
+                    + "every row it writes would be parked undelivered.");
+        }
+    }
+
+    [Fact]
+    public void Finds_the_events_it_claims_to_be_checking()
+    {
+        // Without this the rule above passes just as happily on an empty sequence,
+        // which is precisely what a broken reflection query returns.
+        OutboxEventTypes().ShouldNotBeEmpty();
+    }
+
+    private static IReadOnlyList<Type> OutboxEventTypes() =>
+        [.. typeof(UserDataDeletionRequested).Assembly.GetTypes()
+            .Where(type => type is { IsClass: true, IsAbstract: false } && type.IsAssignableTo(typeof(IOutboxEvent)))];
+
+    private static string DeclaredNameOf(Type eventType) =>
+        (string)eventType
+            .GetProperty(nameof(IOutboxEvent.EventType), BindingFlags.Public | BindingFlags.Static)!
+            .GetValue(null)!;
+}

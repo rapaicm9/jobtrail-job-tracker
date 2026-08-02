@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- The module defines its own minimal-API endpoints; the framework
+         reference brings in ASP.NET Core without making this a host. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Aspire.Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The interval and median arithmetic is pure, and its own tests drive it
+         directly - no host and no database. -->
+    <InternalsVisibleTo Include="Jobspect.Modules.Analytics.Tests" />
+    <!-- The integration fixture applies this module's migrations to the
+         container database, and asserts the read model's shape against it. -->
+    <InternalsVisibleTo Include="Jobspect.IntegrationTests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Jobspect.Modules.Analytics.Contracts\Jobspect.Modules.Analytics.Contracts.csproj" />
+    <ProjectReference Include="..\..\..\Jobspect.SharedKernel\Jobspect.SharedKernel.csproj" />
+    <ProjectReference Include="..\..\..\Jobspect.Infrastructure\Jobspect.Infrastructure.csproj" />
+    <!-- The events the read model is built from. A Contracts reference only -
+         this module never sees an application, just what was announced about it. -->
+    <ProjectReference Include="..\..\Applications\Jobspect.Modules.Applications.Contracts\Jobspect.Modules.Applications.Contracts.csproj" />
+    <!-- Consumes Identity's UserDataDeletionRequested to erase its own rows. -->
+    <ProjectReference Include="..\..\Identity\Jobspect.Modules.Identity.Contracts\Jobspect.Modules.Identity.Contracts.csproj" />
+    <!-- Names the Feature:* policy that gates the paid dashboard and re-checks it
+         in the handler. Contracts only: the entitlement check itself stays
+         Billing's, and this module never learns what a plan is. -->
+    <ProjectReference Include="..\..\Billing\Jobspect.Modules.Billing.Contracts\Jobspect.Modules.Billing.Contracts.csproj" />
+  </ItemGroup>
+</Project>

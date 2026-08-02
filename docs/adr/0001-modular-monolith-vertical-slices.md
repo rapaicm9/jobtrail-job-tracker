@@ -11,8 +11,8 @@ Greenfield backend, one developer, no traffic yet. I want the low operational co
 
 Build a **modular monolith** with **vertical-slice** feature organization and **enforced module boundaries**, split into exactly two processes:
 
-- `JobTrail.Api` — the ASP.NET Core host composing all modules in-process.
-- `JobTrail.Worker` — a separate process for time-driven and delivery work (reminders, push).
+- `Jobspect.Api` — the ASP.NET Core host composing all modules in-process.
+- `Jobspect.Worker` — a separate process for time-driven and delivery work (reminders, push).
 
 Modules are bounded contexts, each owning its own PostgreSQL **schema** and `DbContext`:
 
