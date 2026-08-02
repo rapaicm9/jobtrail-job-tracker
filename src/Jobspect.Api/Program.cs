@@ -75,6 +75,12 @@ builder.AddAnalyticsModule();
 // one of them would arm a reminder for an account that has just been erased.
 builder.AddNotificationsModule();
 
+// And what it does with those events. A second call, made by this host only: the
+// worker composes the store above and the schedule, but never these - it has no
+// dispatcher to fire them and does not compose the Identity contract they read the
+// owner's timezone through.
+builder.AddNotificationsConsumers();
+
 // The module also owns validation of its own access tokens; the host just
 // turns the scheme on and layers authorization over it.
 builder.AddIdentityJwtAuthentication();

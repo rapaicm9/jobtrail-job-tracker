@@ -14,6 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The instant arithmetic is pure - a date, a zone and a clock reading - so
+         its own tests drive it directly, with no host and no database. -->
+    <InternalsVisibleTo Include="Jobspect.Modules.Notifications.Tests" />
     <!-- The integration fixture applies this module's migrations to the
          container database, and asserts the store's shape against it. -->
     <InternalsVisibleTo Include="Jobspect.IntegrationTests" />
@@ -23,5 +26,13 @@
     <ProjectReference Include="..\Jobspect.Modules.Notifications.Contracts\Jobspect.Modules.Notifications.Contracts.csproj" />
     <ProjectReference Include="..\..\..\Jobspect.SharedKernel\Jobspect.SharedKernel.csproj" />
     <ProjectReference Include="..\..\..\Jobspect.Infrastructure\Jobspect.Infrastructure.csproj" />
+    <!-- The date-bearing events reminders are armed from. A Contracts reference
+         only - this module never sees an application or an interview, just what
+         was announced about one. -->
+    <ProjectReference Include="..\..\Applications\Jobspect.Modules.Applications.Contracts\Jobspect.Modules.Applications.Contracts.csproj" />
+    <!-- Reads the owner's IANA zone through IUserProfileQuery, because a date only
+         means something in a place; and consumes UserDataDeletionRequested to give
+         back what it holds. -->
+    <ProjectReference Include="..\..\Identity\Jobspect.Modules.Identity.Contracts\Jobspect.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
 </Project>
