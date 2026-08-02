@@ -36,6 +36,7 @@
     <Project Path="tests/Jobspect.Modules.Applications.Tests/Jobspect.Modules.Applications.Tests.csproj" />
     <Project Path="tests/Jobspect.Modules.Billing.Tests/Jobspect.Modules.Billing.Tests.csproj" />
     <Project Path="tests/Jobspect.Modules.Identity.Tests/Jobspect.Modules.Identity.Tests.csproj" />
+    <Project Path="tests/Jobspect.Modules.Notifications.Tests/Jobspect.Modules.Notifications.Tests.csproj" />
     <Project Path="tests/Jobspect.SharedKernel.Tests/Jobspect.SharedKernel.Tests.csproj" />
   </Folder>
   <Project Path="Jobspect.AppHost/Jobspect.AppHost.csproj" />

@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- xUnit v3 test projects are standalone executables, not libraries. -->
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit.v3" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="Shouldly" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Unit tests of the module's internals (InternalsVisibleTo is set on it).
+         No host and no database: when a reminder fires is a date, a zone and a
+         clock reading, and every case worth proving - a spring-forward, a
+         fall-back, an instant already gone by - is arithmetic. -->
+    <ProjectReference Include="..\..\src\Modules\Notifications\Jobspect.Modules.Notifications\Jobspect.Modules.Notifications.csproj" />
+  </ItemGroup>
+
+</Project>
