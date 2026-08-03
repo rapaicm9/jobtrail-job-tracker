@@ -1,6 +1,8 @@
 using Jobspect.IntegrationTests.Infrastructure;
 using Jobspect.Modules.Notifications;
+using Jobspect.Modules.Notifications.Domain;
 using Jobspect.Modules.Notifications.Persistence;
+using Jobspect.SharedKernel;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -11,14 +13,18 @@ using Shouldly;
 namespace Jobspect.IntegrationTests;
 
 /// <summary>
-/// The worker's schedule, against the real database. Nothing is scheduled yet -
-/// the sweep and the follow-up scan arrive with the work they do - so what is
-/// worth proving now is that the job store is where it should be and that a
-/// schedule written to it survives being written down.
+/// The worker's schedule, against the real database: that the job store is where it
+/// should be, that a schedule written to it survives being written down, and that the
+/// sweep is genuinely on a trigger rather than merely written.
 /// <para>
 /// It composes the same <see cref="NotificationsScheduler.AddNotificationsScheduler"/>
 /// the worker composes, rather than booting the worker: the registration is the
 /// thing under test, and a scheduler that starts here starts there.
+/// </para>
+/// <para>
+/// These are the only tests that run a sweep on the real clock. What the sweep
+/// <em>decides</em> is pinned in <see cref="NotificationsSweepTests"/>, at a time of
+/// that suite's choosing; all that is left for here is whether anything ever calls it.
 /// </para>
 /// </summary>
 [Collection(ApiCollection.Name)]
@@ -70,53 +76,71 @@ public sealed class NotificationsSchedulerTests(ApiFixture fixture)
         strays.ShouldBeEmpty();
     }
 
+    /// <summary>
+    /// The whole schedule, end to end: it is written down, it survives being written
+    /// down, and it fires the work it was written for.
+    /// <para>
+    /// One test rather than three because it can only be one host. Quartz caches the
+    /// logger factory it was first given in a static, so a second scheduler host in
+    /// the same process comes up holding the first one's - disposed - and fails on the
+    /// way in. That is a property of the library rather than of this suite, and one
+    /// host proving one story is a fair shape for it anyway.
+    /// </para>
+    /// </summary>
     [Fact]
-    public async Task A_schedule_survives_being_written_down()
+    public async Task The_sweep_is_scheduled_durably_and_fires()
     {
-        var jobKey = new JobKey($"probe-{Guid.CreateVersion7():N}", "tests");
+        // Due already, on the real clock, because this one has to survive a real
+        // trigger firing at a moment nothing here chooses - but well inside the
+        // lateness the sweep still delivers within, however long the host takes.
+        var applicationId = Guid.CreateVersion7();
+
+        using (var scope = fixture.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();
+
+            db.Reminders.Add(new Reminder
+            {
+                OwnerId = UserId.New(),
+                Kind = ReminderKind.ApplicationDeadlineMorningOf,
+                DueAt = DateTimeOffset.UtcNow,
+                ApplicationId = applicationId,
+                SourceRecordedAt = DateTimeOffset.UtcNow,
+            });
+
+            await db.SaveChangesAsync(Ct);
+        }
 
         using var host = BuildSchedulerHost();
+
+        // Starting at all proves more than it looks: the job store validates its
+        // schema on the way up, so a store in the wrong schema - or absent - fails
+        // here rather than at the first fire.
         await host.StartAsync(Ct);
 
         try
         {
-            // Starting at all proves more than it looks: the store validates its
-            // schema on the way up, so a job store in the wrong schema - or absent -
-            // fails here rather than at the first fire.
+            // Read back through the database rather than through the scheduler: what
+            // is being proven is that the schedule was persisted, not that an
+            // in-memory scheduler remembers what it was just told. Polled because the
+            // hosted service waits for the application to finish starting before it
+            // starts the scheduler, so nothing is written by the time StartAsync
+            // returns.
             //
-            // Polled rather than asserted outright, because the hosted service waits
-            // for the application to finish starting before it starts the scheduler -
-            // so the scheduler is running a moment after StartAsync returns, not by
-            // the time it does.
-            var scheduler = await host.Services.GetRequiredService<ISchedulerFactory>().GetScheduler(Ct);
+            // The scheduler's name is part of the primary key of every row here, so
+            // this also pins it: change it and every row already written is orphaned.
             await Poll.UntilAsync(
-                () => Task.FromResult(scheduler.IsStarted),
-                "the scheduler should come up once the host has started",
+                async () => await ScheduledUnderAsync(SweepJobQuery) == "jobspect"
+                    && await ScheduledUnderAsync(SweepTriggerQuery) == "jobspect",
+                "the sweep's job and trigger should reach the persistent store",
                 Ct);
 
-            var job = JobBuilder.Create<ProbeJob>().WithIdentity(jobKey).StoreDurably().Build();
-            await scheduler.AddJob(job, replace: false, Ct);
-
-            // Read back through the database rather than through the scheduler:
-            // what is being proven is that the schedule was persisted, not that an
-            // in-memory scheduler remembers what it was just told.
-            using var scope = fixture.CreateScope();
-            var db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();
-
-            var stored = await db.Database.SqlQueryRaw<string>(
-                """
-                SELECT sched_name AS "Value" FROM notifications.qrtz_job_details
-                WHERE job_name = {0} AND job_group = {1}
-                """,
-                jobKey.Name,
-                jobKey.Group).ToListAsync(Ct);
-
-            // The scheduler's name is part of the primary key of every row here, so
-            // this is also the assertion that pins it: change it and every row
-            // already written is orphaned.
-            stored.ShouldBe(["jobspect"]);
-
-            await scheduler.DeleteJob(jobKey, Ct);
+            // And the trigger reaches the job. It starts now and repeats, so the first
+            // pass happens as the scheduler comes up rather than an interval later.
+            await Poll.UntilAsync(
+                async () => await StateAsync(applicationId) == ReminderState.Sent,
+                "the scheduled sweep should deliver a reminder that has come due",
+                Ct);
         }
         finally
         {
@@ -125,24 +149,61 @@ public sealed class NotificationsSchedulerTests(ApiFixture fixture)
     }
 
     /// <summary>
-    /// A host carrying the worker's scheduler registration and nothing else,
-    /// pointed at the fixture's database.
+    /// The job the module registers, and the trigger pointed at it. Two literal
+    /// statements rather than one parameterised by table name: a table name cannot be
+    /// a parameter, and building it by interpolation is what EF1002 exists to stop.
+    /// </summary>
+    private const string SweepJobQuery =
+        """
+        SELECT sched_name AS "Value" FROM notifications.qrtz_job_details
+        WHERE job_name = 'reminder-sweep' AND job_group = 'notifications'
+        """;
+
+    private const string SweepTriggerQuery =
+        """
+        SELECT sched_name AS "Value" FROM notifications.qrtz_triggers
+        WHERE job_name = 'reminder-sweep' AND job_group = 'notifications'
+        """;
+
+    /// <summary>
+    /// The scheduler name the sweep was written down under, or null while it has not
+    /// been written down at all.
+    /// </summary>
+    private async Task<string?> ScheduledUnderAsync(string sql)
+    {
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();
+
+        var names = await db.Database.SqlQueryRaw<string>(sql).ToListAsync(Ct);
+
+        return names.SingleOrDefault();
+    }
+
+    private async Task<ReminderState> StateAsync(Guid applicationId)
+    {
+        using var scope = fixture.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();
+
+        return await db.Reminders
+            .AsNoTracking()
+            .Where(reminder => reminder.ApplicationId == applicationId)
+            .Select(reminder => reminder.State)
+            .SingleAsync(Ct);
+    }
+
+    /// <summary>
+    /// The worker's composition root, pointed at the fixture's database: the store
+    /// and the schedule, in that order and nothing else. Both, because the sweep the
+    /// schedule now carries reads the store - which is also the property being
+    /// asserted, since a worker missing either call does not start.
     /// </summary>
     private IHost BuildSchedulerHost()
     {
         var builder = Host.CreateApplicationBuilder();
         builder.Configuration.AddInMemoryCollection(fixture.BuildSettings());
+        builder.AddNotificationsModule();
         builder.AddNotificationsScheduler();
 
         return builder.Build();
-    }
-
-    /// <summary>
-    /// Something to schedule. It never runs - the point is that the schedule
-    /// reaches the database - and the real jobs arrive with the work they do.
-    /// </summary>
-    private sealed class ProbeJob : IJob
-    {
-        public Task Execute(IJobExecutionContext context) => Task.CompletedTask;
     }
 }
