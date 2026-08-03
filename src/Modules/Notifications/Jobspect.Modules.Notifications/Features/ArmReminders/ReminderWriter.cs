@@ -215,8 +215,29 @@ internal sealed class ReminderWriter(NotificationsDbContext dbContext)
     }
 
     /// <summary>
-    /// Retires everything still armed for an application across the given kinds -
-    /// the deadline was cleared, so the reminders for it go with it.
+    /// The staleness guard as a retraction states it, correlated against each row's
+    /// own slot rather than against a slot named in parameters.
+    /// <para>
+    /// That correlation is what lets one statement retract several slots at once
+    /// without their histories interfering: these kinds go together, but they are
+    /// still separate slots, and one having been decided recently must not silence
+    /// another that was not.
+    /// </para>
+    /// </summary>
+    private const string RetractionIsNotStale =
+        """
+        @occurred_at >= COALESCE(
+            (SELECT MAX(newest.source_recorded_at)
+             FROM notifications.reminders AS newest
+             WHERE newest.application_id = target.application_id
+               AND newest.interview_id IS NOT DISTINCT FROM target.interview_id
+               AND newest.kind = target.kind),
+            '-infinity'::timestamptz)
+        """;
+
+    /// <summary>
+    /// Retires what one slot's kinds still hold - the deadline was cleared, or the
+    /// round is off, so the reminders for it go with it.
     /// <para>
     /// One statement, because there is nothing to insert. It stamps
     /// <c>source_recorded_at</c> with the retracting event's occurrence, which is
@@ -226,9 +247,11 @@ internal sealed class ReminderWriter(NotificationsDbContext dbContext)
     /// still holding its original, older decision and undo the retraction.
     /// </para>
     /// <para>
-    /// The guard correlates on each row's own kind, so one slot's history cannot
-    /// silence another's: these kinds are retracted together but they are still
-    /// separate slots.
+    /// <b>Round-scoped, including when the round is null.</b>
+    /// <c>IS NOT DISTINCT FROM</c> matches null to null, so passing no round matches
+    /// exactly the kinds that have none - which is every kind but the two interview
+    /// ones. That is right for a cleared deadline and wrong for a closed application:
+    /// see <see cref="RetractApplicationAsync"/>.
     /// </para>
     /// </summary>
     public Task RetractAsync(
@@ -238,20 +261,14 @@ internal sealed class ReminderWriter(NotificationsDbContext dbContext)
         DateTimeOffset occurredAt,
         CancellationToken cancellationToken) =>
         ExecuteAsync(
-            """
+            $"""
             UPDATE notifications.reminders AS target
             SET state = 'Cancelled', source_recorded_at = @occurred_at
             WHERE target.application_id = @application_id
               AND target.interview_id IS NOT DISTINCT FROM @interview_id
               AND target.kind = ANY(@kinds)
               AND target.state = 'Pending'
-              AND @occurred_at >= COALESCE(
-                  (SELECT MAX(newest.source_recorded_at)
-                   FROM notifications.reminders AS newest
-                   WHERE newest.application_id = target.application_id
-                     AND newest.interview_id IS NOT DISTINCT FROM target.interview_id
-                     AND newest.kind = target.kind),
-                  '-infinity'::timestamptz)
+              AND {RetractionIsNotStale}
             """,
             cancellationToken,
             [
@@ -260,6 +277,40 @@ internal sealed class ReminderWriter(NotificationsDbContext dbContext)
                 TextArray("kinds", [.. kinds.Select(kind => kind.ToString())]),
                 Instant("occurred_at", occurredAt),
             ],
+            []);
+
+    /// <summary>
+    /// Retires everything an application still has armed, whatever round and whatever
+    /// kind - it is closed, so none of it is owed any more.
+    /// <para>
+    /// <b>A method of its own rather than a call to <see cref="RetractAsync"/> with no
+    /// round and every kind, because that combination does not mean this.</b> The slot
+    /// predicate there matches a null round to a null <c>interview_id</c>, so it would
+    /// retire the deadline reminders and leave the interview ones armed - and the
+    /// mistake would stay invisible until an alert fired for a round belonging to an
+    /// application that was rejected weeks ago. Dropping the predicate is the only way
+    /// to say "any round", and a flag inside the other statement would read as a bug
+    /// long before anyone remembered why it was there.
+    /// </para>
+    /// <para>
+    /// The kind predicate goes with it for the same reason: every kind is not a list
+    /// to keep in step with the enum, it is the absence of a restriction.
+    /// </para>
+    /// </summary>
+    public Task RetractApplicationAsync(
+        Guid applicationId,
+        DateTimeOffset occurredAt,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            $"""
+            UPDATE notifications.reminders AS target
+            SET state = 'Cancelled', source_recorded_at = @occurred_at
+            WHERE target.application_id = @application_id
+              AND target.state = 'Pending'
+              AND {RetractionIsNotStale}
+            """,
+            cancellationToken,
+            [Uuid("application_id", applicationId), Instant("occurred_at", occurredAt)],
             []);
 
     /// <summary>
