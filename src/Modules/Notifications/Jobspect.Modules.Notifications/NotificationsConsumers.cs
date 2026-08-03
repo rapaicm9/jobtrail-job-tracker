@@ -3,6 +3,7 @@ using Jobspect.Modules.Applications.Contracts;
 using Jobspect.Modules.Identity.Contracts;
 using Jobspect.Modules.Notifications.Features.ArmReminders;
 using Jobspect.Modules.Notifications.Features.EraseData;
+using Jobspect.Modules.Notifications.Features.RetractReminders;
 using Jobspect.Modules.Notifications.Features.TrackApplications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -50,6 +51,18 @@ public static class NotificationsConsumers
         // reads this runs in a process that does not host it.
         builder.Services.AddEventHandler<ApplicationSubmitted, ApplicationSubmittedTracker>();
         builder.Services.AddEventHandler<ApplicationStageChanged, ApplicationStageChangedTracker>();
+
+        // And the events that take reminders back. Three sources rather than four:
+        // a deadline cleared to null travels the arming path above, since a kind with
+        // no instant is retracted rather than left armed.
+        //
+        // A move retracts only the follow-up it answers; a closing retracts everything
+        // the application still holds; a cancelled round retracts its own pair. The
+        // first two arrive together from one transaction and both fire, which the
+        // staleness comparison is built to allow - see the handlers.
+        builder.Services.AddEventHandler<ApplicationStageChanged, ApplicationStageChangedRetraction>();
+        builder.Services.AddEventHandler<ApplicationReachedTerminal, ApplicationReachedTerminalRetraction>();
+        builder.Services.AddEventHandler<InterviewCancelled, InterviewCancelledRetraction>();
 
         // And gives it all back on the way out: this module's share of the erasure
         // fan-out, from its own schema only. Registered last here, and after the
