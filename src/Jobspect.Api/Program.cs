@@ -81,6 +81,11 @@ builder.AddNotificationsModule();
 // owner's timezone through.
 builder.AddNotificationsConsumers();
 
+// And the feed those reminders are read through - the only channel that reaches a
+// person in this release. A third call from this host, because the worker serves no
+// HTTP and would carry handlers it could never reach.
+builder.AddNotificationsFeed();
+
 // The module also owns validation of its own access tokens; the host just
 // turns the scheme on and layers authorization over it.
 builder.AddIdentityJwtAuthentication();
@@ -154,6 +159,9 @@ api.MapApplicationsEndpoints();
 
 // The dashboard's figures, aggregated from the read model; same budget.
 api.MapAnalyticsEndpoints();
+
+// The reminder feed: what the engine armed, swept and delivered, finally readable.
+api.MapNotificationsEndpoints();
 
 // Developer shortcuts (grant Pro without a purchase) exist only in Development -
 // mapping them nowhere else is what keeps them out of production entirely.
