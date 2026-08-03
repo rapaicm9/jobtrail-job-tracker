@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
+- **Amended:** 2026-08-04 — the feed shows the two delivered states and nothing else; unread is simply not dismissed. See *Revision history*.
 - **Amended:** 2026-08-04 — the three retracting events do not retract the same thing; a closing needs a statement of its own rather than the slot-scoped one with no round; retracting twice is safe by construction; and reopening deliberately does not re-arm. See *Revision history*.
 - **Amended:** 2026-08-03 — one reading of the clock decides a whole sweep, which is what makes dropping and delivering an exact partition; the drop does not share the delivery's batch; the late tolerance is a constant rather than configuration; and a delivery already recorded is absorbed rather than raised. See *Revision history*.
 - **Amended:** 2026-08-02 — arming a slot is two ordered statements in a transaction rather than one; an exact redelivery needs a guard of its own beyond the staleness comparison; a kind whose instant has lapsed is retracted rather than left armed; a local 11:00 that does not exist steps forward; and the module is composed by three methods, not two. See *Revision history*.
@@ -111,6 +112,16 @@ A reminder found more than **10 minutes** past its instant is **dropped and logg
 
 The tolerance is not zero, and cannot be — the sweep discovers every reminder slightly after its instant, so a zero cutoff would drop all of them and the module would appear to do nothing at all. Ten minutes is normal sweep jitter with headroom, and it means a worker that was down does not deliver its backlog on the way up.
 
+### What the feed shows
+
+**The two delivered states, and nothing else.** A reminder row passes through five states, and only `Sent` and `Dismissed` are things the owner was actually told. `Pending` has not happened yet — a feed listing what it is *about* to say is a schedule, not a record. `Cancelled` was retracted before it fired, so it was never said. And `Dropped` was owed, missed, and deliberately withheld: putting it in front of the owner is precisely the noise the lateness rule exists to prevent, and it would arrive with no way to act on it. `Dropped` stays a state distinct from `Cancelled` so an **operator** can tell a missed reminder from a retracted one when the feed is quiet — that is who the distinction is for, not the reader.
+
+**Unread is not dismissed**, so the badge counts the `Sent` rows. No read flag sits beside the state, because there is nothing a second column could say that this one does not, and two columns that can disagree about the same fact is the shape this design has avoided everywhere else.
+
+**A feed entry is not a resource.** It is read in a page and cleared in place, so there is no route to a single reminder and nothing returns a `Location`. Clearing is an explicit `dismiss` rather than a patch of a state field, for the reason the pipeline transition gives: the moves a row can make are not a free-form column. Dismissing twice is not an error — a client retrying a request whose response it never saw must not be told the reminder has vanished — and anything outside the feed, whether another account's or a row that was never delivered, is a 404, since the entry it would address does not exist.
+
+**The entry carries when the reminder was *for*, not when it was delivered.** The two differ by at most the sweep's tolerance, the list is ordered by the former, and a timestamp disagreeing with the sort key reads as a bug. The delivery record goes on doing what it is for: refusing a repeat, and recording when the owner was told for anyone who has to ask later.
+
 ### What v1 actually delivers
 
 **In-app only, written directly by the sweep.** The in-app feed is a table the client lists, dismisses from, and takes an unread count off; nothing expires on its own in v1.
@@ -171,4 +182,10 @@ The tolerance is not zero, and cannot be — the sweep discovers every reminder 
   The closing is the one with a trap in it. Expressed as the slot-scoped retraction with no round, it retires only the kinds that *have* no round — the slot predicate matches null to null — so the interview alerts would survive the closing of the application they belong to, and nothing would show it until one fired weeks later. "Any round" is the absence of the predicate, not null passed to it.
 
   Settled with it: **retracting twice is safe by construction**, so the two events a closing publishes need not know about each other — a retraction only moves a row from armed to cancelled, and the comparison is `>=` so neither is refused as stale by the other. And **reopening deliberately does not re-arm**, because `Cancelled` is one word for four different reasons and reviving them indiscriminately would resurrect what the owner deliberately removed; the recovery is that touching a date republishes its event. Its mirror is recorded too: arming still works on a closed application, since the arming path does not consult the stage and refusing to record what the owner just typed would be the worse answer.
+
+- **2026-08-04 — what the feed shows, settled by building it.** This record has said since July that in-app delivery is "a table the client reads", and left which rows that means to whoever wrote the endpoint. It is **the two delivered states and nothing else**: a reminder is something the owner was told, so `Pending` is a schedule rather than a record, `Cancelled` was never said, and `Dropped` — owed, missed, deliberately withheld — is exactly the noise the lateness rule exists to prevent. That last one is the decision worth naming, because `Dropped` was introduced above as a state distinct from `Cancelled` and it would be easy to read that as a promise to show it. The distinction is for an **operator** asking why the feed is quiet, not for the reader.
+
+  Settled with it: **unread is not dismissed**, so no read flag joins the state column and the badge counts `Sent`; **a feed entry is not a resource**, so there is no route to one and clearing is an explicit `dismiss` rather than a patch, idempotent because a retried request must not report the reminder gone; and **the entry shows when the reminder was for, not when it was delivered**, since the list is ordered by the former and the two differ by at most the sweep's tolerance.
+
+  The feed was taken **ahead of the Pro follow-up rules**, which the sprint had sequenced first. The two do not depend on each other, and until this existed nothing the module did reached a person at all — arming, sweeping and retraction were each proved by reading a table. Building the automation that raises more reminders before anything could show one was the wrong order.
 

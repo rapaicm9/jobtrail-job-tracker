@@ -182,6 +182,24 @@ internal sealed record InterviewView(
     DateTimeOffset? UpdatedAt);
 
 /// <summary>
+/// A feed entry as a client sees it - declared here, not shared with the module, so
+/// a contract change breaks these tests rather than retargeting them. Note what is
+/// absent as much as what is here: no state, and no delivery time.
+/// </summary>
+internal sealed record ReminderView(
+    Guid Id,
+    string Kind,
+    DateTimeOffset DueAt,
+    Guid ApplicationId,
+    Guid? InterviewId,
+    DateTimeOffset? SubjectAt,
+    DateOnly? SubjectDate,
+    bool Dismissed);
+
+/// <summary>The badge figure as a client sees it.</summary>
+internal sealed record UnreadCountView(int Count);
+
+/// <summary>
 /// A timeline entry as a client sees it - declared here, not shared with the
 /// module, so a contract change breaks these tests rather than retargeting them.
 /// </summary>
@@ -504,6 +522,18 @@ internal static class ApiClient
     public static Task<HttpResponseMessage> DeleteCampaignAsync(
         this HttpClient client, string? accessToken, Guid id) =>
         client.SendAsync(Authorized(HttpMethod.Delete, $"/api/v1/campaigns/{id}", accessToken));
+
+    public static Task<HttpResponseMessage> ListRemindersAsync(
+        this HttpClient client, string? accessToken, int? limit = null, string? cursor = null) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/reminders" + Paging(limit, cursor), accessToken));
+
+    public static Task<HttpResponseMessage> GetUnreadReminderCountAsync(
+        this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/reminders/unread-count", accessToken));
+
+    public static Task<HttpResponseMessage> DismissReminderAsync(
+        this HttpClient client, string? accessToken, Guid id) =>
+        client.SendAsync(Authorized(HttpMethod.Post, $"/api/v1/reminders/{id}/dismiss", accessToken));
 
     public static Task<HttpResponseMessage> GetAnalyticsOverviewAsync(
         this HttpClient client, string? accessToken, Guid? campaignId = null) =>
