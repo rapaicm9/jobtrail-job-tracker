@@ -5,6 +5,7 @@ using Jobspect.Modules.Applications.Features.CreateCampaign;
 using Jobspect.Modules.Applications.Features.CreateCustomField;
 using Jobspect.Modules.Applications.Features.UpdateCustomField;
 using Jobspect.Modules.Identity.Features.ExportAccount;
+using Jobspect.Modules.Notifications.Features.SetReminderRule;
 using Jobspect.SharedKernel;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
@@ -130,7 +131,22 @@ public sealed class EntitlementDefenceInDepthTests(ApiFixture fixture)
     }
 
     [Fact]
-    public async Task And_all_six_go_through_for_a_pro_account()
+    public async Task Setting_up_automated_follow_ups_refuses_a_free_account()
+    {
+        var ownerId = await FreeAccountAsync();
+
+        using var scope = fixture.CreateScope();
+        var handler = scope.ServiceProvider.GetRequiredService<SetReminderRuleHandler>();
+
+        var result = await handler.HandleAsync(ownerId, new SetReminderRuleRequest(7), Ct);
+
+        result.IsFailure.ShouldBeTrue();
+        result.Error.Type.ShouldBe(ErrorType.Forbidden);
+        result.Error.Code.ShouldBe("reminder_rule.not_entitled");
+    }
+
+    [Fact]
+    public async Task And_all_seven_go_through_for_a_pro_account()
     {
         // The other half of the claim: the guard refuses the unentitled without
         // standing in the way of everyone else. Without this, every test above
@@ -165,6 +181,11 @@ public sealed class EntitlementDefenceInDepthTests(ApiFixture fixture)
             .HandleAsync(ownerId, new SetWeeklyGoalRequest(8), Ct);
         goal.IsSuccess.ShouldBeTrue();
         goal.Value.Target.ShouldBe(8);
+
+        var rule = await scope.ServiceProvider.GetRequiredService<SetReminderRuleHandler>()
+            .HandleAsync(ownerId, new SetReminderRuleRequest(7), Ct);
+        rule.IsSuccess.ShouldBeTrue();
+        rule.Value.DaysAfterApplied.ShouldBe(7);
     }
 
     /// <summary>

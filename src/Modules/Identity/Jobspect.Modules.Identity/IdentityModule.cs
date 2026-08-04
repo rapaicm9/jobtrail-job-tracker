@@ -39,19 +39,15 @@ public static class IdentityModule
 {
     public static IHostApplicationBuilder AddIdentityModule(this IHostApplicationBuilder builder)
     {
-        var connectionString = builder.Configuration.GetConnectionString("jobspect")
-            ?? throw new InvalidOperationException(
-                "Connection string 'jobspect' is not configured. It is injected by the AppHost.");
-
-        builder.Services.AddDbContext<IdentityModuleDbContext>(options =>
-            NpgsqlContextConfiguration.Configure(options, connectionString, IdentityModuleDbContext.Schema));
-
-        // Aspire adds health checks, a retrying execution strategy and telemetry
-        // to the context registered above, without owning its configuration.
-        builder.EnrichNpgsqlDbContext<IdentityModuleDbContext>();
+        // The store and the profile read, composed through the narrow method rather
+        // than repeated here, so the two ways in cannot register the context
+        // differently - or twice.
+        builder.AddIdentityProfileQuery();
 
         // This module's share of the deploy-time migration run, registered beside
-        // the context it migrates so the two cannot drift apart.
+        // the context it migrates so the two cannot drift apart. Deliberately not
+        // in the narrow method: migrating is the whole module's business, and a
+        // host that wanted only to read a timezone should not enlist in it.
         builder.Services.AddModuleMigrator<IdentityModuleDbContext>();
 
         builder.Services
@@ -96,11 +92,52 @@ public static class IdentityModule
         // are already idempotent is exactly the shape that promise needs.
         builder.AddOutboxDispatcher<IdentityModuleDbContext>(RegisterOutboxEvents);
 
-        // The module's public Contracts surface: the current caller and a narrow
-        // read of user profile facts, both implemented internally. Other modules
-        // depend on the interfaces; the implementations never cross the boundary.
+        // The caller of the current request, implemented internally. Its sibling on
+        // the Contracts surface - the profile read - is registered by the narrow
+        // method above, because a host can want that one on its own.
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddScoped<IUserContext, HttpContextUserContext>();
+
+        return builder;
+    }
+
+    /// <summary>
+    /// Registers the account store and <see cref="IUserProfileQuery"/> over it, and
+    /// nothing else - no credentials, no token model, no endpoints, and above all no
+    /// outbox dispatcher.
+    /// <para>
+    /// <b>This exists for the worker</b>, which schedules the follow-up scan. A
+    /// follow-up fires at 11:00 in the owner's own timezone like every other
+    /// clock-based reminder, that timezone lives in this module, and this contract is
+    /// the one sanctioned way to read it. Composing the whole module there instead
+    /// would hand the worker Identity's <b>outbox dispatcher</b>, which claims owed
+    /// events and marks them processed once its handlers have run - and the worker
+    /// registers none, so it would quietly consume every registration and account
+    /// provisioning event and deliver them nowhere.
+    /// </para>
+    /// <para>
+    /// Safe to call alone or through <see cref="AddIdentityModule"/>, which delegates
+    /// to it; a host that calls both gets one context and one query.
+    /// </para>
+    /// </summary>
+    public static IHostApplicationBuilder AddIdentityProfileQuery(this IHostApplicationBuilder builder)
+    {
+        if (builder.Services.Any(service => service.ServiceType == typeof(IUserProfileQuery)))
+        {
+            return builder;
+        }
+
+        var connectionString = builder.Configuration.GetConnectionString("jobspect")
+            ?? throw new InvalidOperationException(
+                "Connection string 'jobspect' is not configured. It is injected by the AppHost.");
+
+        builder.Services.AddDbContext<IdentityModuleDbContext>(options =>
+            NpgsqlContextConfiguration.Configure(options, connectionString, IdentityModuleDbContext.Schema));
+
+        // Aspire adds health checks, a retrying execution strategy and telemetry
+        // to the context registered above, without owning its configuration.
+        builder.EnrichNpgsqlDbContext<IdentityModuleDbContext>();
+
         builder.Services.AddScoped<IUserProfileQuery, EfUserProfileQuery>();
 
         return builder;

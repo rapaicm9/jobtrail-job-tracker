@@ -12,6 +12,7 @@
     <ProjectReference Include="..\Jobspect.ServiceDefaults\Jobspect.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Jobspect.Infrastructure\Jobspect.Infrastructure.csproj" />
     <ProjectReference Include="..\Jobspect.SharedKernel\Jobspect.SharedKernel.csproj" />
+    <ProjectReference Include="..\Modules\Identity\Jobspect.Modules.Identity\Jobspect.Modules.Identity.csproj" />
     <ProjectReference Include="..\Modules\Notifications\Jobspect.Modules.Notifications\Jobspect.Modules.Notifications.csproj" />
   </ItemGroup>
 

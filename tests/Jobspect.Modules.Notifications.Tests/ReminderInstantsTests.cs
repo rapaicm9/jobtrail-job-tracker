@@ -256,6 +256,71 @@ public sealed class ReminderInstantsTests
             .ShouldBe([ReminderKind.ApplicationDeadlineMorningOf]);
     }
 
+    // -------------------------------------------------------- the follow-up's own
+
+    /// <summary>
+    /// The follow-up is the one instant here computed from when a silence was
+    /// <em>noticed</em> rather than from a date the owner typed, so it is the next
+    /// morning rather than a morning counted back from anything.
+    /// </summary>
+    [Fact]
+    public void A_follow_up_noticed_before_the_morning_is_due_that_same_morning()
+    {
+        // 08:00 in Belgrade, where 11:00 is 09:00 UTC in summer.
+        ReminderInstants.NextMorningAfter(Utc(2026, 6, 10, 6), Northern)
+            .ShouldBe(Utc(2026, 6, 10, 9));
+    }
+
+    [Fact]
+    public void A_follow_up_noticed_after_the_morning_waits_for_the_next_one()
+    {
+        ReminderInstants.NextMorningAfter(Utc(2026, 6, 10, 12), Northern)
+            .ShouldBe(Utc(2026, 6, 11, 9));
+    }
+
+    /// <summary>
+    /// Strictly after, which is what makes this instant unable to be armed into the
+    /// past: at exactly the morning, the morning has arrived rather than being ahead.
+    /// Every other kind is filtered against the clock afterwards; this one cannot
+    /// produce a lapsed instant at all.
+    /// </summary>
+    [Fact]
+    public void A_follow_up_noticed_exactly_at_the_morning_waits_for_the_next_one()
+    {
+        var morning = Utc(2026, 6, 10, 9);
+
+        ReminderInstants.NextMorningAfter(morning, Northern).ShouldBe(Utc(2026, 6, 11, 9));
+        ReminderInstants.NextMorningAfter(morning.AddSeconds(-1), Northern).ShouldBe(morning);
+    }
+
+    /// <summary>
+    /// A zone far enough east that the owner's day is already tomorrow in UTC: the
+    /// next morning is theirs, not the one a UTC calendar would name.
+    /// </summary>
+    [Fact]
+    public void A_follow_up_is_due_at_the_owners_next_morning_not_a_utc_one()
+    {
+        // 23:00 UTC on the 9th is 12:00 on the 10th in Auckland (NZST, UTC+13 in
+        // January) - the morning there has gone, so it is the 11th's.
+        ReminderInstants.NextMorningAfter(Utc(2026, 1, 9, 23), Southern)
+            .ShouldBe(Utc(2026, 1, 10, 22));
+    }
+
+    /// <summary>
+    /// The same leniency the armed kinds get: a zone that cannot be resolved falls
+    /// back to UTC rather than throwing, because a nudge an offset out beats a job
+    /// that fails every hour.
+    /// </summary>
+    [Fact]
+    public void A_follow_up_for_an_unresolvable_zone_falls_back_to_utc()
+    {
+        ReminderInstants.NextMorningAfter(Utc(2026, 6, 10, 6), "Mars/Olympus_Mons")
+            .ShouldBe(Utc(2026, 6, 10, 11));
+
+        ReminderInstants.NextMorningAfter(Utc(2026, 6, 10, 6), ianaTimeZoneId: null)
+            .ShouldBe(Utc(2026, 6, 10, 11));
+    }
+
     // ----------------------------------------------------------------- helpers
 
     private static DateTimeOffset Instant(IReadOnlyList<ReminderInstant> instants, ReminderKind kind) =>

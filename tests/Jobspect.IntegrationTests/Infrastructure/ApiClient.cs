@@ -39,6 +39,16 @@ internal sealed record PlanStatus(string Tier, DateTimeOffset? UpdatedAt);
 /// </summary>
 internal sealed record CompanySummary(Guid Id, string Name);
 
+/// <summary>
+/// The follow-up automation as a client sees it - declared here, not shared with
+/// the module, so a contract change breaks these tests rather than retargeting them.
+/// </summary>
+internal sealed record ReminderRuleView(
+    Guid Id,
+    int DaysAfterApplied,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
 /// <summary>A compensation amount and currency, as a client sees it.</summary>
 internal sealed record MoneyView(decimal Amount, string Currency);
 
@@ -534,6 +544,28 @@ internal static class ApiClient
     public static Task<HttpResponseMessage> DismissReminderAsync(
         this HttpClient client, string? accessToken, Guid id) =>
         client.SendAsync(Authorized(HttpMethod.Post, $"/api/v1/reminders/{id}/dismiss", accessToken));
+
+    public static Task<HttpResponseMessage> GetReminderRuleAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Get, "/api/v1/reminder-rule", accessToken));
+
+    public static Task<HttpResponseMessage> SetReminderRuleAsync(
+        this HttpClient client, string? accessToken, object body)
+    {
+        var request = Authorized(HttpMethod.Put, "/api/v1/reminder-rule", accessToken);
+        request.Content = JsonContent.Create(body);
+        return client.SendAsync(request);
+    }
+
+    public static Task<HttpResponseMessage> DeleteReminderRuleAsync(this HttpClient client, string? accessToken) =>
+        client.SendAsync(Authorized(HttpMethod.Delete, "/api/v1/reminder-rule", accessToken));
+
+    public static async Task<ReminderRuleView> ReadReminderRuleAsync(this HttpResponseMessage response)
+    {
+        response.IsSuccessStatusCode.ShouldBeTrue(
+            $"expected a success status but got {(int)response.StatusCode}");
+        var rule = await response.Content.ReadFromJsonAsync<ReminderRuleView>();
+        return rule.ShouldNotBeNull();
+    }
 
     public static Task<HttpResponseMessage> GetAnalyticsOverviewAsync(
         this HttpClient client, string? accessToken, Guid? campaignId = null) =>

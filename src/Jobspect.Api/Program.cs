@@ -81,10 +81,11 @@ builder.AddNotificationsModule();
 // owner's timezone through.
 builder.AddNotificationsConsumers();
 
-// And the feed those reminders are read through - the only channel that reaches a
-// person in this release. A third call from this host, because the worker serves no
-// HTTP and would carry handlers it could never reach.
-builder.AddNotificationsFeed();
+// And what it serves over HTTP: the feed those reminders are read through - the only
+// channel that reaches a person in this release - and the follow-up automation an
+// account configures. A third call from this host, because the worker serves no HTTP
+// and would carry handlers it could never reach.
+builder.AddNotificationsApi();
 
 // The module also owns validation of its own access tokens; the host just
 // turns the scheme on and layers authorization over it.
