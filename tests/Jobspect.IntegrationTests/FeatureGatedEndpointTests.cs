@@ -51,6 +51,12 @@ public sealed class FeatureGatedEndpointTests(ApiFixture fixture)
         // not, so GET and DELETE on this same path are deliberately absent.
         $"PUT /api/v{{version:apiVersion}}/analytics/goal -> {FeaturePolicy.For(Entitlement.FullAnalytics)}",
         $"POST /api/v{{version:apiVersion}}/custom-fields/ -> {FeaturePolicy.For(Entitlement.CustomFields)}",
+
+        // Setting up the follow-up automation is gated; reading it back and deleting
+        // it are not, so GET and DELETE on this same path are deliberately absent.
+        // No trailing slash, unlike the two group-root routes above: these three are
+        // mapped straight onto the versioned group with a literal path.
+        $"PUT /api/v{{version:apiVersion}}/reminder-rule -> {FeaturePolicy.For(Entitlement.FollowUpRules)}",
         $"PUT /api/v{{version:apiVersion}}/custom-fields/{{id:guid}} -> {FeaturePolicy.For(Entitlement.CustomFields)}",
     ];
 

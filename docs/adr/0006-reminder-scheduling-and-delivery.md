@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-07-16
+- **Amended:** 2026-08-04 — the follow-up scan needs the owner's timezone, so the worker takes one narrow read across a module boundary; a follow-up is due at the next local morning; the applications it must ignore are those holding a follow-up in *any* state; and the rule is a singleton resource whose deletion takes back what has not been delivered. See *Revision history*.
 - **Amended:** 2026-08-04 — the feed shows the two delivered states and nothing else; unread is simply not dismissed. See *Revision history*.
 - **Amended:** 2026-08-04 — the three retracting events do not retract the same thing; a closing needs a statement of its own rather than the slot-scoped one with no round; retracting twice is safe by construction; and reopening deliberately does not re-arm. See *Revision history*.
 - **Amended:** 2026-08-03 — one reading of the clock decides a whole sweep, which is what makes dropping and delivering an exact partition; the drop does not share the delivery's batch; the late tolerance is a constant rather than configuration; and a delivery already recorded is absorbed rather than raised. See *Revision history*.
@@ -21,7 +22,7 @@ An **event → schedule → deliver** pipeline:
 3. **Fire.** A **Quartz.NET recurring job in the worker** sweeps for reminders that have come due and delivers them. Quartz runs on a **persistent ADO job store over PostgreSQL** — an in-memory schedule would be lost on a restart, and the sweep is the only thing standing between a due reminder and silence.
 4. **Deliver.** In-app delivery is a row the client reads. Push delivery arrives with the mobile client and is **not built in the backend release** — see *What v1 actually delivers*.
 5. **Retract.** Cancelling is a state change on the `Reminder` row: `ApplicationStageChanged` and `ApplicationReachedTerminal` retire now-irrelevant reminders, `InterviewCancelled` retires the ones armed for that round, and a deadline event carrying a **null** date says the deadline is gone and its reminders with it.
-6. **Automated follow-up (Pro)** is a second Quartz **recurring** job that scans applications sitting in `Applied` past the rule's `N` days with no stage change and raises follow-up reminders. Default `N` is **7 days**, one rule per account in v1.
+6. **Automated follow-up (Pro)** is a second Quartz **recurring** job that scans applications sitting in `Applied` past the rule's `N` days with no stage change and raises follow-up reminders. Default `N` is **7 days**, one rule per account in v1. See *Noticing a silence*.
 
 ### One store, not two
 
@@ -85,11 +86,39 @@ A pass **reads the clock once**, and everything it does is judged against that o
 
 **The work is a class; the job is an adapter.** All of the above is decided by a plain object that takes its clock as an argument, and the scheduler's job type does nothing but call it. The scheduler decides *when* to run and not to run twice at once; everything about what "too late" means is answered where it can be driven at a time of the asker's choosing. The alternative — the job holding the logic — makes a clock seam in the worker host the price of testing a rule, and buys nothing in return.
 
+### Noticing a silence
+
+The follow-up is the only reminder here raised from an **absence**. Every other kind is armed from a date its owner typed and exists before the moment it is about; a silence announces itself to nobody, which is the whole reason a scan exists.
+
+**It is due at the next 11:00 in the owner's timezone, strictly after the scan noticed it.** Not at 11:00 on the day the wait reached `N` — a scan running hourly discovers most silences after that moment has passed, and the past-instant rule would then refuse every one of them. Strictly-after is what makes this the one kind that *cannot* be armed into the past: the other kinds are filtered against the clock after the fact, and this one is computed from it. A silence noticed at 14:00 waits until tomorrow morning, which is the correct answer for something that has already been true for a week.
+
+**The scan must ignore applications holding a follow-up in *any* state, and this is the trap.** The unique index that stops a slot being armed twice is partial on `Pending`, deliberately — a delivered reminder is history and must not stop the same slot being armed again when a round moves. But a follow-up is the one kind nothing ever re-arms, so the moment one is delivered its slot falls free, and an exclusion reading only armed rows would raise the same nudge every hour for the rest of the application's life. The failure looks exactly like the feature working.
+
+Two consequences are accepted rather than engineered around. A move retracts the follow-up, so **a reopened application's sits `Cancelled` and the any-state rule excludes it from ever getting another** — the fix would need the date an application entered its current stage, which this module does not record, and without it an application reopened a year after it was filed is instantly old enough to nudge about. And **an application submitted before the account created its rule is nudged on the first pass**, which is the point: the automation is most obviously wanted by an account whose oldest applications are the silent ones.
+
+**The scan writes with a plain insert, not the arming path.** That path retires whatever the slot holds and carries a staleness guard and a redelivery guard, all three because an event may arrive twice and out of order. Nothing arrives here: the slot is empty by construction, since a candidate with any follow-up at all was already excluded. Reusing it would mean carrying machinery whose reason does not apply — the same mistake the closing of an application was saved from by giving it a statement of its own.
+
+**The date arithmetic does not happen in SQL.** "N days ago" is a question about the owner's calendar, and answering it in the database means answering it in UTC — a day early for everyone east of it. So the query asks for what an index can answer (the accounts with a rule, the applications still waiting, the ones never nudged) and the day is decided in the same pure place every other instant here is.
+
+**The work drains itself**, which is what makes an hourly job affordable: every application it raises a follow-up for is excluded from every later pass. The one large pass is the first after an account turns the automation on; the steady state is whatever crossed the threshold in the last hour.
+
+### The rule an account states
+
+**A singleton, not a collection.** An account has one follow-up rule or none, so it is addressed as `/reminder-rule` with no id in any route, and the cap needs no error to enforce it — there is no request that could ask for a second. The row keeps a surrogate key regardless, because a raised follow-up points back at the rule that raised it, and because lifting the cap in a later version should be a change of route rather than a change of representation.
+
+**The gate is on the write and nowhere else**, which is ADR 0005 applied rather than re-argued: setting the automation up is the capability, and reading the rule back and deleting it are what an account does with what it already holds. Gating the delete would be the campaign trap — an account left holding an automation it could neither change nor stop.
+
+**Deleting the rule retracts the follow-ups it has not yet delivered.** A pending one is a nudge still sitting in the schedule, and firing it after the owner has switched the automation off would be the rule outliving the decision to end it. What has already reached the feed stays untouched: that is a record of something the owner was told, and the foreign key nulls out rather than cascading so it goes on reading the same. This is the one retraction here with no staleness guard, and it needs none — it is a request rather than an event, and the only other writer of a follow-up slot is the scan, whose insert re-checks that the rule still exists.
+
 ### Where the module is composed
 
-Three methods, each naming who calls it. The **store** is composed by both hosts; the **schedule** by the worker alone, because two schedulers over one job store would each believe itself the only one; and the **consumers** — the handlers that arm reminders and the erasure that gives them back — by the API alone, because that is where the outbox dispatcher runs and the events arrive.
+Four methods, split by **how work reaches a handler** rather than by feature. The **store** is composed by both hosts. The **schedule** by the worker alone, because two schedulers over one job store would each believe itself the only one. The **consumers** — the handlers that arm and retract reminders, and the erasure that gives them back — by the API alone, because that is where the outbox dispatcher runs and the events arrive. And the **API surface** — the feed and the follow-up rule — by the API alone, because everything in it is entered over HTTP.
 
-The third is a separate method for a concrete reason rather than symmetry. Those handlers read the owner's timezone through Identity's contract, the worker does not compose Identity, and container validation is on by default in Development — so registering them alongside the store would stop the worker starting, on a dependency it has no reason to hold and would never resolve.
+The last two are separate methods for a concrete reason rather than symmetry. Nothing in either would *break* the worker, which is exactly why folding them into the shared method would go unnoticed: the worker would carry handlers it can never fire and routes it can never serve, and the sentence describing the composition would quietly stop being true.
+
+**The worker does take one thing from another module**, and it is the narrowest read available: Identity's `IUserProfileQuery`, because the follow-up scan raises reminders at 11:00 in the owner's own timezone and that timezone is Identity's to hold. It is composed through a method of Identity's own that registers the account store and that query and **nothing else** — in particular no outbox dispatcher, which is what rules out composing the whole module there. A dispatcher is a hosted service: it would start with the worker, claim owed events, run the zero handlers this host registers, and mark them delivered. Every registration and provisioning event would vanish into a process that was never meant to receive them.
+
+The alternative was for this module to keep its own copy of each owner's zone, projected from an Identity event. It was rejected as a larger and worse answer: a new published event, a table, a consumer, and a copy that is stale from the moment somebody changes their timezone — to avoid one synchronous read of one column through the contract that exists to serve exactly this.
 
 ### When each reminder fires
 
@@ -98,7 +127,7 @@ The third is a separate method for a concrete reason rather than symmetry. Those
 | Interview | the **morning before**, and **an hour before** |
 | Application deadline | **three days before** and the **morning of** |
 | Offer decision | **three days before**, **the day before**, and the **morning of** |
-| Follow-up *(Pro)* | `N` days after `Applied` with no stage change, `N` default 7 |
+| Follow-up *(Pro)* | the **next morning after** the scan notices `N` days of silence, `N` default 7 |
 
 "Morning" is **11:00 in the user's own timezone** — late enough not to be missed overnight, early enough to act on. Every clock-based reminder uses that one time; the relative ones ("an hour before") need no clock of their own. An interview's morning-before is counted back from the round's **local** date, not its UTC one: a booking at 08:00 in Auckland is the previous day in UTC, and counting from the UTC date would announce it two local days early.
 
@@ -141,6 +170,8 @@ The tolerance is not zero, and cannot be — the sweep discovers every reminder 
 - **Quartz's clustering stays off** while there is one worker. It is opt-in, and turning it on later is configuration rather than redesign — which is a large part of why a real scheduler was taken rather than a hand-rolled loop.
 - **The reminders table is the whole state of the feature**, which makes it easy to reason about and easy to observe: "what is pending" and "what fired" are queries, not an inspection of a scheduler's internals.
 - **The follow-up scan carries its own record of the applications it watches**, and that record is only as complete as the events seen since it existed. As with everything else here, there is no stream to replay it from.
+- **The worker is no longer a single-module host.** It composes Identity's profile read, which is one project reference, one more `DbContext` and one query per rule-holding account per pass. The cost is worth naming because it is a precedent: the next thing the worker needs from another module should arrive the same way — through that module's Contracts, composed by a method narrow enough to bring no hosted services with it — or not at all.
+- **An account gets one follow-up per application, ever.** That is the exclusion rule stated as a product fact rather than an implementation detail, and it is the right default for a nudge whose whole purpose is to prompt a decision the user then makes.
 - **Firing is only as precise as the sweep**, and any future reminder type that needs to-the-second accuracy would have to argue for a trigger of its own — and inherit the two-store problem this design avoided.
 - **The backend release delivers in-app reminders only.** If the mobile client slips, v1 ships with a working reminder feed rather than dead push code; the web client is a real consumer of it. That is the deliberate upside of sequencing push last.
 - **The push hardening is deferred, not descoped**, and lands with the adapter that makes it designable. Anything scheduled against it — dead-letter alerting, stream-depth metrics — moves with it.
@@ -188,4 +219,16 @@ The tolerance is not zero, and cannot be — the sweep discovers every reminder 
   Settled with it: **unread is not dismissed**, so no read flag joins the state column and the badge counts `Sent`; **a feed entry is not a resource**, so there is no route to one and clearing is an explicit `dismiss` rather than a patch, idempotent because a retried request must not report the reminder gone; and **the entry shows when the reminder was for, not when it was delivered**, since the list is ordered by the former and the two differ by at most the sweep's tolerance.
 
   The feed was taken **ahead of the Pro follow-up rules**, which the sprint had sequenced first. The two do not depend on each other, and until this existed nothing the module did reached a person at all — arming, sweeping and retraction were each proved by reading a table. Building the automation that raises more reminders before anything could show one was the wrong order.
+
+- **2026-08-04 — the follow-up, settled by building the last thing this module was missing.** This record has said since July that the scan is a recurring job over applications sitting in `Applied`, and left four things to whoever wrote it.
+
+  The first was not visible from the design at all: **the scan needs the owner's timezone, and it runs in the host that had no way to ask.** A follow-up fires at 11:00 local like everything else here, the zone lives in Identity, and the composition section above said in as many words that the worker composes no Identity. Every route to a due instant ran through that read — computing it in UTC, deferring it to the API, or arming it for "now" all failed on the same rule — so the seam had to move. It moved the smallest distance available: a method of Identity's own that registers the account store and `IUserProfileQuery` and nothing else. The part worth remembering is *why* the whole module could not simply be composed there. `AddIdentityModule` registers an outbox dispatcher; a dispatcher is a hosted service; it would have started with the worker, claimed events, run the zero handlers that host registers, and marked them delivered. The worst outcome available, reached by the most obvious line of code.
+
+  The second is the instant itself: **the next local morning strictly after the scan noticed the silence**, rather than 11:00 on the day the wait reached `N`. The scan discovers most silences after that moment has gone, and the past-instant rule would have refused every one — a feature that raises nothing, on a schedule.
+
+  The third is the exclusion, which this record had already flagged and which is worth restating as the trap it is: **any state, not merely armed.** The slot's unique index is partial on `Pending` because a delivered reminder must not block re-arming when a round moves — and a follow-up is the one kind nothing re-arms, so its slot falls free the moment it is delivered. Read only the armed rows and the same nudge is raised every hour forever, looking exactly like the feature working.
+
+  The fourth: **the scan writes with a plain insert rather than the arming path**, whose retire-then-insert and two guards all exist for events that arrive twice and out of order. Nothing arrives here.
+
+  Settled alongside them: **the rule is a singleton resource**, so the cap of one is unaskable rather than enforced; the gate sits on the write alone, which is ADR 0005 applied rather than re-argued; and **deleting the rule retracts the follow-ups it has not yet delivered** while leaving those it has, since a pending nudge is one the owner has not been told about and firing it would be the automation outliving the decision to stop it.
 

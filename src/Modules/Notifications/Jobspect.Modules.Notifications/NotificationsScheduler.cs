@@ -1,3 +1,4 @@
+using Jobspect.Modules.Notifications.Features.ScanFollowUps;
 using Jobspect.Modules.Notifications.Features.SweepReminders;
 using Jobspect.Modules.Notifications.Persistence;
 using Microsoft.Extensions.Configuration;
@@ -20,9 +21,9 @@ namespace Jobspect.Modules.Notifications;
 /// composes; it never names a scheduler type.
 /// </para>
 /// <para>
-/// Quartz holds exactly two triggers, and each arrives with the work it runs: the
-/// due-reminder sweep below, and the follow-up scan still to come. There is no
-/// trigger per reminder - the row is the reminder (ADR 0006).
+/// Quartz holds exactly two triggers, and both are below: the due-reminder sweep,
+/// and the follow-up scan. There is no trigger per reminder - the row is the
+/// reminder (ADR 0006) - so this is the whole schedule the module will ever have.
 /// </para>
 /// </summary>
 public static class NotificationsScheduler
@@ -45,11 +46,27 @@ public static class NotificationsScheduler
     private static readonly TimeSpan SweepInterval = TimeSpan.FromMinutes(1);
 
     /// <summary>
+    /// How often the follow-up scan looks for applications that have gone quiet.
+    /// <para>
+    /// Three orders of magnitude coarser than the sweep, because it answers a
+    /// question measured in days rather than minutes, and because what it raises is
+    /// not due when it is found - a follow-up fires at the next 11:00 in the owner's
+    /// own timezone, so noticing a silence at 09:00 or at 09:59 makes no difference
+    /// to when anybody hears about it. What the hour does buy is that an account
+    /// turning the automation on sees it act the same morning rather than the next.
+    /// </para>
+    /// </summary>
+    private static readonly TimeSpan ScanInterval = TimeSpan.FromHours(1);
+
+    /// <summary>
     /// Stable, because it is the key the job store writes its rows under. Grouped by
     /// the module rather than left in Quartz's default group, so the scheduler's
     /// tables read the same way its schema does.
     /// </summary>
     private static readonly JobKey SweepJob = new("reminder-sweep", NotificationsDbContext.Schema);
+
+    /// <summary>The second and last job. See <see cref="SweepJob"/> on why the name is pinned.</summary>
+    private static readonly JobKey ScanJob = new("follow-up-scan", NotificationsDbContext.Schema);
 
     public static IHostApplicationBuilder AddNotificationsScheduler(this IHostApplicationBuilder builder)
     {
@@ -57,10 +74,11 @@ public static class NotificationsScheduler
             ?? throw new InvalidOperationException(
                 "Connection string 'jobspect' is not configured. It is injected by the AppHost.");
 
-        // The work the sweep job adapts, and the clock it judges lateness against.
-        // The clock is registered defensively - this host may be the only one that
+        // The work the two jobs adapt, and the clock they judge time against. The
+        // clock is registered defensively - this host may be the only one that
         // composes anything at all, and the module should stand up either way.
         builder.Services.AddScoped<ReminderSweep>();
+        builder.Services.AddScoped<ReminderScan>();
         builder.Services.TryAddSingleton(TimeProvider.System);
 
         builder.Services.AddQuartz(quartz =>
@@ -117,6 +135,24 @@ public static class NotificationsScheduler
                 .StartNow()
                 .WithSimpleSchedule(schedule => schedule
                     .WithInterval(SweepInterval)
+                    .RepeatForever()));
+
+            quartz.AddJob<ReminderScanJob>(job => job
+                .WithIdentity(ScanJob)
+                .WithDescription("Raises follow-ups for applications that have gone unanswered too long."));
+
+            quartz.AddTrigger(trigger => trigger
+                .WithIdentity($"{ScanJob.Name}-trigger", ScanJob.Group)
+                .ForJob(ScanJob)
+
+                // Immediately, like the sweep, though for a milder reason: nothing
+                // here is time-critical, but an account that has just turned the
+                // automation on should not have to wait out an interval to see it
+                // work - and after a restart there is no backlog to fear, because a
+                // silence noticed late is still a silence.
+                .StartNow()
+                .WithSimpleSchedule(schedule => schedule
+                    .WithInterval(ScanInterval)
                     .RepeatForever()));
         });
 

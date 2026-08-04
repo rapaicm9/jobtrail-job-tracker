@@ -1,4 +1,5 @@
 using Jobspect.Modules.Notifications.Domain;
+using Jobspect.SharedKernel;
 
 namespace Jobspect.Modules.Notifications.Features.ArmReminders;
 
@@ -124,6 +125,35 @@ internal static class ReminderInstants
                 MorningOn(deadline.AddDays(-LongLeadDays), zone)),
             new ReminderInstant(ReminderKind.OfferDecisionDayBefore, MorningOn(deadline.AddDays(-1), zone)),
             new ReminderInstant(ReminderKind.OfferDecisionMorningOf, MorningOn(deadline, zone)));
+    }
+
+    /// <summary>
+    /// The next 11:00 in the owner's own timezone, strictly after <paramref name="now"/>.
+    /// <para>
+    /// The follow-up's instant, and the only one here computed from <em>when it was
+    /// noticed</em> rather than from a date the owner typed. Every other reminder is
+    /// armed ahead of a moment that is already known; a silence has no such moment,
+    /// so the scan that discovers one arms it for the next morning there is.
+    /// </para>
+    /// <para>
+    /// <b>Strictly after, which is what makes the past-instant rule hold by
+    /// construction here.</b> The other kinds are filtered against the clock after
+    /// the fact, because their instants can be anywhere; this one cannot be armed
+    /// into the past at all. A scan running at 14:00 local finds today's 11:00 gone
+    /// and takes tomorrow's, rather than raising something the sweep would fire
+    /// immediately.
+    /// </para>
+    /// </summary>
+    public static DateTimeOffset NextMorningAfter(DateTimeOffset now, string? ianaTimeZoneId)
+    {
+        var zone = Resolve(ianaTimeZoneId);
+        var today = LocalDate.TodayIn(now, ianaTimeZoneId);
+        var morning = MorningOn(today, zone);
+
+        // At exactly 11:00 the morning has arrived rather than being ahead, so the
+        // nudge goes to tomorrow. A day late beats a reminder that is due the
+        // instant it exists.
+        return morning > now ? morning : MorningOn(today.AddDays(1), zone);
     }
 
     /// <summary>

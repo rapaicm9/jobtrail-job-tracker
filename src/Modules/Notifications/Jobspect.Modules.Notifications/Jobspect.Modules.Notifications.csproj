@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
-    <!-- The reminder feed's endpoints. Minimal APIs only - this module maps a route
-         group and nothing else, and the API host composes it. -->
+    <!-- This module's endpoints - the reminder feed and the follow-up rule. Minimal
+         APIs only: it maps routes and nothing else, and the API host composes them. -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
@@ -40,5 +40,8 @@
          means something in a place; and consumes UserDataDeletionRequested to give
          back what it holds. -->
     <ProjectReference Include="..\..\Identity\Jobspect.Modules.Identity.Contracts\Jobspect.Modules.Identity.Contracts.csproj" />
+    <!-- Automated follow-ups are Pro, so setting the rule up is gated: the policy
+         name and the entitlement it resolves, never Billing itself. -->
+    <ProjectReference Include="..\..\Billing\Jobspect.Modules.Billing.Contracts\Jobspect.Modules.Billing.Contracts.csproj" />
   </ItemGroup>
 </Project>
