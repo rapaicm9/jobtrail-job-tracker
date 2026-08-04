@@ -77,6 +77,8 @@ services:
       CACHE_PORT: "6379"
       CACHE_PASSWORD: "${CACHE_PASSWORD}"
       CACHE_URI: "redis://:${CACHE_PASSWORD}@cache:6379"
+      Identity__Jwt__PrivateKeyPem: "${IDENTITY_JWT_PRIVATE_KEY}"
+      Identity__Jwt__PublicKeyPem: "${IDENTITY_JWT_PUBLIC_KEY}"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://jobspect-compose-dashboard:18889"
       OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
       OTEL_SERVICE_NAME: "api"

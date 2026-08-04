@@ -38,7 +38,7 @@ internal sealed class EcdsaSigningKeyProvider : ISigningKeyProvider
         if (string.IsNullOrWhiteSpace(pem))
         {
             throw new InvalidOperationException(
-                $"No ES256 {kind} key configured ({configPath}). Set it via user-secrets in development or an environment variable in production.");
+                $"No ES256 {kind} key configured ({configPath}). Both halves of the keypair are injected by the AppHost as secret parameters; set them in its user-secrets store locally, or in the deployment host's environment.");
         }
 
         var ecdsa = ECDsa.Create();

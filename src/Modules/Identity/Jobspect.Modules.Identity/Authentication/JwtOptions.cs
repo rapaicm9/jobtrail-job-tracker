@@ -2,8 +2,9 @@ namespace Jobspect.Modules.Identity.Authentication;
 
 /// <summary>
 /// Token-model configuration, bound from the <c>Identity:Jwt</c> section. The PEM
-/// keys are secrets - user-secrets in development, an environment variable in
-/// production (ADR-0003) - and are never committed.
+/// keys are secrets, injected by the AppHost as parameters it resolves from a
+/// user-secrets store locally and from the deployment host's environment when
+/// published (ADR-0003) - they are never committed.
 /// </summary>
 internal sealed class JwtOptions
 {
