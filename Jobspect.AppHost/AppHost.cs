@@ -24,6 +24,19 @@ var database = postgres.AddDatabase("jobspect");
 // reconstructable, so it runs without a persistent volume.
 var cache = builder.AddRedis("cache");
 
+// The ES256 keypair access tokens are signed and validated with. Declared here
+// rather than in the API's own user-secrets so that one declaration covers both
+// ways the key has to arrive: locally the values resolve from this project's
+// user-secrets store, and publishing renders them as ${...} references in the
+// compose file, leaving the real values to the deployment host's .env. Neither
+// key is ever written to a tracked file.
+//
+// Both are marked secret. The public half is not confidential, but marking it so
+// keeps it out of the generated compose YAML for the same reason as the private
+// half - the deployment supplies the pair together or not at all.
+var jwtPrivateKey = builder.AddParameter("identity-jwt-private-key", secret: true);
+var jwtPublicKey = builder.AddParameter("identity-jwt-public-key", secret: true);
+
 // Schema first. A one-shot that applies every module's migrations and exits;
 // both hosts wait for it to succeed, so neither can start against a database that
 // is a migration behind. Nothing migrates on startup - two instances of a host
@@ -32,10 +45,15 @@ var migrations = builder.AddProject<Projects.Jobspect_MigrationService>("migrati
     .WithReference(database)
     .WaitFor(database);
 
-// The API host: serves the modules, depends on both backing services.
+// The API host: serves the modules, depends on both backing services. It is the
+// only host that carries the signing keys - it issues the tokens and validates
+// them. The worker composes Identity's profile query alone, which reads a
+// timezone and touches no token.
 builder.AddProject<Projects.Jobspect_Api>("api")
     .WithReference(database)
     .WithReference(cache)
+    .WithEnvironment("Identity__Jwt__PrivateKeyPem", jwtPrivateKey)
+    .WithEnvironment("Identity__Jwt__PublicKeyPem", jwtPublicKey)
     .WaitForCompletion(migrations)
     .WaitFor(cache);
 
