@@ -2,6 +2,7 @@
 // middleware only - no business logic lives here. Each module contributes via
 // its own Add<Module>Module() and Map<Module>Endpoints() extension methods.
 
+using System.Text.Json.Serialization;
 using Asp.Versioning;
 using Jobspect.Api;
 using Jobspect.Api.Idempotency;
@@ -26,6 +27,15 @@ builder.AddServiceDefaults();
 // unhandled exceptions, which the exception handler middleware below converts
 // without ever leaking a stack trace.
 builder.Services.AddProblemDetails();
+
+// A number is a number. The web defaults accept a quoted one too, which is a
+// leniency no client asked for and which the described contract cannot state
+// without widening every integer to "integer or string" - and from there into
+// every generated client. Refusing the quoted form keeps one shape per field on
+// both sides of the contract. Query and route values are bound before any of
+// this and are unaffected.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
 
 // Aspire-wired Redis for the AppHost's "cache" resource - health check,
 // telemetry and connection string included. Registered here rather than inside

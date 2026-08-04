@@ -1,0 +1,2268 @@
+openapi: '3.1.1'
+info:
+  title: Jobspect API
+  description: 'Job-application tracking: applications and their pipeline, the companies, contacts and interviews around them, reminders, and the analytics over the lot. Every route is scoped to the calling account - a resource owned by another user is reported as absent, not as forbidden.'
+  version: '1'
+paths:
+  /api/v1/identity/register:
+    post:
+      tags:
+        - identity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokensResponse'
+  /api/v1/identity/login:
+    post:
+      tags:
+        - identity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokensResponse'
+  /api/v1/identity/refresh:
+    post:
+      tags:
+        - identity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokensResponse'
+  /api/v1/identity/logout:
+    post:
+      tags:
+        - identity
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+        required: true
+      responses:
+        '204':
+          description: No Content
+  /api/v1/identity/logout-all:
+    post:
+      tags:
+        - identity
+      responses:
+        '204':
+          description: No Content
+      security:
+        - bearer: [ ]
+  /api/v1/account:
+    get:
+      tags:
+        - account
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - account
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccountRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountResponse'
+      security:
+        - bearer: [ ]
+    delete:
+      tags:
+        - account
+      responses:
+        '204':
+          description: No Content
+      security:
+        - bearer: [ ]
+  /api/v1/account/export:
+    get:
+      tags:
+        - account
+      responses:
+        '200':
+          description: OK
+      security:
+        - bearer: [ ]
+  /api/v1/billing/plan:
+    get:
+      tags:
+        - billing
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanStatusResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/billing/purchase:
+    post:
+      tags:
+        - billing
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanStatusResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/companies:
+    get:
+      tags:
+        - companies
+      parameters:
+        - name: query
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CompanySummaryResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/applications:
+    get:
+      tags:
+        - applications
+      parameters:
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: customFieldId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: customFieldValue
+          in: query
+          schema:
+            type: string
+        - name: sortCustomFieldId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sortDirection
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponseOfApplicationSummaryResponse'
+      security:
+        - bearer: [ ]
+    post:
+      tags:
+        - applications
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateApplicationRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/applications/{id}':
+    get:
+      tags:
+        - applications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - applications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateApplicationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/applications/{id}/transition':
+    post:
+      tags:
+        - applications
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransitionApplicationRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApplicationResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/contacts:
+    get:
+      tags:
+        - contacts
+      parameters:
+        - name: applicationId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: companyId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponseOfContactResponse'
+      security:
+        - bearer: [ ]
+    post:
+      tags:
+        - contacts
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContactRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/contacts/{id}':
+    get:
+      tags:
+        - contacts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - contacts
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContactRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContactResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/applications/{applicationId}/interviews':
+    get:
+      tags:
+        - applications
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponseOfInterviewResponse'
+      security:
+        - bearer: [ ]
+    post:
+      tags:
+        - applications
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInterviewRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/applications/{applicationId}/interviews/{interviewId}':
+    get:
+      tags:
+        - applications
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - applications
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: interviewId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateInterviewRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterviewResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/applications/{applicationId}/activity':
+    get:
+      tags:
+        - applications
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponseOfActivityEntryResponse'
+      security:
+        - bearer: [ ]
+    post:
+      tags:
+        - applications
+      parameters:
+        - name: applicationId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddNoteRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityEntryResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/custom-fields:
+    get:
+      tags:
+        - custom-fields
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CustomFieldResponse'
+      security:
+        - bearer: [ ]
+    post:
+      tags:
+        - custom-fields
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCustomFieldRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/custom-fields/{id}':
+    get:
+      tags:
+        - custom-fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - custom-fields
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCustomFieldRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/campaigns:
+    get:
+      tags:
+        - campaigns
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CampaignResponse'
+      security:
+        - bearer: [ ]
+    post:
+      tags:
+        - campaigns
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCampaignRequest'
+        required: true
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/campaigns/{id}':
+    get:
+      tags:
+        - campaigns
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - campaigns
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCampaignRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CampaignResponse'
+      security:
+        - bearer: [ ]
+    delete:
+      tags:
+        - campaigns
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: No Content
+      security:
+        - bearer: [ ]
+  /api/v1/analytics/overview:
+    get:
+      tags:
+        - analytics
+      parameters:
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsOverviewResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/analytics/insights:
+    get:
+      tags:
+        - analytics
+      parameters:
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AnalyticsInsightsResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/analytics/custom-fields/{definitionId}':
+    get:
+      tags:
+        - analytics
+      parameters:
+        - name: definitionId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: campaignId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomFieldChartResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/analytics/goal:
+    get:
+      tags:
+        - analytics
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyGoalResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - analytics
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetWeeklyGoalRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WeeklyGoalResponse'
+      security:
+        - bearer: [ ]
+    delete:
+      tags:
+        - analytics
+      responses:
+        '204':
+          description: No Content
+      security:
+        - bearer: [ ]
+  /api/v1/reminders:
+    get:
+      tags:
+        - reminders
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            format: int32
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagedResponseOfReminderResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/reminders/unread-count:
+    get:
+      tags:
+        - reminders
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+      security:
+        - bearer: [ ]
+  '/api/v1/reminders/{id}/dismiss':
+    post:
+      tags:
+        - reminders
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderResponse'
+      security:
+        - bearer: [ ]
+  /api/v1/reminder-rule:
+    get:
+      tags:
+        - reminder-rule
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderRuleResponse'
+      security:
+        - bearer: [ ]
+    put:
+      tags:
+        - reminder-rule
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetReminderRuleRequest'
+        required: true
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReminderRuleResponse'
+      security:
+        - bearer: [ ]
+    delete:
+      tags:
+        - reminder-rule
+      responses:
+        '204':
+          description: No Content
+      security:
+        - bearer: [ ]
+  /api/v1/billing/dev/grant-pro:
+    post:
+      tags:
+        - billing
+      responses:
+        '204':
+          description: No Content
+      security:
+        - bearer: [ ]
+components:
+  schemas:
+    AccountResponse:
+      required:
+        - userId
+        - email
+        - timeZoneId
+        - createdAt
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        email:
+          type: string
+        timeZoneId:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ActivityEntryResponse:
+      required:
+        - id
+        - kind
+        - occurredAt
+        - fromStage
+        - toStage
+        - transitionKind
+        - note
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+        occurredAt:
+          type: string
+          format: date-time
+        fromStage:
+          type:
+            - 'null'
+            - string
+        toStage:
+          type:
+            - 'null'
+            - string
+        transitionKind:
+          type:
+            - 'null'
+            - string
+        note:
+          type:
+            - 'null'
+            - string
+    AddNoteRequest:
+      required:
+        - note
+      type: object
+      properties:
+        note:
+          type:
+            - 'null'
+            - string
+    AnalyticsInsightsResponse:
+      required:
+        - funnel
+        - rates
+        - timing
+        - trend
+        - breakdowns
+      type: object
+      properties:
+        funnel:
+          $ref: '#/components/schemas/FunnelResponse'
+        rates:
+          $ref: '#/components/schemas/RatesResponse'
+        timing:
+          $ref: '#/components/schemas/TimingResponse'
+        trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/TrendPoint'
+        breakdowns:
+          $ref: '#/components/schemas/BreakdownsResponse'
+    AnalyticsOverviewResponse:
+      required:
+        - totalApplied
+        - pipeline
+      type: object
+      properties:
+        totalApplied:
+          type: integer
+          format: int32
+        pipeline:
+          type: array
+          items:
+            $ref: '#/components/schemas/PipelineStageCount'
+    ApplicationResponse:
+      required:
+        - id
+        - campaignId
+        - companyId
+        - stage
+        - role
+        - compensation
+        - location
+        - workMode
+        - postingUrl
+        - source
+        - appliedDate
+        - applicationDeadline
+        - offerDecisionDeadline
+        - cvLabel
+        - coverLetterLabel
+        - customFields
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        campaignId:
+          type: string
+          format: uuid
+        companyId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        stage:
+          type: string
+        role:
+          type: string
+        compensation:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/MoneyResponse'
+        location:
+          type:
+            - 'null'
+            - string
+        workMode:
+          type:
+            - 'null'
+            - string
+        postingUrl:
+          type:
+            - 'null'
+            - string
+        source:
+          type:
+            - 'null'
+            - string
+        appliedDate:
+          type: string
+          format: date
+        applicationDeadline:
+          type:
+            - 'null'
+            - string
+          format: date
+        offerDecisionDeadline:
+          type:
+            - 'null'
+            - string
+          format: date
+        cvLabel:
+          type:
+            - 'null'
+            - string
+        coverLetterLabel:
+          type:
+            - 'null'
+            - string
+        customFields:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+    ApplicationSummaryResponse:
+      required:
+        - id
+        - campaignId
+        - companyId
+        - stage
+        - role
+        - workMode
+        - appliedDate
+        - applicationDeadline
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        campaignId:
+          type: string
+          format: uuid
+        companyId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        stage:
+          type: string
+        role:
+          type: string
+        workMode:
+          type:
+            - 'null'
+            - string
+        appliedDate:
+          type: string
+          format: date
+        applicationDeadline:
+          type:
+            - 'null'
+            - string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+    AuthTokensResponse:
+      required:
+        - userId
+        - accessToken
+        - accessTokenExpiresAt
+        - refreshToken
+        - refreshTokenExpiresAt
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+        accessToken:
+          type: string
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+        refreshToken:
+          type: string
+        refreshTokenExpiresAt:
+          type: string
+          format: date-time
+    BreakdownSlice:
+      required:
+        - value
+        - count
+      type: object
+      properties:
+        value:
+          type:
+            - 'null'
+            - string
+        count:
+          type: integer
+          format: int32
+    BreakdownsResponse:
+      required:
+        - source
+        - workMode
+      type: object
+      properties:
+        source:
+          type: array
+          items:
+            $ref: '#/components/schemas/BreakdownSlice'
+        workMode:
+          type: array
+          items:
+            $ref: '#/components/schemas/BreakdownSlice'
+    CampaignResponse:
+      required:
+        - id
+        - name
+        - isDefault
+        - applicationCount
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        isDefault:
+          type: boolean
+        applicationCount:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+    CategoryBucket:
+      required:
+        - value
+        - count
+      type: object
+      properties:
+        value:
+          type:
+            - 'null'
+            - string
+        count:
+          type: integer
+          format: int32
+    CompanySummaryResponse:
+      required:
+        - id
+        - name
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    ContactResponse:
+      required:
+        - id
+        - applicationId
+        - companyId
+        - name
+        - role
+        - email
+        - phone
+        - notes
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        applicationId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        companyId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        name:
+          type: string
+        role:
+          type:
+            - 'null'
+            - string
+        email:
+          type:
+            - 'null'
+            - string
+        phone:
+          type:
+            - 'null'
+            - string
+        notes:
+          type:
+            - 'null'
+            - string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+    CreateApplicationRequest:
+      required:
+        - role
+        - campaignId
+        - companyId
+        - companyName
+        - compensation
+        - location
+        - workMode
+        - postingUrl
+        - source
+        - appliedDate
+        - applicationDeadline
+        - cvLabel
+        - coverLetterLabel
+        - customFields
+      type: object
+      properties:
+        role:
+          type:
+            - 'null'
+            - string
+        campaignId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        companyId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        companyName:
+          type:
+            - 'null'
+            - string
+        compensation:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/MoneyRequest'
+        location:
+          type:
+            - 'null'
+            - string
+        workMode:
+          type:
+            - 'null'
+            - string
+        postingUrl:
+          type:
+            - 'null'
+            - string
+        source:
+          type:
+            - 'null'
+            - string
+        appliedDate:
+          type:
+            - 'null'
+            - string
+          format: date
+        applicationDeadline:
+          type:
+            - 'null'
+            - string
+          format: date
+        cvLabel:
+          type:
+            - 'null'
+            - string
+        coverLetterLabel:
+          type:
+            - 'null'
+            - string
+        customFields:
+          type:
+            - 'null'
+            - object
+    CreateCampaignRequest:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type:
+            - 'null'
+            - string
+    CreateContactRequest:
+      required:
+        - applicationId
+        - companyId
+        - name
+        - role
+        - email
+        - phone
+        - notes
+      type: object
+      properties:
+        applicationId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        companyId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        name:
+          type:
+            - 'null'
+            - string
+        role:
+          type:
+            - 'null'
+            - string
+        email:
+          type:
+            - 'null'
+            - string
+        phone:
+          type:
+            - 'null'
+            - string
+        notes:
+          type:
+            - 'null'
+            - string
+    CreateCustomFieldRequest:
+      required:
+        - label
+        - type
+        - options
+      type: object
+      properties:
+        label:
+          type:
+            - 'null'
+            - string
+        type:
+          type:
+            - 'null'
+            - string
+        options:
+          type:
+            - 'null'
+            - array
+          items:
+            type: string
+    CreateInterviewRequest:
+      required:
+        - scheduledAt
+        - type
+        - format
+        - notes
+      type: object
+      properties:
+        scheduledAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+        type:
+          type:
+            - 'null'
+            - string
+        format:
+          type:
+            - 'null'
+            - string
+        notes:
+          type:
+            - 'null'
+            - string
+    CustomFieldChartResponse:
+      required:
+        - definitionId
+        - label
+        - type
+        - applications
+        - categories
+        - numbers
+        - periods
+      type: object
+      properties:
+        definitionId:
+          type: string
+          format: uuid
+        label:
+          type: string
+        type:
+          type: string
+        applications:
+          type: integer
+          format: int32
+        categories:
+          type:
+            - 'null'
+            - array
+          items:
+            $ref: '#/components/schemas/CategoryBucket'
+        numbers:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/NumberSummary'
+        periods:
+          type:
+            - 'null'
+            - array
+          items:
+            $ref: '#/components/schemas/PeriodBucket'
+    CustomFieldResponse:
+      required:
+        - id
+        - label
+        - type
+        - options
+        - isArchived
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        type:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+        isArchived:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+    FunnelResponse:
+      required:
+        - total
+        - responded
+        - reachedScreening
+        - reachedInterview
+        - reachedOffer
+      type: object
+      properties:
+        total:
+          type: integer
+          format: int32
+        responded:
+          type: integer
+          format: int32
+        reachedScreening:
+          type: integer
+          format: int32
+        reachedInterview:
+          type: integer
+          format: int32
+        reachedOffer:
+          type: integer
+          format: int32
+    InterviewResponse:
+      required:
+        - id
+        - applicationId
+        - scheduledAt
+        - type
+        - format
+        - outcome
+        - notes
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        applicationId:
+          type: string
+          format: uuid
+        scheduledAt:
+          type: string
+          format: date-time
+        type:
+          type: string
+        format:
+          type: string
+        outcome:
+          type: string
+        notes:
+          type:
+            - 'null'
+            - string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+    LoginRequest:
+      required:
+        - email
+        - password
+        - deviceLabel
+      type: object
+      properties:
+        email:
+          type:
+            - 'null'
+            - string
+        password:
+          type:
+            - 'null'
+            - string
+        deviceLabel:
+          type:
+            - 'null'
+            - string
+    LogoutRequest:
+      required:
+        - refreshToken
+      type: object
+      properties:
+        refreshToken:
+          type:
+            - 'null'
+            - string
+    MoneyRequest:
+      required:
+        - amount
+        - currency
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type:
+            - 'null'
+            - string
+    MoneyResponse:
+      required:
+        - amount
+        - currency
+      type: object
+      properties:
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+    NumberSummary:
+      required:
+        - answered
+        - minimum
+        - lowerQuartile
+        - median
+        - upperQuartile
+        - maximum
+      type: object
+      properties:
+        answered:
+          type: integer
+          format: int32
+        minimum:
+          type: number
+          format: double
+        lowerQuartile:
+          type: number
+          format: double
+        median:
+          type: number
+          format: double
+        upperQuartile:
+          type: number
+          format: double
+        maximum:
+          type: number
+          format: double
+    PagedResponseOfActivityEntryResponse:
+      required:
+        - items
+        - nextCursor
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityEntryResponse'
+        nextCursor:
+          type:
+            - 'null'
+            - string
+    PagedResponseOfApplicationSummaryResponse:
+      required:
+        - items
+        - nextCursor
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ApplicationSummaryResponse'
+        nextCursor:
+          type:
+            - 'null'
+            - string
+    PagedResponseOfContactResponse:
+      required:
+        - items
+        - nextCursor
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContactResponse'
+        nextCursor:
+          type:
+            - 'null'
+            - string
+    PagedResponseOfInterviewResponse:
+      required:
+        - items
+        - nextCursor
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InterviewResponse'
+        nextCursor:
+          type:
+            - 'null'
+            - string
+    PagedResponseOfReminderResponse:
+      required:
+        - items
+        - nextCursor
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReminderResponse'
+        nextCursor:
+          type:
+            - 'null'
+            - string
+    PeriodBucket:
+      required:
+        - periodStart
+        - count
+      type: object
+      properties:
+        periodStart:
+          type: string
+          format: date
+        count:
+          type: integer
+          format: int32
+    PipelineStageCount:
+      required:
+        - stage
+        - count
+      type: object
+      properties:
+        stage:
+          type: string
+        count:
+          type: integer
+          format: int32
+    PlanStatusResponse:
+      required:
+        - tier
+        - updatedAt
+      type: object
+      properties:
+        tier:
+          type: string
+        updatedAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+    RatesResponse:
+      required:
+        - response
+        - interview
+        - offer
+      type: object
+      properties:
+        response:
+          type:
+            - 'null'
+            - number
+          format: double
+        interview:
+          type:
+            - 'null'
+            - number
+          format: double
+        offer:
+          type:
+            - 'null'
+            - number
+          format: double
+    RefreshRequest:
+      required:
+        - refreshToken
+      type: object
+      properties:
+        refreshToken:
+          type:
+            - 'null'
+            - string
+    RegisterRequest:
+      required:
+        - email
+        - password
+        - timeZoneId
+        - deviceLabel
+      type: object
+      properties:
+        email:
+          type:
+            - 'null'
+            - string
+        password:
+          type:
+            - 'null'
+            - string
+        timeZoneId:
+          type:
+            - 'null'
+            - string
+        deviceLabel:
+          type:
+            - 'null'
+            - string
+    ReminderResponse:
+      required:
+        - id
+        - kind
+        - dueAt
+        - applicationId
+        - interviewId
+        - subjectAt
+        - subjectDate
+        - dismissed
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          type: string
+        dueAt:
+          type: string
+          format: date-time
+        applicationId:
+          type: string
+          format: uuid
+        interviewId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        subjectAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+        subjectDate:
+          type:
+            - 'null'
+            - string
+          format: date
+        dismissed:
+          type: boolean
+    ReminderRuleResponse:
+      required:
+        - id
+        - daysAfterApplied
+        - createdAt
+        - updatedAt
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        daysAfterApplied:
+          type: integer
+          format: int32
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    SetReminderRuleRequest:
+      required:
+        - daysAfterApplied
+      type: object
+      properties:
+        daysAfterApplied:
+          type:
+            - 'null'
+            - integer
+          format: int32
+    SetWeeklyGoalRequest:
+      required:
+        - target
+      type: object
+      properties:
+        target:
+          type:
+            - 'null'
+            - integer
+          format: int32
+    StageDuration:
+      required:
+        - stage
+        - medianDays
+        - samples
+      type: object
+      properties:
+        stage:
+          type: string
+        medianDays:
+          type:
+            - 'null'
+            - number
+          format: double
+        samples:
+          type: integer
+          format: int32
+    TimingResponse:
+      required:
+        - medianDaysToFirstResponse
+        - firstResponseSamples
+        - medianDaysToOffer
+        - offerSamples
+        - timeInStage
+      type: object
+      properties:
+        medianDaysToFirstResponse:
+          type:
+            - 'null'
+            - number
+          format: double
+        firstResponseSamples:
+          type: integer
+          format: int32
+        medianDaysToOffer:
+          type:
+            - 'null'
+            - number
+          format: double
+        offerSamples:
+          type: integer
+          format: int32
+        timeInStage:
+          type: array
+          items:
+            $ref: '#/components/schemas/StageDuration'
+    TransitionApplicationRequest:
+      required:
+        - targetStage
+      type: object
+      properties:
+        targetStage:
+          type:
+            - 'null'
+            - string
+    TrendPoint:
+      required:
+        - weekStarting
+        - count
+      type: object
+      properties:
+        weekStarting:
+          type: string
+          format: date
+        count:
+          type: integer
+          format: int32
+    UnreadCountResponse:
+      required:
+        - count
+      type: object
+      properties:
+        count:
+          type: integer
+          format: int32
+    UpdateAccountRequest:
+      required:
+        - timeZoneId
+      type: object
+      properties:
+        timeZoneId:
+          type:
+            - 'null'
+            - string
+    UpdateApplicationRequest:
+      required:
+        - role
+        - campaignId
+        - companyId
+        - companyName
+        - compensation
+        - location
+        - workMode
+        - postingUrl
+        - source
+        - appliedDate
+        - applicationDeadline
+        - offerDecisionDeadline
+        - cvLabel
+        - coverLetterLabel
+        - customFields
+      type: object
+      properties:
+        role:
+          type:
+            - 'null'
+            - string
+        campaignId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        companyId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        companyName:
+          type:
+            - 'null'
+            - string
+        compensation:
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/MoneyRequest'
+        location:
+          type:
+            - 'null'
+            - string
+        workMode:
+          type:
+            - 'null'
+            - string
+        postingUrl:
+          type:
+            - 'null'
+            - string
+        source:
+          type:
+            - 'null'
+            - string
+        appliedDate:
+          type:
+            - 'null'
+            - string
+          format: date
+        applicationDeadline:
+          type:
+            - 'null'
+            - string
+          format: date
+        offerDecisionDeadline:
+          type:
+            - 'null'
+            - string
+          format: date
+        cvLabel:
+          type:
+            - 'null'
+            - string
+        coverLetterLabel:
+          type:
+            - 'null'
+            - string
+        customFields:
+          type:
+            - 'null'
+            - object
+    UpdateCampaignRequest:
+      required:
+        - name
+      type: object
+      properties:
+        name:
+          type:
+            - 'null'
+            - string
+    UpdateContactRequest:
+      required:
+        - applicationId
+        - companyId
+        - name
+        - role
+        - email
+        - phone
+        - notes
+      type: object
+      properties:
+        applicationId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        companyId:
+          type:
+            - 'null'
+            - string
+          format: uuid
+        name:
+          type:
+            - 'null'
+            - string
+        role:
+          type:
+            - 'null'
+            - string
+        email:
+          type:
+            - 'null'
+            - string
+        phone:
+          type:
+            - 'null'
+            - string
+        notes:
+          type:
+            - 'null'
+            - string
+    UpdateCustomFieldRequest:
+      required:
+        - label
+        - options
+        - isArchived
+      type: object
+      properties:
+        label:
+          type:
+            - 'null'
+            - string
+        options:
+          type:
+            - 'null'
+            - array
+          items:
+            type: string
+        isArchived:
+          type: boolean
+    UpdateInterviewRequest:
+      required:
+        - scheduledAt
+        - type
+        - format
+        - outcome
+        - notes
+      type: object
+      properties:
+        scheduledAt:
+          type:
+            - 'null'
+            - string
+          format: date-time
+        type:
+          type:
+            - 'null'
+            - string
+        format:
+          type:
+            - 'null'
+            - string
+        outcome:
+          type:
+            - 'null'
+            - string
+        notes:
+          type:
+            - 'null'
+            - string
+    WeeklyGoalResponse:
+      required:
+        - target
+        - applied
+        - weekStart
+      type: object
+      properties:
+        target:
+          type:
+            - 'null'
+            - integer
+          format: int32
+        applied:
+          type:
+            - 'null'
+            - integer
+          format: int32
+        weekStart:
+          type: string
+          format: date
+  securitySchemes:
+    bearer:
+      type: http
+      description: 'The access token returned by /identity/register, /identity/login or /identity/refresh.'
+      scheme: bearer
+      bearerFormat: JWT
+tags:
+  - name: account
+  - name: analytics
+  - name: applications
+  - name: billing
+  - name: campaigns
+  - name: companies
+  - name: contacts
+  - name: custom-fields
+  - name: identity
+  - name: reminder-rule
+  - name: reminders
