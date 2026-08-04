@@ -5,6 +5,7 @@
 using Asp.Versioning;
 using Jobspect.Api;
 using Jobspect.Api.Idempotency;
+using Jobspect.Api.OpenApi;
 using Jobspect.Infrastructure.Events;
 using Jobspect.Modules.Analytics;
 using Jobspect.Modules.Applications;
@@ -99,10 +100,22 @@ builder.Services.AddBillingFeaturePolicies();
 // URL-segment versioning (/api/v1/...) from day one - deployed mobile clients
 // can't be force-upgraded onto a changed contract.
 builder.Services.AddApiVersioning(options =>
-{
-    options.DefaultApiVersion = new ApiVersion(1);
-    options.ReportApiVersions = true;
-});
+    {
+        options.DefaultApiVersion = new ApiVersion(1);
+        options.ReportApiVersions = true;
+    })
+    // The explorer resolves the version *route parameter* to the concrete
+    // version, so the described paths read /api/v1/... as a caller types them
+    // rather than the /api/v{version}/... the routes are declared with.
+    .AddApiExplorer(options =>
+    {
+        options.GroupNameFormat = "'v'VVV";
+        options.SubstituteApiVersionInUrl = true;
+    })
+    // Must follow AddApiVersioning: this is the versioning builder's own
+    // AddOpenApi, which registers a document per discovered version, not the
+    // service-collection one that would register a single unversioned document.
+    .AddOpenApi(OpenApiConfiguration.Describe);
 
 // Per-IP request budgets; policies attach to route groups below.
 builder.AddApiRateLimiting();
@@ -165,10 +178,15 @@ api.MapAnalyticsEndpoints();
 api.MapNotificationsEndpoints();
 
 // Developer shortcuts (grant Pro without a purchase) exist only in Development -
-// mapping them nowhere else is what keeps them out of production entirely.
+// mapping them nowhere else is what keeps them out of production entirely. The
+// described contract is served under the same rule: it is generated from the live
+// endpoint graph, so it would describe those shortcuts to anyone who asked.
 if (app.Environment.IsDevelopment())
 {
     api.MapBillingDevEndpoints();
+
+    app.MapOpenApi(OpenApiConfiguration.JsonRoute).WithDocumentPerVersion();
+    app.MapOpenApi(OpenApiConfiguration.YamlRoute).WithDocumentPerVersion();
 }
 
 await app.RunAsync();
