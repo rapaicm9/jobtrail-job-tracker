@@ -78,7 +78,23 @@
   <ItemGroup Label="API edge">
     <!-- URL-segment versioning (/api/v1/...) from day one - deployed mobile
          clients can't be force-upgraded. -->
-    <PackageVersion Include="Asp.Versioning.Http" Version="10.0.0" />
+    <PackageVersion Include="Asp.Versioning.Http" Version="10.0.1" />
+    <!--
+      The described contract. Three packages because the version segment is a
+      route parameter: the built-in generator would emit a literal {version}
+      path, which would reach the generated clients. ApiExplorer resolves the
+      parameter to the concrete version and OpenApi bridges Asp.Versioning into
+      the built-in pipeline, one document per version.
+
+      Asp.Versioning.* pinned together at 10.0.1 - ApiExplorer and OpenApi
+      shipped 10.0.1 and OpenApi requires ApiExplorer >= 10.0.1, so Http moves
+      with them rather than leaving two Asp.Versioning baselines in the graph.
+      MIT, licence verified at adoption per ADR-0002 (Asp.Versioning.OpenApi was
+      still RC in spring 2026; 10.0.1 is stable, published 2026-07-30).
+    -->
+    <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.1" />
+    <PackageVersion Include="Asp.Versioning.OpenApi" Version="10.0.1" />
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
     <!-- Data Protection keys live in Redis so the Api stays stateless across
          redeploys and, later, instances (§10.2 discipline). -->
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.10" />
