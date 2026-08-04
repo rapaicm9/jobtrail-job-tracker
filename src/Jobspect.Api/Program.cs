@@ -197,6 +197,9 @@ if (app.Environment.IsDevelopment())
 
     app.MapOpenApi(OpenApiConfiguration.JsonRoute).WithDocumentPerVersion();
     app.MapOpenApi(OpenApiConfiguration.YamlRoute).WithDocumentPerVersion();
+
+    // And something to read it with, until there is a client that does.
+    app.MapApiReference();
 }
 
 await app.RunAsync();

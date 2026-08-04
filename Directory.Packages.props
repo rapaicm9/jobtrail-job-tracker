@@ -95,6 +95,11 @@
     <PackageVersion Include="Asp.Versioning.Mvc.ApiExplorer" Version="10.0.1" />
     <PackageVersion Include="Asp.Versioning.OpenApi" Version="10.0.1" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.10" />
+    <!--
+      The API reference UI over that document, mapped in Development only. MIT,
+      licence verified at adoption per ADR-0002.
+    -->
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.16.17" />
     <!-- Data Protection keys live in Redis so the Api stays stateless across
          redeploys and, later, instances (§10.2 discipline). -->
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection.StackExchangeRedis" Version="10.0.10" />
