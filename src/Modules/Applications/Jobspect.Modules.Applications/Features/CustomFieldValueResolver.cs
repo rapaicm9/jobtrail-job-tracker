@@ -82,9 +82,7 @@ internal sealed class CustomFieldValueResolver(ApplicationsDbContext dbContext)
     {
         CustomFieldType.Text => Text(definition, value, "a string"),
         CustomFieldType.Url => Url(definition, value),
-        CustomFieldType.Number => value.ValueKind is JsonValueKind.Number
-            ? null
-            : CustomFieldErrors.ValueTypeMismatch(definition.Label, "a number"),
+        CustomFieldType.Number => Number(definition, value),
         CustomFieldType.Checkbox => value.ValueKind is JsonValueKind.True or JsonValueKind.False
             ? null
             : CustomFieldErrors.ValueTypeMismatch(definition.Label, "true or false"),
@@ -93,6 +91,35 @@ internal sealed class CustomFieldValueResolver(ApplicationsDbContext dbContext)
         CustomFieldType.MultiSelect => MultiSelect(definition, value),
         _ => CustomFieldErrors.ValueTypeMismatch(definition.Label, "a supported value"),
     };
+
+    /// <summary>
+    /// A number, and one everything downstream can read back.
+    /// <para>
+    /// JSON's numbers are wider than this system's. <c>1e309</c> is valid JSON and
+    /// PostgreSQL would store and order it happily, but the list that sorts by this
+    /// field renders every answer through <see cref="JsonElement.GetDecimal"/> to
+    /// build the cursor for the next page - so an answer only the database can read
+    /// would leave the list sortable by the column and unpageable by the client.
+    /// </para>
+    /// <para>
+    /// The bound therefore goes here, beside the length cap on text and the format on
+    /// a date, rather than being absorbed where the cursor is built. Tolerating it
+    /// there would be worse than the failure it avoids: the row still sorts among the
+    /// answers in SQL, so a cursor that called it unanswered would resume in the
+    /// unanswered tail and silently skip everything between.
+    /// </para>
+    /// </summary>
+    private static Error? Number(CustomFieldDefinition definition, JsonElement value)
+    {
+        if (value.ValueKind is not JsonValueKind.Number)
+        {
+            return CustomFieldErrors.ValueTypeMismatch(definition.Label, "a number");
+        }
+
+        return value.TryGetDecimal(out _)
+            ? null
+            : CustomFieldErrors.ValueTypeMismatch(definition.Label, "a number no larger than about 7.9e28");
+    }
 
     private static Error? Text(CustomFieldDefinition definition, JsonElement value, string expected)
     {

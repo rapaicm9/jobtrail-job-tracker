@@ -4,6 +4,14 @@ namespace Jobspect.SharedKernel;
 /// The shape of a failure, so a caller can react without parsing a message.
 /// Maps to an HTTP status at the API edge (§4 ProblemDetails), never here -
 /// the kernel stays transport-agnostic.
+/// <para>
+/// Every module maps these itself, deliberately, so one can let its statuses
+/// diverge without disturbing the others. The price is paid here: a member added
+/// below is a change in every module's mapper, and a mapper that misses one falls
+/// through to a 500 rather than failing to compile. That is how
+/// <see cref="Unavailable"/> silently meant "server error" in three modules for a
+/// while. Add the member, then add the arm everywhere.
+/// </para>
 /// </summary>
 public enum ErrorType
 {
