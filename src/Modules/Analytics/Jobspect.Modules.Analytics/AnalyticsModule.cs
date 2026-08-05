@@ -3,6 +3,7 @@ using Jobspect.Infrastructure.Persistence;
 using Jobspect.Modules.Analytics.Features;
 using Jobspect.Modules.Analytics.Features.ClearWeeklyGoal;
 using Jobspect.Modules.Analytics.Features.EraseData;
+using Jobspect.Modules.Analytics.Features.ExportData;
 using Jobspect.Modules.Analytics.Features.GetCustomFieldChart;
 using Jobspect.Modules.Analytics.Features.GetInsights;
 using Jobspect.Modules.Analytics.Features.GetOverview;
@@ -12,6 +13,7 @@ using Jobspect.Modules.Analytics.Features.SetWeeklyGoal;
 using Jobspect.Modules.Analytics.Persistence;
 using Jobspect.Modules.Applications.Contracts;
 using Jobspect.Modules.Identity.Contracts;
+using Jobspect.SharedKernel;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -64,6 +66,13 @@ public static class AnalyticsModule
         // And gives it all back on the way out: this module's share of the erasure
         // fan-out, from its own schema only.
         builder.Services.AddEventHandler<UserDataDeletionRequested, AnalyticsDataErasureHandler>();
+
+        // And hands over what the account authored, on request. Only the goal: the
+        // rest of this schema was derived from another module's events, and an export
+        // carries what the user entered rather than what was computed from it.
+        // Registered as one of many; the module composing the export never learns
+        // this one exists.
+        builder.Services.AddScoped<IUserDataExporter, AnalyticsDataExporter>();
 
         builder.Services.AddScoped<GetOverviewHandler>();
         builder.Services.AddScoped<GetInsightsHandler>();

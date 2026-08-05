@@ -1,9 +1,11 @@
 using Jobspect.Modules.Notifications.Features.ClearReminderRule;
 using Jobspect.Modules.Notifications.Features.CountUnreadReminders;
 using Jobspect.Modules.Notifications.Features.DismissReminder;
+using Jobspect.Modules.Notifications.Features.ExportData;
 using Jobspect.Modules.Notifications.Features.GetReminderRule;
 using Jobspect.Modules.Notifications.Features.ListReminders;
 using Jobspect.Modules.Notifications.Features.SetReminderRule;
+using Jobspect.SharedKernel;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -27,6 +29,12 @@ namespace Jobspect.Modules.Notifications;
 /// for the one gated write, the entitlement query. Unlike the arming consumers they
 /// place no demand on Identity's profile read.
 /// </para>
+/// <para>
+/// The account exporter is here rather than beside the erasure handler it is the twin
+/// of, and the rule above is why: erasure reaches this module over the bus, an export
+/// reaches it inside somebody else's HTTP request. Composing it in the worker would
+/// change nothing that runs and would make the sentence describing this split untrue.
+/// </para>
 /// </summary>
 public static class NotificationsApi
 {
@@ -41,6 +49,11 @@ public static class NotificationsApi
         builder.Services.AddScoped<SetReminderRuleHandler>();
         builder.Services.AddScoped<GetReminderRuleHandler>();
         builder.Services.AddScoped<ClearReminderRuleHandler>();
+
+        // This module's share of an account export - the automation the account set
+        // up, which no event carries and nothing can rebuild. Registered as one of
+        // many; the module composing the export never learns this one exists.
+        builder.Services.AddScoped<IUserDataExporter, NotificationsDataExporter>();
 
         return builder;
     }

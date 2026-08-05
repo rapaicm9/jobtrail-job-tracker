@@ -34,13 +34,70 @@ public sealed class AccountExportTests(ApiFixture fixture)
 
         var document = await ExportAsync(tokens);
 
-        // One section per module that holds anything, plus enough for a reader to
-        // know whose file this is and when it was taken.
+        // One section per module that holds anything the account gave it - all five
+        // of them - plus enough for a reader to know whose file this is and when it
+        // was taken.
         document.TryGetProperty("exportedAt", out _).ShouldBeTrue();
         document.GetProperty("accountId").GetGuid().ShouldBe(tokens.UserId);
         document.TryGetProperty("identity", out _).ShouldBeTrue();
         document.TryGetProperty("applications", out _).ShouldBeTrue();
         document.TryGetProperty("billing", out _).ShouldBeTrue();
+        document.TryGetProperty("analytics", out _).ShouldBeTrue();
+        document.TryGetProperty("notifications", out _).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Carries_the_settings_the_account_authored_for_itself()
+    {
+        var tokens = await ProUserAsync();
+
+        (await _client.SetWeeklyGoalAsync(tokens.AccessToken, new { target = 8 }))
+            .IsSuccessStatusCode.ShouldBeTrue();
+        (await _client.SetReminderRuleAsync(tokens.AccessToken, new { daysAfterApplied = 10 }))
+            .IsSuccessStatusCode.ShouldBeTrue();
+
+        var document = await ExportAsync(tokens);
+
+        // Two numbers the user chose, in the two modules that otherwise hold nothing
+        // but what they derived from somebody else's events. No event carries either,
+        // and nothing can rebuild them - which is exactly the kind of thing an export
+        // exists for, and exactly the kind that goes missing unnoticed.
+        document.GetProperty("analytics").GetProperty("weeklyGoal")
+            .GetProperty("target").GetInt32().ShouldBe(8);
+
+        document.GetProperty("notifications").GetProperty("reminderRule")
+            .GetProperty("daysAfterApplied").GetInt32().ShouldBe(10);
+    }
+
+    [Fact]
+    public async Task Says_so_plainly_when_the_account_authored_no_settings()
+    {
+        var tokens = await ProUserAsync();
+
+        var document = await ExportAsync(tokens);
+
+        // Present and null, not absent. A reader of this file a year from now must be
+        // able to tell "no goal was set" from "this module did not answer".
+        document.GetProperty("analytics").GetProperty("weeklyGoal").ValueKind.ShouldBe(JsonValueKind.Null);
+        document.GetProperty("notifications").GetProperty("reminderRule").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task Carries_none_of_the_reminders_it_raised_itself()
+    {
+        var tokens = await ProUserAsync();
+        (await _client.SetReminderRuleAsync(tokens.AccessToken, new { daysAfterApplied = 10 }))
+            .IsSuccessStatusCode.ShouldBeTrue();
+
+        var notifications = (await ExportAsync(tokens)).GetProperty("notifications");
+
+        // The rule is the account's. The reminders raised from it, and the record of
+        // delivering them, are this module's own bookkeeping - and the applications it
+        // tracks for the scan are a copy of facts the Applications section already
+        // carries in full.
+        notifications.TryGetProperty("reminders", out _).ShouldBeFalse();
+        notifications.TryGetProperty("deliveries", out _).ShouldBeFalse();
+        notifications.TryGetProperty("trackedApplications", out _).ShouldBeFalse();
     }
 
     [Fact]
