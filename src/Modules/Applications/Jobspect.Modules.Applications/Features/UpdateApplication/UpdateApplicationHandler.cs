@@ -13,12 +13,13 @@ namespace Jobspect.Modules.Applications.Features.UpdateApplication;
 /// <summary>
 /// Replaces the editable fields of one of the caller's applications. Ownership is
 /// the query, so another user's application is a 404. The pipeline stage is left
-/// untouched - it moves only through the transition endpoint - and the
-/// offer-decision deadline is refused unless the application is at
+/// untouched - it moves only through the transition endpoint - and an offer-decision
+/// deadline may only be <em>acquired or moved</em> while the application is at
 /// <see cref="Stage.Offer"/>, since a decision deadline without an offer is
-/// meaningless. Company follows the same reference-or-create resolution as create.
-/// A deadline that moved is announced with the edit, since the modules that
-/// schedule reminders from one cannot see the edit itself.
+/// meaningless. One already recorded outlives the offer and round-trips unchanged.
+/// Company follows the same reference-or-create resolution as create. A deadline
+/// that moved is announced with the edit, since the modules that schedule reminders
+/// from one cannot see the edit itself.
 /// </summary>
 internal sealed class UpdateApplicationHandler(
     ApplicationsDbContext dbContext,
@@ -38,7 +39,14 @@ internal sealed class UpdateApplicationHandler(
             return ApplicationErrors.NotFound(id);
         }
 
-        if (request.OfferDecisionDeadline is not null && application.Stage != Stage.Offer)
+        // Compared against what is stored, so what this refuses is the change rather
+        // than the value. An application only leaves Offer by closing and keeps the
+        // deadline it was given, so the record a client reads back still carries it -
+        // and a full replace sends back what it read. Judging the value alone would
+        // make accepting an offer the moment the application stopped being editable.
+        if (request.OfferDecisionDeadline is not null
+            && request.OfferDecisionDeadline != application.OfferDecisionDeadline
+            && application.Stage != Stage.Offer)
         {
             return ApplicationErrors.OfferDeadlineRequiresOffer;
         }

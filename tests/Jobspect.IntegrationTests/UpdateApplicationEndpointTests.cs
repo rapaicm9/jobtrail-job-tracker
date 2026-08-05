@@ -6,9 +6,15 @@ namespace Jobspect.IntegrationTests;
 
 /// <summary>
 /// <c>PUT /api/v1/applications/{id}</c> against a real database: a full replace of
-/// the editable fields that never touches the pipeline stage, guards the
-/// offer-decision deadline behind an actual offer, resolves company the same way
-/// create does, and stays owner-scoped (a 404 for anyone else's application).
+/// the editable fields that never touches the pipeline stage, resolves company the
+/// same way create does, and stays owner-scoped (a 404 for anyone else's
+/// application).
+/// <para>
+/// The offer-decision deadline is the fiddly one, and it gets four tests rather than
+/// two. An offer is needed to <em>acquire</em> the date or to move it - but not to
+/// keep it or to drop it, because an application leaves <c>Offer</c> only by closing
+/// and a full replace invites a client to send back the record it just read.
+/// </para>
 /// </summary>
 [Collection(ApiCollection.Name)]
 public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
@@ -127,6 +133,62 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
     }
 
     [Fact]
+    public async Task Keeps_editing_an_application_open_after_the_offer_is_accepted()
+    {
+        var accepted = await AcceptedWithADeadlineAsync();
+
+        // The client edits something else and sends the record back as it read it,
+        // deadline included. Refusing that would leave accepting an offer as the
+        // moment the application could only be edited by dropping a date the user
+        // entered - which is the one thing a full replace makes easy to do by
+        // accident.
+        var updated = await (await _client.UpdateApplicationAsync(accepted.AccessToken, accepted.Application.Id, new
+        {
+            role = "Staff Engineer",
+            campaignId = accepted.Application.CampaignId,
+            appliedDate = accepted.Application.AppliedDate.ToString("O"),
+            offerDecisionDeadline = "2026-08-15",
+        })).ReadApplicationAsync();
+
+        updated.Role.ShouldBe("Staff Engineer");
+        updated.OfferDecisionDeadline.ShouldBe(new DateOnly(2026, 8, 15));
+    }
+
+    [Fact]
+    public async Task Refuses_to_move_an_offer_decision_deadline_once_the_offer_is_gone()
+    {
+        var accepted = await AcceptedWithADeadlineAsync();
+
+        // Keeping the date is retention; picking a new one is acquisition, and there
+        // is no longer an offer to acquire it against.
+        var response = await _client.UpdateApplicationAsync(accepted.AccessToken, accepted.Application.Id, new
+        {
+            role = "Engineer",
+            campaignId = accepted.Application.CampaignId,
+            appliedDate = accepted.Application.AppliedDate.ToString("O"),
+            offerDecisionDeadline = "2026-09-30",
+        });
+
+        await response.ShouldBeProblemAsync(422, "application.offer_deadline_requires_offer");
+    }
+
+    [Fact]
+    public async Task Lets_an_offer_decision_deadline_be_cleared_once_the_offer_is_gone()
+    {
+        var accepted = await AcceptedWithADeadlineAsync();
+
+        // Reducing what the account holds is never refused, whatever the stage.
+        var updated = await (await _client.UpdateApplicationAsync(accepted.AccessToken, accepted.Application.Id, new
+        {
+            role = "Engineer",
+            campaignId = accepted.Application.CampaignId,
+            appliedDate = accepted.Application.AppliedDate.ToString("O"),
+        })).ReadApplicationAsync();
+
+        updated.OfferDecisionDeadline.ShouldBeNull();
+    }
+
+    [Fact]
     public async Task Rejects_a_company_id_the_caller_does_not_own()
     {
         var mine = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
@@ -186,4 +248,33 @@ public sealed class UpdateApplicationEndpointTests(ApiFixture fixture)
 
     private async Task<ApplicationView> CreateAsync(string? accessToken, object body) =>
         await (await _client.CreateApplicationAsync(accessToken, body)).ReadApplicationAsync();
+
+    /// <summary>
+    /// An application that reached <c>Offer</c>, was given a decision deadline there,
+    /// and was then accepted - the ordinary happy path, and the state in which the
+    /// stored deadline outlives the stage that let it be set.
+    /// </summary>
+    private async Task<AcceptedOffer> AcceptedWithADeadlineAsync()
+    {
+        var tokens = await fixture.RegisterWithDefaultCampaignAsync(_client, Ct);
+        var created = await CreateAsync(tokens.AccessToken, new { role = "Engineer" });
+
+        (await _client.TransitionApplicationAsync(tokens.AccessToken, created.Id, "Offer"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var atOffer = await (await _client.UpdateApplicationAsync(tokens.AccessToken, created.Id, new
+        {
+            role = "Engineer",
+            campaignId = created.CampaignId,
+            appliedDate = created.AppliedDate.ToString("O"),
+            offerDecisionDeadline = "2026-08-15",
+        })).ReadApplicationAsync();
+
+        (await _client.TransitionApplicationAsync(tokens.AccessToken, created.Id, "Accepted"))
+            .StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        return new AcceptedOffer(tokens.AccessToken, atOffer);
+    }
+
+    private sealed record AcceptedOffer(string AccessToken, ApplicationView Application);
 }

@@ -49,11 +49,20 @@ internal static class ApplicationErrors
         Error.Validation("application.unknown_campaign", $"No campaign with id {campaignId} exists.");
 
     /// <summary>
-    /// An offer-decision deadline was set on an application that has no offer yet.
-    /// The deadline only means something once the application is at <c>Offer</c>, so
-    /// setting it earlier is a validation failure - a 422.
+    /// An offer-decision deadline was introduced, or moved, on an application that is
+    /// not at <c>Offer</c>. The date only means something once there is an offer to
+    /// answer, so acquiring one earlier is a validation failure - a 422.
+    /// <para>
+    /// It refuses the <em>change</em>, not the value, and the difference is the whole
+    /// of the rule. An application leaves <c>Offer</c> only by closing, and it keeps
+    /// the deadline it was given - which every read goes on returning, and which a
+    /// full-replace edit therefore sends back. Refusing that would make accepting an
+    /// offer the moment the application became uneditable, with the only way out
+    /// being to drop a date the user entered. Clearing it stays open for the same
+    /// reason: an account must always be able to reduce what it holds.
+    /// </para>
     /// </summary>
     public static readonly Error OfferDeadlineRequiresOffer = Error.Validation(
         "application.offer_deadline_requires_offer",
-        "An offer-decision deadline can only be set once the application has reached the Offer stage.");
+        "An offer-decision deadline can only be set or changed while the application is at the Offer stage.");
 }
