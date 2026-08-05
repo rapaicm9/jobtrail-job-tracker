@@ -288,6 +288,47 @@ public sealed class CustomFieldValueTests(ApiFixture fixture)
         await response.ShouldBeProblemAsync(422, "custom_field.value_invalid");
     }
 
+    [Fact]
+    public async Task A_number_too_large_to_read_back_is_refused()
+    {
+        var tokens = await ProUserAsync();
+        var field = await DefineAsync(tokens, "Headcount", "number");
+
+        // Valid JSON, and Postgres would hold it - but the list that sorts by this
+        // field renders each answer into its cursor as a decimal, so an answer only
+        // the database can read would make the list unpageable. Refused at the edge,
+        // where the length cap on text and the format on a date already sit.
+        var response = await _client.CreateApplicationAsync(
+            tokens.AccessToken,
+            new
+            {
+                role = "Engineer",
+                customFields = Values((field.Id, JsonDocument.Parse("1e309").RootElement)),
+            });
+
+        await response.ShouldBeProblemAsync(422, "custom_field.value_invalid");
+    }
+
+    [Fact]
+    public async Task A_number_larger_than_anyone_will_type_is_still_accepted()
+    {
+        var tokens = await ProUserAsync();
+        var field = await DefineAsync(tokens, "Headcount", "number");
+
+        // The bound is the one the cursor needs, not a guess at what a user means.
+        // Anything a person could plausibly enter is far inside it, and a rule that
+        // refused an ordinary large number would be the wrong kind of narrowing.
+        var created = await (await _client.CreateApplicationAsync(
+            tokens.AccessToken,
+            new
+            {
+                role = "Engineer",
+                customFields = Values((field.Id, JsonDocument.Parse("1e20").RootElement)),
+            })).ReadApplicationAsync();
+
+        created.CustomFields[field.Id].GetDecimal().ShouldBe(1e20m);
+    }
+
     /// <summary>A Pro account with the default campaign an application needs.</summary>
     private async Task<AuthTokens> ProUserAsync()
     {
