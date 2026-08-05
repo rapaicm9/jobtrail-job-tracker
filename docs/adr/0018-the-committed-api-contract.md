@@ -2,6 +2,7 @@
 
 - **Status:** Accepted
 - **Date:** 2026-08-05
+- **Amended:** 2026-08-05 — the reference UI over the document, and the one exception it makes to this host's content-security policy. See *Revision history*.
 
 ## Context
 
@@ -33,6 +34,12 @@ The description is generated from a live endpoint graph. That is the property th
 
   This suits the token model: the browser never holds a token, the Next.js server does (ADR 0003), so what the client needs is a typed `fetch` inside a route handler rather than a framework-shaped SDK. The mobile client's generator is a separate decision, deliberately not made here — it arrives with that client, and nothing in this record depends on it.
 
+- **A human reads the same document through a reference UI at `/scalar`**, mapped in Development beside the document itself. It is how the API is exercised by hand while no client exists, and it drives the real host — so what it demonstrates is what the contract claims.
+
+  **It is the only HTML this host ever serves, and therefore the only exception to a content-security policy built for JSON.** That policy is `default-src 'none'`, which would render the page blank. The exception is carried on endpoint metadata and applied in the security-headers middleware, so both policies are stated in one file and an auditor finds the exception where they look for the rule — rather than discovering that a page somewhere overrode the header on its way out.
+
+  The widened policy still names no host but this origin: the package serves its own bundle, and the webfonts it would otherwise fetch from a CDN are turned off, which also keeps the dev loop working offline. `connect-src 'self'` is what lets the page call this API and nothing else. What it does concede is `'unsafe-inline'`, for the page's bootstrap script and the styles the UI injects at runtime; a per-request nonce would remove the first and is the upgrade path if this page ever ships anywhere but a developer's machine.
+
 ## Consequences
 
 - **A contract change is a visible diff in a pull request.** That is the point, and it cuts both ways: renaming a field or narrowing a response shows up as a red build until the file is regenerated, which is a prompt to notice that clients will see it.
@@ -46,3 +53,8 @@ The description is generated from a live endpoint graph. That is the property th
 - **A `dotnet run` plus a curl script** — needs the stack running anyway, which is exactly what the test suite already arranges, and it would have to be remembered rather than enforced.
 - **Not committing the document, and generating clients from a running server** — makes every client build depend on a live backend, and removes the pull-request diff that makes a breaking change visible.
 - **Emitting OpenAPI 3.0 for wider tool compatibility** — deferred rather than rejected. 3.1 is what this stack produces and what the chosen generator reads; the question genuinely reopens when the mobile client picks a Dart generator, and pinning the version down then is a one-line change with a visible diff.
+- **Loosening the host's content-security policy for every response, so the reference page works** — rejected. The policy is one of the few things about this host that is uniformly strict, and a JSON API that allows scripts everywhere to accommodate one dev-only page has traded a real property for a convenience. Scoping the exception to a single endpoint costs a metadata marker.
+
+## Revision history
+
+- **2026-08-05 — the reference UI, and its content-security exception.** The document was readable by machines from the moment it existed and by nobody else; a reference over it is what makes the API exercisable while no client is written. The part that needed deciding, and is recorded above, is not the UI but the policy: this host's `default-src 'none'` would render it blank, so something had to give, and the choice was between widening the policy for every response and scoping the exception to the one endpoint that renders. Nothing about the contract, its provenance or the codegen choice changed.
