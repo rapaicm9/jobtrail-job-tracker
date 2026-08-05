@@ -25,6 +25,13 @@ namespace Jobspect.Modules.Applications.Features.DeleteCampaign;
 /// the first: get the order wrong and the delete fails loudly instead of orphaning
 /// anything.
 /// </para>
+/// <para>
+/// That transaction is handed to a retrying execution strategy, which means the block
+/// inside it has to survive being run twice against one <c>DbContext</c>. The
+/// set-based statements do by construction; the outbox rows are the one tracked write
+/// in this module that sits inside a retry, and they are built per attempt for that
+/// reason - see the comment at the write.
+/// </para>
 /// </summary>
 internal sealed class DeleteCampaignHandler(ApplicationsDbContext dbContext, TimeProvider timeProvider)
 {
@@ -66,16 +73,13 @@ internal sealed class DeleteCampaignHandler(ApplicationsDbContext dbContext, Tim
             .Select(a => a.Id)
             .ToListAsync(cancellationToken);
 
-        // Built once, outside the transaction that writes them. The execution
-        // strategy may replay the block below, and adding these instances a second
-        // time is a no-op on entities the change tracker already holds - whereas
-        // constructing fresh ones each attempt would duplicate the rows, and mint
-        // new event ids for occurrences that consumers must be able to recognize as
-        // the same.
+        // The events, minted once and outside the block that records them: the
+        // execution strategy may replay it, and an event id is what a consumer
+        // recognizes a redelivery by (ADR 0009), so it has to be the same id each
+        // time even though the row carrying it will not be the same row.
         var announcements = moving
-            .Select(applicationId => OutboxMessage.For(
-                new ApplicationMovedToCampaign(
-                    Guid.CreateVersion7(), applicationId, ownerId, id, defaultId.Value, now)))
+            .Select(applicationId => new ApplicationMovedToCampaign(
+                Guid.CreateVersion7(), applicationId, ownerId, id, defaultId.Value, now))
             .ToList();
 
         // The retrying execution strategy refuses a transaction it did not start, so
@@ -102,7 +106,16 @@ internal sealed class DeleteCampaignHandler(ApplicationsDbContext dbContext, Tim
                 .Where(c => c.Id == id && c.OwnerId == ownerId)
                 .ExecuteDeleteAsync(cancellationToken);
 
-            dbContext.Outbox.AddRange(announcements);
+            // The rows are built here, on every attempt, and that is the part worth
+            // reading twice. A SaveChanges that succeeds under a commit that then
+            // fails leaves its entities tracked as Unchanged while the database has
+            // rolled them back - and Add is a no-op on anything the change tracker
+            // already holds. A replay that reused those instances would therefore
+            // re-apply the move and record none of the events announcing it, which is
+            // a fact no consumer could ever recover: the outbox prunes, so there is no
+            // stream to catch up from. Fresh instances are Detached, so they are
+            // tracked and inserted, carrying the ids minted above.
+            dbContext.Outbox.AddRange(announcements.Select(announcement => OutboxMessage.For(announcement)));
             await dbContext.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
