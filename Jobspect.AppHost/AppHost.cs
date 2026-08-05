@@ -49,7 +49,14 @@ var migrations = builder.AddProject<Projects.Jobspect_MigrationService>("migrati
 // only host that carries the signing keys - it issues the tokens and validates
 // them. The worker composes Identity's profile query alone, which reads a
 // timezone and touches no token.
-builder.AddProject<Projects.Jobspect_Api>("api")
+//
+// The launch profile is named rather than left to be chosen. Its applicationUrl
+// is where the API answers - https://localhost:7065 and http://localhost:5001 -
+// and a browser client hard-codes one of those in its own configuration. Which
+// profile gets picked when none is named is a heuristic, and one that does not
+// simply take the first: leaving it implicit means a reordering of that file, or
+// a change of heuristic, silently moves the address a client is pointed at.
+builder.AddProject<Projects.Jobspect_Api>("api", launchProfileName: "https")
     .WithReference(database)
     .WithReference(cache)
     .WithEnvironment("Identity__Jwt__PrivateKeyPem", jwtPrivateKey)
