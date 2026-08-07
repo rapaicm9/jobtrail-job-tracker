@@ -17,7 +17,9 @@ namespace Jobspect.Modules.Billing.Features.GetPlan;
 internal static class GetPlanEndpoint
 {
     public static void Map(IEndpointRouteBuilder billing) =>
-        billing.MapGet("/plan", HandleAsync).RequireAuthorization();
+        billing.MapGet("/plan", HandleAsync)
+            .WithName("getPlan")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<PlanStatusResponse>, ProblemHttpResult>> HandleAsync(
         IUserContext userContext, GetPlanHandler handler, CancellationToken cancellationToken)

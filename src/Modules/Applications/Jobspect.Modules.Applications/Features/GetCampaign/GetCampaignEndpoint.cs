@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Applications.Features.GetCampaign;
 internal static class GetCampaignEndpoint
 {
     public static void Map(IEndpointRouteBuilder campaigns) =>
-        campaigns.MapGet("/{id:guid}", HandleAsync).RequireAuthorization();
+        campaigns.MapGet("/{id:guid}", HandleAsync)
+            .WithName("getCampaign")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<CampaignResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

@@ -17,7 +17,9 @@ namespace Jobspect.Modules.Applications.Features.ListContacts;
 internal static class ListContactsEndpoint
 {
     public static void Map(IEndpointRouteBuilder contacts) =>
-        contacts.MapGet("", HandleAsync).RequireAuthorization();
+        contacts.MapGet("", HandleAsync)
+            .WithName("listContacts")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<PagedResponse<ContactResponse>>, ProblemHttpResult>> HandleAsync(
         Guid? applicationId,

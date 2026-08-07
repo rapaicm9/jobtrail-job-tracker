@@ -17,7 +17,9 @@ namespace Jobspect.Modules.Billing.Features.GrantPro;
 internal static class GrantProEndpoint
 {
     public static void Map(IEndpointRouteBuilder billing) =>
-        billing.MapPost("/grant-pro", HandleAsync).RequireAuthorization();
+        billing.MapPost("/grant-pro", HandleAsync)
+            .WithName("grantPro")
+            .RequireAuthorization();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> HandleAsync(
         IUserContext userContext, GrantProHandler handler, CancellationToken cancellationToken)

@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Applications.Features.ListCampaigns;
 internal static class ListCampaignsEndpoint
 {
     public static void Map(IEndpointRouteBuilder campaigns) =>
-        campaigns.MapGet("", HandleAsync).RequireAuthorization();
+        campaigns.MapGet("", HandleAsync)
+            .WithName("listCampaigns")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<IReadOnlyList<CampaignResponse>>, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

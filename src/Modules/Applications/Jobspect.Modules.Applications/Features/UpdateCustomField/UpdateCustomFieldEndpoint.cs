@@ -20,6 +20,7 @@ internal static class UpdateCustomFieldEndpoint
 {
     public static void Map(IEndpointRouteBuilder customFields) =>
         customFields.MapPut("/{id:guid}", HandleAsync)
+            .WithName("updateCustomField")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.CustomFields));
 
     private static async Task<Results<Ok<CustomFieldResponse>, ProblemHttpResult>> HandleAsync(

@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Applications.Features.GetCustomField;
 internal static class GetCustomFieldEndpoint
 {
     public static void Map(IEndpointRouteBuilder customFields) =>
-        customFields.MapGet("/{id:guid}", HandleAsync).RequireAuthorization();
+        customFields.MapGet("/{id:guid}", HandleAsync)
+            .WithName("getCustomField")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<CustomFieldResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

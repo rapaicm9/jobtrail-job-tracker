@@ -26,7 +26,9 @@ namespace Jobspect.Modules.Applications.Features.DeleteCampaign;
 internal static class DeleteCampaignEndpoint
 {
     public static void Map(IEndpointRouteBuilder campaigns) =>
-        campaigns.MapDelete("/{id:guid}", HandleAsync).RequireAuthorization();
+        campaigns.MapDelete("/{id:guid}", HandleAsync)
+            .WithName("deleteCampaign")
+            .RequireAuthorization();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> HandleAsync(
         Guid id,

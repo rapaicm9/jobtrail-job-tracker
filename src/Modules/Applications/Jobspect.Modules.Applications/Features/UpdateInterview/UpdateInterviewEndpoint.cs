@@ -14,7 +14,9 @@ namespace Jobspect.Modules.Applications.Features.UpdateInterview;
 internal static class UpdateInterviewEndpoint
 {
     public static void Map(IEndpointRouteBuilder interviews) =>
-        interviews.MapPut("/{interviewId:guid}", HandleAsync).RequireAuthorization();
+        interviews.MapPut("/{interviewId:guid}", HandleAsync)
+            .WithName("updateInterview")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<InterviewResponse>, ProblemHttpResult>> HandleAsync(
         Guid applicationId,

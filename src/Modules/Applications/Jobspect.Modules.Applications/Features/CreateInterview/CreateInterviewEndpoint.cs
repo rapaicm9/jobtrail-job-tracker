@@ -15,7 +15,9 @@ namespace Jobspect.Modules.Applications.Features.CreateInterview;
 internal static class CreateInterviewEndpoint
 {
     public static void Map(IEndpointRouteBuilder interviews) =>
-        interviews.MapPost("", HandleAsync).RequireAuthorization();
+        interviews.MapPost("", HandleAsync)
+            .WithName("createInterview")
+            .RequireAuthorization();
 
     private static async Task<Results<Created<InterviewResponse>, ProblemHttpResult>> HandleAsync(
         Guid applicationId,

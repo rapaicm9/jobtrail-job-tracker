@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Notifications.Features.CountUnreadReminders;
 internal static class CountUnreadRemindersEndpoint
 {
     public static void Map(IEndpointRouteBuilder reminders) =>
-        reminders.MapGet("/unread-count", HandleAsync).RequireAuthorization();
+        reminders.MapGet("/unread-count", HandleAsync)
+            .WithName("countUnreadReminders")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<UnreadCountResponse>, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

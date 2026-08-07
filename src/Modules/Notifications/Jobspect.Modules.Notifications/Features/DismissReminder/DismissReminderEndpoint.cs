@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Notifications.Features.DismissReminder;
 internal static class DismissReminderEndpoint
 {
     public static void Map(IEndpointRouteBuilder reminders) =>
-        reminders.MapPost("/{id:guid}/dismiss", HandleAsync).RequireAuthorization();
+        reminders.MapPost("/{id:guid}/dismiss", HandleAsync)
+            .WithName("dismissReminder")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<ReminderResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

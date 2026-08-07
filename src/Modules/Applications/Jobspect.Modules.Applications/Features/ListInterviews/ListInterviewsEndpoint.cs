@@ -17,7 +17,9 @@ namespace Jobspect.Modules.Applications.Features.ListInterviews;
 internal static class ListInterviewsEndpoint
 {
     public static void Map(IEndpointRouteBuilder interviews) =>
-        interviews.MapGet("", HandleAsync).RequireAuthorization();
+        interviews.MapGet("", HandleAsync)
+            .WithName("listInterviews")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<PagedResponse<InterviewResponse>>, ProblemHttpResult>> HandleAsync(
         Guid applicationId,

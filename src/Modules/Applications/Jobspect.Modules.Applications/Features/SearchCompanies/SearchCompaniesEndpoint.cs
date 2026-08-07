@@ -20,7 +20,9 @@ internal static class SearchCompaniesEndpoint
     // Empty pattern, not "/": on a "/companies" group the latter would map the
     // trailing-slash path and miss a clean GET /companies.
     public static void Map(IEndpointRouteBuilder companies) =>
-        companies.MapGet("", HandleAsync).RequireAuthorization();
+        companies.MapGet("", HandleAsync)
+            .WithName("searchCompanies")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<IReadOnlyList<CompanySummaryResponse>>, ProblemHttpResult>> HandleAsync(
         string? query,

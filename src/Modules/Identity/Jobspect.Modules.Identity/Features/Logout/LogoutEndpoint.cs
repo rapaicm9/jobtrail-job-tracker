@@ -15,7 +15,7 @@ namespace Jobspect.Modules.Identity.Features.Logout;
 internal static class LogoutEndpoint
 {
     public static void Map(IEndpointRouteBuilder identity) =>
-        identity.MapPost("/logout", HandleAsync);
+        identity.MapPost("/logout", HandleAsync).WithName("logout");
 
     private static async Task<Results<NoContent, ProblemHttpResult>> HandleAsync(
         LogoutRequest request, RefreshTokenService refreshTokenService, CancellationToken cancellationToken)

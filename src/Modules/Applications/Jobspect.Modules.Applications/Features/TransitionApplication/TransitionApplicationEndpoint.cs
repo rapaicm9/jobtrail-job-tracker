@@ -17,7 +17,9 @@ namespace Jobspect.Modules.Applications.Features.TransitionApplication;
 internal static class TransitionApplicationEndpoint
 {
     public static void Map(IEndpointRouteBuilder applications) =>
-        applications.MapPost("/{id:guid}/transition", HandleAsync).RequireAuthorization();
+        applications.MapPost("/{id:guid}/transition", HandleAsync)
+            .WithName("transitionApplication")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<ApplicationResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

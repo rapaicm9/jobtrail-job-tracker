@@ -14,7 +14,9 @@ namespace Jobspect.Modules.Applications.Features.UpdateContact;
 internal static class UpdateContactEndpoint
 {
     public static void Map(IEndpointRouteBuilder contacts) =>
-        contacts.MapPut("/{id:guid}", HandleAsync).RequireAuthorization();
+        contacts.MapPut("/{id:guid}", HandleAsync)
+            .WithName("updateContact")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<ContactResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

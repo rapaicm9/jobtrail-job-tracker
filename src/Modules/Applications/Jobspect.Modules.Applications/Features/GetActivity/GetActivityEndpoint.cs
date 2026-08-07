@@ -16,7 +16,9 @@ namespace Jobspect.Modules.Applications.Features.GetActivity;
 internal static class GetActivityEndpoint
 {
     public static void Map(IEndpointRouteBuilder activity) =>
-        activity.MapGet("", HandleAsync).RequireAuthorization();
+        activity.MapGet("", HandleAsync)
+            .WithName("getActivity")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<PagedResponse<ActivityEntryResponse>>, ProblemHttpResult>> HandleAsync(
         Guid applicationId,

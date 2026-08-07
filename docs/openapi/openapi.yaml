@@ -8,6 +8,7 @@ paths:
     post:
       tags:
         - identity
+      operationId: register
       requestBody:
         content:
           application/json:
@@ -43,6 +44,7 @@ paths:
     post:
       tags:
         - identity
+      operationId: login
       requestBody:
         content:
           application/json:
@@ -78,6 +80,7 @@ paths:
     post:
       tags:
         - identity
+      operationId: refresh
       requestBody:
         content:
           application/json:
@@ -113,6 +116,7 @@ paths:
     post:
       tags:
         - identity
+      operationId: logout
       requestBody:
         content:
           application/json:
@@ -144,6 +148,7 @@ paths:
     post:
       tags:
         - identity
+      operationId: logoutAll
       responses:
         '204':
           description: No Content
@@ -189,6 +194,7 @@ paths:
     get:
       tags:
         - account
+      operationId: getAccount
       responses:
         '200':
           description: OK
@@ -219,6 +225,7 @@ paths:
     put:
       tags:
         - account
+      operationId: updateAccount
       requestBody:
         content:
           application/json:
@@ -261,6 +268,7 @@ paths:
     delete:
       tags:
         - account
+      operationId: deleteAccount
       responses:
         '204':
           description: No Content
@@ -288,6 +296,7 @@ paths:
     get:
       tags:
         - account
+      operationId: exportAccount
       responses:
         '200':
           description: OK
@@ -321,6 +330,7 @@ paths:
     get:
       tags:
         - billing
+      operationId: getPlan
       responses:
         '200':
           description: OK
@@ -352,6 +362,7 @@ paths:
     post:
       tags:
         - billing
+      operationId: purchasePro
       responses:
         '200':
           description: OK
@@ -401,6 +412,7 @@ paths:
     get:
       tags:
         - companies
+      operationId: searchCompanies
       parameters:
         - name: query
           in: query
@@ -439,6 +451,7 @@ paths:
     get:
       tags:
         - applications
+      operationId: listApplications
       parameters:
         - name: campaignId
           in: query
@@ -508,6 +521,7 @@ paths:
     post:
       tags:
         - applications
+      operationId: createApplication
       requestBody:
         content:
           application/json:
@@ -563,6 +577,7 @@ paths:
     get:
       tags:
         - applications
+      operationId: getApplication
       parameters:
         - name: id
           in: path
@@ -606,6 +621,7 @@ paths:
     put:
       tags:
         - applications
+      operationId: updateApplication
       parameters:
         - name: id
           in: path
@@ -662,6 +678,7 @@ paths:
     post:
       tags:
         - applications
+      operationId: transitionApplication
       parameters:
         - name: id
           in: path
@@ -730,6 +747,7 @@ paths:
     get:
       tags:
         - contacts
+      operationId: listContacts
       parameters:
         - name: applicationId
           in: query
@@ -786,6 +804,7 @@ paths:
     post:
       tags:
         - contacts
+      operationId: createContact
       requestBody:
         content:
           application/json:
@@ -841,6 +860,7 @@ paths:
     get:
       tags:
         - contacts
+      operationId: getContact
       parameters:
         - name: id
           in: path
@@ -884,6 +904,7 @@ paths:
     put:
       tags:
         - contacts
+      operationId: updateContact
       parameters:
         - name: id
           in: path
@@ -940,6 +961,7 @@ paths:
     get:
       tags:
         - applications
+      operationId: listInterviews
       parameters:
         - name: applicationId
           in: path
@@ -998,6 +1020,7 @@ paths:
     post:
       tags:
         - applications
+      operationId: createInterview
       parameters:
         - name: applicationId
           in: path
@@ -1066,6 +1089,7 @@ paths:
     get:
       tags:
         - applications
+      operationId: getInterview
       parameters:
         - name: applicationId
           in: path
@@ -1115,6 +1139,7 @@ paths:
     put:
       tags:
         - applications
+      operationId: updateInterview
       parameters:
         - name: applicationId
           in: path
@@ -1177,6 +1202,7 @@ paths:
     get:
       tags:
         - applications
+      operationId: getActivity
       parameters:
         - name: applicationId
           in: path
@@ -1235,6 +1261,7 @@ paths:
     post:
       tags:
         - applications
+      operationId: addNote
       parameters:
         - name: applicationId
           in: path
@@ -1303,6 +1330,7 @@ paths:
     get:
       tags:
         - custom-fields
+      operationId: listCustomFields
       responses:
         '200':
           description: OK
@@ -1335,6 +1363,7 @@ paths:
     post:
       tags:
         - custom-fields
+      operationId: createCustomField
       requestBody:
         content:
           application/json:
@@ -1396,6 +1425,7 @@ paths:
     get:
       tags:
         - custom-fields
+      operationId: getCustomField
       parameters:
         - name: id
           in: path
@@ -1439,6 +1469,7 @@ paths:
     put:
       tags:
         - custom-fields
+      operationId: updateCustomField
       parameters:
         - name: id
           in: path
@@ -1501,6 +1532,7 @@ paths:
     get:
       tags:
         - campaigns
+      operationId: listCampaigns
       responses:
         '200':
           description: OK
@@ -1533,6 +1565,7 @@ paths:
     post:
       tags:
         - campaigns
+      operationId: createCampaign
       requestBody:
         content:
           application/json:
@@ -1594,6 +1627,7 @@ paths:
     get:
       tags:
         - campaigns
+      operationId: getCampaign
       parameters:
         - name: id
           in: path
@@ -1637,6 +1671,7 @@ paths:
     put:
       tags:
         - campaigns
+      operationId: updateCampaign
       parameters:
         - name: id
           in: path
@@ -1692,6 +1727,7 @@ paths:
     delete:
       tags:
         - campaigns
+      operationId: deleteCampaign
       parameters:
         - name: id
           in: path
@@ -1732,6 +1768,7 @@ paths:
     get:
       tags:
         - analytics
+      operationId: getOverview
       parameters:
         - name: campaignId
           in: query
@@ -1769,6 +1806,7 @@ paths:
     get:
       tags:
         - analytics
+      operationId: getInsights
       parameters:
         - name: campaignId
           in: query
@@ -1812,6 +1850,7 @@ paths:
     get:
       tags:
         - analytics
+      operationId: getCustomFieldChart
       parameters:
         - name: definitionId
           in: path
@@ -1867,6 +1906,7 @@ paths:
     get:
       tags:
         - analytics
+      operationId: getWeeklyGoal
       responses:
         '200':
           description: OK
@@ -1897,6 +1937,7 @@ paths:
     put:
       tags:
         - analytics
+      operationId: setWeeklyGoal
       requestBody:
         content:
           application/json:
@@ -1945,6 +1986,7 @@ paths:
     delete:
       tags:
         - analytics
+      operationId: clearWeeklyGoal
       responses:
         '204':
           description: No Content
@@ -1972,6 +2014,7 @@ paths:
     get:
       tags:
         - reminders
+      operationId: listReminders
       parameters:
         - name: limit
           in: query
@@ -2019,6 +2062,7 @@ paths:
     get:
       tags:
         - reminders
+      operationId: countUnreadReminders
       responses:
         '200':
           description: OK
@@ -2050,6 +2094,7 @@ paths:
     post:
       tags:
         - reminders
+      operationId: dismissReminder
       parameters:
         - name: id
           in: path
@@ -2112,6 +2157,7 @@ paths:
     get:
       tags:
         - reminder-rule
+      operationId: getReminderRule
       responses:
         '200':
           description: OK
@@ -2142,6 +2188,7 @@ paths:
     put:
       tags:
         - reminder-rule
+      operationId: setReminderRule
       requestBody:
         content:
           application/json:
@@ -2190,6 +2237,7 @@ paths:
     delete:
       tags:
         - reminder-rule
+      operationId: clearReminderRule
       responses:
         '204':
           description: No Content
@@ -2217,6 +2265,7 @@ paths:
     post:
       tags:
         - billing
+      operationId: grantPro
       responses:
         '204':
           description: No Content

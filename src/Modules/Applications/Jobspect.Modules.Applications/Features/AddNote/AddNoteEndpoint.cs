@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Applications.Features.AddNote;
 internal static class AddNoteEndpoint
 {
     public static void Map(IEndpointRouteBuilder activity) =>
-        activity.MapPost("", HandleAsync).RequireAuthorization();
+        activity.MapPost("", HandleAsync)
+            .WithName("addNote")
+            .RequireAuthorization();
 
     private static async Task<Results<Created<ActivityEntryResponse>, ProblemHttpResult>> HandleAsync(
         Guid applicationId,

@@ -13,7 +13,9 @@ namespace Jobspect.Modules.Identity.Features.LogoutAll;
 internal static class LogoutAllEndpoint
 {
     public static void Map(IEndpointRouteBuilder identity) =>
-        identity.MapPost("/logout-all", HandleAsync).RequireAuthorization();
+        identity.MapPost("/logout-all", HandleAsync)
+            .WithName("logoutAll")
+            .RequireAuthorization();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> HandleAsync(
         ClaimsPrincipal principal, LogoutAllHandler handler, CancellationToken cancellationToken)

@@ -24,7 +24,9 @@ namespace Jobspect.Modules.Applications.Features.ListApplications;
 internal static class ListApplicationsEndpoint
 {
     public static void Map(IEndpointRouteBuilder applications) =>
-        applications.MapGet("", HandleAsync).RequireAuthorization();
+        applications.MapGet("", HandleAsync)
+            .WithName("listApplications")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<PagedResponse<ApplicationSummaryResponse>>, ProblemHttpResult>> HandleAsync(
         Guid? campaignId,
