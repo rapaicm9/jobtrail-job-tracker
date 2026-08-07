@@ -8,7 +8,7 @@ namespace Jobspect.Modules.Identity.Features.Login;
 internal static class LoginEndpoint
 {
     public static void Map(IEndpointRouteBuilder identity) =>
-        identity.MapPost("/login", HandleAsync);
+        identity.MapPost("/login", HandleAsync).WithName("login");
 
     private static async Task<Results<Ok<AuthTokensResponse>, ProblemHttpResult>> HandleAsync(
         LoginRequest request, LoginHandler handler, CancellationToken cancellationToken)

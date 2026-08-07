@@ -15,7 +15,9 @@ internal static class GetAccountEndpoint
     // Empty pattern, not "/": on a "/account" group the latter would map the
     // trailing-slash path and miss a clean GET /account.
     public static void Map(IEndpointRouteBuilder account) =>
-        account.MapGet("", HandleAsync).RequireAuthorization();
+        account.MapGet("", HandleAsync)
+            .WithName("getAccount")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<AccountResponse>, ProblemHttpResult>> HandleAsync(
         ClaimsPrincipal principal, GetAccountHandler handler)

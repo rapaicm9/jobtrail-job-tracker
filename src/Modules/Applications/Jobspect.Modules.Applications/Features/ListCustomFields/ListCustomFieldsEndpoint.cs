@@ -20,7 +20,9 @@ namespace Jobspect.Modules.Applications.Features.ListCustomFields;
 internal static class ListCustomFieldsEndpoint
 {
     public static void Map(IEndpointRouteBuilder customFields) =>
-        customFields.MapGet("", HandleAsync).RequireAuthorization();
+        customFields.MapGet("", HandleAsync)
+            .WithName("listCustomFields")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<IReadOnlyList<CustomFieldResponse>>, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

@@ -15,7 +15,9 @@ namespace Jobspect.Modules.Applications.Features.CreateApplication;
 internal static class CreateApplicationEndpoint
 {
     public static void Map(IEndpointRouteBuilder applications) =>
-        applications.MapPost("", HandleAsync).RequireAuthorization();
+        applications.MapPost("", HandleAsync)
+            .WithName("createApplication")
+            .RequireAuthorization();
 
     private static async Task<Results<Created<ApplicationResponse>, ProblemHttpResult>> HandleAsync(
         CreateApplicationRequest request,

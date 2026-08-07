@@ -28,14 +28,28 @@ builder.AddServiceDefaults();
 // without ever leaking a stack trace.
 builder.Services.AddProblemDetails();
 
+// Two settings, one purpose: one shape per field, stated in the contract.
+//
 // A number is a number. The web defaults accept a quoted one too, which is a
 // leniency no client asked for and which the described contract cannot state
 // without widening every integer to "integer or string" - and from there into
 // every generated client. Refusing the quoted form keeps one shape per field on
 // both sides of the contract. Query and route values are bound before any of
 // this and are unaffected.
+//
+// An enum is its name. It always was on the wire - the responses used to call
+// ToString() on the way out - but the contract could not say so, because a bare
+// enum property is described as an integer and a hand-stringified one as an
+// unconstrained string. Neither states the member set, so every client had to
+// carry its own copy of it. With the converter registered the responses can hold
+// the enums themselves and the document carries the names, which is the same
+// JSON described honestly. No naming policy: the members travel verbatim, so
+// Behavioural keeps its spelling and Url is not URL.
 builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
+{
+    options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict;
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
+});
 
 // Aspire-wired Redis for the AppHost's "cache" resource - health check,
 // telemetry and connection string included. Registered here rather than inside

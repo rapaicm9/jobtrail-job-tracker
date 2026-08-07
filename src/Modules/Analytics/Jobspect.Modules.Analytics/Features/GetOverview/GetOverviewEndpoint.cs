@@ -24,7 +24,9 @@ namespace Jobspect.Modules.Analytics.Features.GetOverview;
 internal static class GetOverviewEndpoint
 {
     public static void Map(IEndpointRouteBuilder analytics) =>
-        analytics.MapGet("/overview", HandleAsync).RequireAuthorization();
+        analytics.MapGet("/overview", HandleAsync)
+            .WithName("getOverview")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<AnalyticsOverviewResponse>, ProblemHttpResult>> HandleAsync(
         Guid? campaignId,

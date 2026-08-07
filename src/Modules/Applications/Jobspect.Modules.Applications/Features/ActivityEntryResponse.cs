@@ -11,21 +11,21 @@ namespace Jobspect.Modules.Applications.Features;
 /// </summary>
 internal sealed record ActivityEntryResponse(
     Guid Id,
-    string Kind,
+    ActivityKind Kind,
     DateTimeOffset OccurredAt,
-    string? FromStage,
-    string? ToStage,
-    string? TransitionKind,
+    Stage? FromStage,
+    Stage? ToStage,
+    TransitionKind? TransitionKind,
     string? Note);
 
 internal static class ActivityEntryResponseMapping
 {
     public static ActivityEntryResponse ToResponse(this ActivityLogEntry entry) => new(
         entry.Id,
-        entry.Kind.ToString(),
+        entry.Kind,
         entry.CreatedAt,
-        entry.FromStage?.ToString(),
-        entry.ToStage?.ToString(),
-        entry.TransitionKind?.ToString(),
+        entry.FromStage,
+        entry.ToStage,
+        entry.TransitionKind,
         entry.Note);
 }

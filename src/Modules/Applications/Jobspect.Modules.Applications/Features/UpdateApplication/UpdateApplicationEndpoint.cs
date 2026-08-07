@@ -15,7 +15,9 @@ namespace Jobspect.Modules.Applications.Features.UpdateApplication;
 internal static class UpdateApplicationEndpoint
 {
     public static void Map(IEndpointRouteBuilder applications) =>
-        applications.MapPut("/{id:guid}", HandleAsync).RequireAuthorization();
+        applications.MapPut("/{id:guid}", HandleAsync)
+            .WithName("updateApplication")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<ApplicationResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

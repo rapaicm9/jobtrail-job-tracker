@@ -24,6 +24,7 @@ internal static class GetCustomFieldChartEndpoint
 {
     public static void Map(IEndpointRouteBuilder analytics) =>
         analytics.MapGet("/custom-fields/{definitionId:guid}", HandleAsync)
+            .WithName("getCustomFieldChart")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.FullAnalytics));
 
     private static async Task<Results<Ok<CustomFieldChartResponse>, ProblemHttpResult>> HandleAsync(

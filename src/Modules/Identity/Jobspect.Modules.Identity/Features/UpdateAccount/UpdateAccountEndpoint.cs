@@ -16,7 +16,9 @@ internal static class UpdateAccountEndpoint
     // Empty pattern, not "/": see GetAccountEndpoint - keeps the route at a
     // clean PUT /account with no trailing slash.
     public static void Map(IEndpointRouteBuilder account) =>
-        account.MapPut("", HandleAsync).RequireAuthorization();
+        account.MapPut("", HandleAsync)
+            .WithName("updateAccount")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<AccountResponse>, ProblemHttpResult>> HandleAsync(
         UpdateAccountRequest request, ClaimsPrincipal principal, UpdateAccountHandler handler)

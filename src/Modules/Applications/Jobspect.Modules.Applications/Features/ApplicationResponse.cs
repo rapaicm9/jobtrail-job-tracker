@@ -13,6 +13,11 @@ internal sealed record MoneyResponse(decimal Amount, string Currency);
 /// names so the contract doesn't leak storage ordinals. Returned by create, get,
 /// update and transition, so a client never needs a follow-up read.
 /// <para>
+/// The domain enums are carried as themselves rather than pre-stringified: the
+/// host's string-enum converter writes the same names, and holding the type is
+/// what lets the described contract state which names exist.
+/// </para>
+/// <para>
 /// <see cref="CustomFields"/> is returned to every caller, entitlement or not.
 /// Writing values is the paid capability; reading back what is already recorded
 /// is not, or an account that lost the entitlement could not make sense of its
@@ -23,11 +28,11 @@ internal sealed record ApplicationResponse(
     Guid Id,
     Guid CampaignId,
     Guid? CompanyId,
-    string Stage,
+    Stage Stage,
     string Role,
     MoneyResponse? Compensation,
     string? Location,
-    string? WorkMode,
+    WorkMode? WorkMode,
     string? PostingUrl,
     string? Source,
     DateOnly AppliedDate,
@@ -45,11 +50,11 @@ internal static class ApplicationResponseMapping
         application.Id,
         application.CampaignId,
         application.CompanyId,
-        application.Stage.ToString(),
+        application.Stage,
         application.Role,
         application.Compensation is { } money ? new MoneyResponse(money.Amount, money.Currency) : null,
         application.Location,
-        application.WorkMode?.ToString(),
+        application.WorkMode,
         application.PostingUrl,
         application.Source,
         application.AppliedDate,

@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Billing.Features.PurchasePro;
 internal static class PurchaseProEndpoint
 {
     public static void Map(IEndpointRouteBuilder billing) =>
-        billing.MapPost("/purchase", HandleAsync).RequireAuthorization();
+        billing.MapPost("/purchase", HandleAsync)
+            .WithName("purchasePro")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<PlanStatusResponse>, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

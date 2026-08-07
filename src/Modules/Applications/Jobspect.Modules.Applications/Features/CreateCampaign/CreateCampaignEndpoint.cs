@@ -24,6 +24,7 @@ internal static class CreateCampaignEndpoint
 {
     public static void Map(IEndpointRouteBuilder campaigns) =>
         campaigns.MapPost("", HandleAsync)
+            .WithName("createCampaign")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.MultipleCampaigns));
 
     private static async Task<Results<Created<CampaignResponse>, ProblemHttpResult>> HandleAsync(

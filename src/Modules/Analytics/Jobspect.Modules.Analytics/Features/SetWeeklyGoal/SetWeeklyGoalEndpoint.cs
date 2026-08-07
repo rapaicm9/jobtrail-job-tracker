@@ -28,6 +28,7 @@ internal static class SetWeeklyGoalEndpoint
 {
     public static void Map(IEndpointRouteBuilder analytics) =>
         analytics.MapPut("/goal", HandleAsync)
+            .WithName("setWeeklyGoal")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.FullAnalytics));
 
     private static async Task<Results<Ok<WeeklyGoalResponse>, ProblemHttpResult>> HandleAsync(

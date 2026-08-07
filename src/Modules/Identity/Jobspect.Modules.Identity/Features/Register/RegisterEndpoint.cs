@@ -8,7 +8,7 @@ namespace Jobspect.Modules.Identity.Features.Register;
 internal static class RegisterEndpoint
 {
     public static void Map(IEndpointRouteBuilder identity) =>
-        identity.MapPost("/register", HandleAsync);
+        identity.MapPost("/register", HandleAsync).WithName("register");
 
     private static async Task<Results<Created<AuthTokensResponse>, ProblemHttpResult>> HandleAsync(
         RegisterRequest request, RegisterHandler handler, CancellationToken cancellationToken)

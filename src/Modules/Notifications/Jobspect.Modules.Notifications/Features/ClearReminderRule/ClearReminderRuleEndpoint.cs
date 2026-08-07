@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Notifications.Features.ClearReminderRule;
 internal static class ClearReminderRuleEndpoint
 {
     public static void Map(IEndpointRouteBuilder api) =>
-        api.MapDelete("/reminder-rule", HandleAsync).RequireAuthorization();
+        api.MapDelete("/reminder-rule", HandleAsync)
+            .WithName("clearReminderRule")
+            .RequireAuthorization();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

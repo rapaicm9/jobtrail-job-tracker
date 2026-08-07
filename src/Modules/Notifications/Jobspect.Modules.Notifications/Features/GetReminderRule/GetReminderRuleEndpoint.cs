@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Notifications.Features.GetReminderRule;
 internal static class GetReminderRuleEndpoint
 {
     public static void Map(IEndpointRouteBuilder api) =>
-        api.MapGet("/reminder-rule", HandleAsync).RequireAuthorization();
+        api.MapGet("/reminder-rule", HandleAsync)
+            .WithName("getReminderRule")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<ReminderRuleResponse>, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

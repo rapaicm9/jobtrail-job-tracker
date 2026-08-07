@@ -29,6 +29,7 @@ internal static class SetReminderRuleEndpoint
 {
     public static void Map(IEndpointRouteBuilder api) =>
         api.MapPut("/reminder-rule", HandleAsync)
+            .WithName("setReminderRule")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.FollowUpRules));
 
     private static async Task<Results<Ok<ReminderRuleResponse>, ProblemHttpResult>> HandleAsync(

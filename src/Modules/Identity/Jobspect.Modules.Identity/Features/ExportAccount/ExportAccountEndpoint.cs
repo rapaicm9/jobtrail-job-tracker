@@ -28,6 +28,7 @@ internal static class ExportAccountEndpoint
 {
     public static void Map(IEndpointRouteBuilder account) =>
         account.MapGet("/export", HandleAsync)
+            .WithName("exportAccount")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.Export));
 
     private static async Task<Results<FileContentHttpResult, ProblemHttpResult>> HandleAsync(

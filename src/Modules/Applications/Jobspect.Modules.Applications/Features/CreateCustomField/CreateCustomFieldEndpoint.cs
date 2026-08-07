@@ -22,6 +22,7 @@ internal static class CreateCustomFieldEndpoint
 {
     public static void Map(IEndpointRouteBuilder customFields) =>
         customFields.MapPost("", HandleAsync)
+            .WithName("createCustomField")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.CustomFields));
 
     private static async Task<Results<Created<CustomFieldResponse>, ProblemHttpResult>> HandleAsync(

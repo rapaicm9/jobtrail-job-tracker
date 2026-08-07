@@ -29,6 +29,7 @@ internal static class GetInsightsEndpoint
 {
     public static void Map(IEndpointRouteBuilder analytics) =>
         analytics.MapGet("/insights", HandleAsync)
+            .WithName("getInsights")
             .RequireAuthorization(FeaturePolicy.For(Entitlement.FullAnalytics));
 
     private static async Task<Results<Ok<AnalyticsInsightsResponse>, ProblemHttpResult>> HandleAsync(

@@ -14,7 +14,9 @@ namespace Jobspect.Modules.Applications.Features.GetApplication;
 internal static class GetApplicationEndpoint
 {
     public static void Map(IEndpointRouteBuilder applications) =>
-        applications.MapGet("/{id:guid}", HandleAsync).RequireAuthorization();
+        applications.MapGet("/{id:guid}", HandleAsync)
+            .WithName("getApplication")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<ApplicationResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Analytics.Features.ClearWeeklyGoal;
 internal static class ClearWeeklyGoalEndpoint
 {
     public static void Map(IEndpointRouteBuilder analytics) =>
-        analytics.MapDelete("/goal", HandleAsync).RequireAuthorization();
+        analytics.MapDelete("/goal", HandleAsync)
+            .WithName("clearWeeklyGoal")
+            .RequireAuthorization();
 
     private static async Task<Results<NoContent, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

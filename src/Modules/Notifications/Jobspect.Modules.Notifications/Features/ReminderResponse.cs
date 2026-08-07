@@ -31,7 +31,7 @@ namespace Jobspect.Modules.Notifications.Features;
 /// <param name="Dismissed">Whether the owner has cleared it.</param>
 internal sealed record ReminderResponse(
     Guid Id,
-    string Kind,
+    ReminderKind Kind,
     DateTimeOffset DueAt,
     Guid ApplicationId,
     Guid? InterviewId,
@@ -42,13 +42,14 @@ internal sealed record ReminderResponse(
 internal static class ReminderResponseMapping
 {
     /// <summary>
-    /// Maps after materialization rather than in the query: the kind is a converted
-    /// enum, so its name does not exist in SQL.
+    /// Maps after materialization rather than in the query: <see cref="ReminderResponse.Dismissed"/>
+    /// is a comparison against a converted enum, which has no SQL equivalent to
+    /// translate to.
     /// </summary>
     public static ReminderResponse ToResponse(this Reminder reminder) =>
         new(
             reminder.Id,
-            reminder.Kind.ToString(),
+            reminder.Kind,
             reminder.DueAt,
             reminder.ApplicationId,
             reminder.InterviewId,

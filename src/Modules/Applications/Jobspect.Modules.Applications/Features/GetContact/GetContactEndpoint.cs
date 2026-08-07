@@ -14,7 +14,9 @@ namespace Jobspect.Modules.Applications.Features.GetContact;
 internal static class GetContactEndpoint
 {
     public static void Map(IEndpointRouteBuilder contacts) =>
-        contacts.MapGet("/{id:guid}", HandleAsync).RequireAuthorization();
+        contacts.MapGet("/{id:guid}", HandleAsync)
+            .WithName("getContact")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<ContactResponse>, ProblemHttpResult>> HandleAsync(
         Guid id,

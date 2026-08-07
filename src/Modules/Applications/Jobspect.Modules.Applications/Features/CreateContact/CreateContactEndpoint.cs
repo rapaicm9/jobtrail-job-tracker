@@ -15,7 +15,9 @@ namespace Jobspect.Modules.Applications.Features.CreateContact;
 internal static class CreateContactEndpoint
 {
     public static void Map(IEndpointRouteBuilder contacts) =>
-        contacts.MapPost("", HandleAsync).RequireAuthorization();
+        contacts.MapPost("", HandleAsync)
+            .WithName("createContact")
+            .RequireAuthorization();
 
     private static async Task<Results<Created<ContactResponse>, ProblemHttpResult>> HandleAsync(
         CreateContactRequest request,

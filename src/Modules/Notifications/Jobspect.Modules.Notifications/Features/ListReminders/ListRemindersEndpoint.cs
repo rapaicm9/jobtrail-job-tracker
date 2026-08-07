@@ -19,7 +19,9 @@ namespace Jobspect.Modules.Notifications.Features.ListReminders;
 internal static class ListRemindersEndpoint
 {
     public static void Map(IEndpointRouteBuilder reminders) =>
-        reminders.MapGet("", HandleAsync).RequireAuthorization();
+        reminders.MapGet("", HandleAsync)
+            .WithName("listReminders")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<PagedResponse<ReminderResponse>>, ProblemHttpResult>> HandleAsync(
         int? limit,

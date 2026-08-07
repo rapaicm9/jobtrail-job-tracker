@@ -14,7 +14,7 @@ namespace Jobspect.Modules.Identity.Features.Refresh;
 internal static class RefreshEndpoint
 {
     public static void Map(IEndpointRouteBuilder identity) =>
-        identity.MapPost("/refresh", HandleAsync);
+        identity.MapPost("/refresh", HandleAsync).WithName("refresh");
 
     private static async Task<Results<Ok<AuthTokensResponse>, ProblemHttpResult>> HandleAsync(
         RefreshRequest request, TokenService tokenService, CancellationToken cancellationToken)

@@ -25,7 +25,9 @@ namespace Jobspect.Modules.Analytics.Features.GetWeeklyGoal;
 internal static class GetWeeklyGoalEndpoint
 {
     public static void Map(IEndpointRouteBuilder analytics) =>
-        analytics.MapGet("/goal", HandleAsync).RequireAuthorization();
+        analytics.MapGet("/goal", HandleAsync)
+            .WithName("getWeeklyGoal")
+            .RequireAuthorization();
 
     private static async Task<Results<Ok<WeeklyGoalResponse>, ProblemHttpResult>> HandleAsync(
         IUserContext userContext,

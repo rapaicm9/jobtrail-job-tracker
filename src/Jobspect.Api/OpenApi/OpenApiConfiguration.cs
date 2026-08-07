@@ -32,10 +32,14 @@ internal static class OpenApiConfiguration
     public static void Describe(VersionedOpenApiOptions options)
     {
         var bearer = new BearerSecurityTransformer();
+        var problems = new ProblemResponseTransformer();
 
         options.Document.AddDocumentTransformer(new DocumentMetadataTransformer());
         options.Document.AddDocumentTransformer(new ResourceTagTransformer());
         options.Document.AddDocumentTransformer(bearer);
         options.Document.AddOperationTransformer(bearer);
+        options.Document.AddDocumentTransformer(problems);
+        options.Document.AddOperationTransformer(problems);
+        options.Document.AddSchemaTransformer(new EnumSchemaTransformer());
     }
 }

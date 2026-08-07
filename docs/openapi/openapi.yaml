@@ -8,6 +8,7 @@ paths:
     post:
       tags:
         - identity
+      operationId: register
       requestBody:
         content:
           application/json:
@@ -21,10 +22,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthTokensResponse'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /api/v1/identity/login:
     post:
       tags:
         - identity
+      operationId: login
       requestBody:
         content:
           application/json:
@@ -38,10 +58,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthTokensResponse'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /api/v1/identity/refresh:
     post:
       tags:
         - identity
+      operationId: refresh
       requestBody:
         content:
           application/json:
@@ -55,10 +94,29 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthTokensResponse'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /api/v1/identity/logout:
     post:
       tags:
         - identity
+      operationId: logout
       requestBody:
         content:
           application/json:
@@ -68,19 +126,75 @@ paths:
       responses:
         '204':
           description: No Content
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
   /api/v1/identity/logout-all:
     post:
       tags:
         - identity
+      operationId: logoutAll
       responses:
         '204':
           description: No Content
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/account:
     get:
       tags:
         - account
+      operationId: getAccount
       responses:
         '200':
           description: OK
@@ -88,11 +202,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - account
+      operationId: updateAccount
       requestBody:
         content:
           application/json:
@@ -106,29 +239,98 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     delete:
       tags:
         - account
+      operationId: deleteAccount
       responses:
         '204':
           description: No Content
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/account/export:
     get:
       tags:
         - account
+      operationId: exportAccount
       responses:
         '200':
           description: OK
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/billing/plan:
     get:
       tags:
         - billing
+      operationId: getPlan
       responses:
         '200':
           description: OK
@@ -136,12 +338,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlanStatusResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/billing/purchase:
     post:
       tags:
         - billing
+      operationId: purchasePro
       responses:
         '200':
           description: OK
@@ -149,12 +370,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PlanStatusResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/companies:
     get:
       tags:
         - companies
+      operationId: searchCompanies
       parameters:
         - name: query
           in: query
@@ -169,12 +427,31 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CompanySummaryResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/applications:
     get:
       tags:
         - applications
+      operationId: listApplications
       parameters:
         - name: campaignId
           in: query
@@ -215,11 +492,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedResponseOfApplicationSummaryResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     post:
       tags:
         - applications
+      operationId: createApplication
       requestBody:
         content:
           application/json:
@@ -233,12 +535,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/applications/{id}':
     get:
       tags:
         - applications
+      operationId: getApplication
       parameters:
         - name: id
           in: path
@@ -253,11 +592,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - applications
+      operationId: updateApplication
       parameters:
         - name: id
           in: path
@@ -278,12 +642,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/applications/{id}/transition':
     post:
       tags:
         - applications
+      operationId: transitionApplication
       parameters:
         - name: id
           in: path
@@ -304,12 +699,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApplicationResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/contacts:
     get:
       tags:
         - contacts
+      operationId: listContacts
       parameters:
         - name: applicationId
           in: query
@@ -337,11 +775,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedResponseOfContactResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     post:
       tags:
         - contacts
+      operationId: createContact
       requestBody:
         content:
           application/json:
@@ -355,12 +818,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContactResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/contacts/{id}':
     get:
       tags:
         - contacts
+      operationId: getContact
       parameters:
         - name: id
           in: path
@@ -375,11 +875,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContactResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - contacts
+      operationId: updateContact
       parameters:
         - name: id
           in: path
@@ -400,12 +925,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ContactResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/applications/{applicationId}/interviews':
     get:
       tags:
         - applications
+      operationId: listInterviews
       parameters:
         - name: applicationId
           in: path
@@ -429,11 +985,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedResponseOfInterviewResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     post:
       tags:
         - applications
+      operationId: createInterview
       parameters:
         - name: applicationId
           in: path
@@ -454,12 +1041,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InterviewResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/applications/{applicationId}/interviews/{interviewId}':
     get:
       tags:
         - applications
+      operationId: getInterview
       parameters:
         - name: applicationId
           in: path
@@ -480,11 +1110,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InterviewResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - applications
+      operationId: updateInterview
       parameters:
         - name: applicationId
           in: path
@@ -511,12 +1166,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InterviewResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/applications/{applicationId}/activity':
     get:
       tags:
         - applications
+      operationId: getActivity
       parameters:
         - name: applicationId
           in: path
@@ -540,11 +1226,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedResponseOfActivityEntryResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     post:
       tags:
         - applications
+      operationId: addNote
       parameters:
         - name: applicationId
           in: path
@@ -565,12 +1282,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ActivityEntryResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/custom-fields:
     get:
       tags:
         - custom-fields
+      operationId: listCustomFields
       responses:
         '200':
           description: OK
@@ -580,11 +1340,30 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CustomFieldResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     post:
       tags:
         - custom-fields
+      operationId: createCustomField
       requestBody:
         content:
           application/json:
@@ -598,12 +1377,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomFieldResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/custom-fields/{id}':
     get:
       tags:
         - custom-fields
+      operationId: getCustomField
       parameters:
         - name: id
           in: path
@@ -618,11 +1440,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomFieldResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - custom-fields
+      operationId: updateCustomField
       parameters:
         - name: id
           in: path
@@ -643,12 +1490,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomFieldResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/campaigns:
     get:
       tags:
         - campaigns
+      operationId: listCampaigns
       responses:
         '200':
           description: OK
@@ -658,11 +1542,30 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     post:
       tags:
         - campaigns
+      operationId: createCampaign
       requestBody:
         content:
           application/json:
@@ -676,12 +1579,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/campaigns/{id}':
     get:
       tags:
         - campaigns
+      operationId: getCampaign
       parameters:
         - name: id
           in: path
@@ -696,11 +1642,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - campaigns
+      operationId: updateCampaign
       parameters:
         - name: id
           in: path
@@ -721,11 +1692,42 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CampaignResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     delete:
       tags:
         - campaigns
+      operationId: deleteCampaign
       parameters:
         - name: id
           in: path
@@ -736,12 +1738,37 @@ paths:
       responses:
         '204':
           description: No Content
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/analytics/overview:
     get:
       tags:
         - analytics
+      operationId: getOverview
       parameters:
         - name: campaignId
           in: query
@@ -755,12 +1782,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnalyticsOverviewResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/analytics/insights:
     get:
       tags:
         - analytics
+      operationId: getInsights
       parameters:
         - name: campaignId
           in: query
@@ -774,12 +1820,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AnalyticsInsightsResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/analytics/custom-fields/{definitionId}':
     get:
       tags:
         - analytics
+      operationId: getCustomFieldChart
       parameters:
         - name: definitionId
           in: path
@@ -799,12 +1870,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomFieldChartResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/analytics/goal:
     get:
       tags:
         - analytics
+      operationId: getWeeklyGoal
       responses:
         '200':
           description: OK
@@ -812,11 +1914,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WeeklyGoalResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - analytics
+      operationId: setWeeklyGoal
       requestBody:
         content:
           application/json:
@@ -830,20 +1951,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/WeeklyGoalResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     delete:
       tags:
         - analytics
+      operationId: clearWeeklyGoal
       responses:
         '204':
           description: No Content
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/reminders:
     get:
       tags:
         - reminders
+      operationId: listReminders
       parameters:
         - name: limit
           in: query
@@ -861,12 +2032,37 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PagedResponseOfReminderResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/reminders/unread-count:
     get:
       tags:
         - reminders
+      operationId: countUnreadReminders
       responses:
         '200':
           description: OK
@@ -874,12 +2070,31 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   '/api/v1/reminders/{id}/dismiss':
     post:
       tags:
         - reminders
+      operationId: dismissReminder
       parameters:
         - name: id
           in: path
@@ -894,12 +2109,55 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReminderResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '404':
+          description: No such resource for this account.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/reminder-rule:
     get:
       tags:
         - reminder-rule
+      operationId: getReminderRule
       responses:
         '200':
           description: OK
@@ -907,11 +2165,30 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReminderRuleResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     put:
       tags:
         - reminder-rule
+      operationId: setReminderRule
       requestBody:
         content:
           application/json:
@@ -925,23 +2202,109 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ReminderRuleResponse'
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '403':
+          description: The account's plan does not include this capability. The code names which one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
     delete:
       tags:
         - reminder-rule
+      operationId: clearReminderRule
       responses:
         '204':
           description: No Content
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
   /api/v1/billing/dev/grant-pro:
     post:
       tags:
         - billing
+      operationId: grantPro
       responses:
         '204':
           description: No Content
+        '401':
+          description: No usable access token. The challenge itself sends no body; a token that is valid but carries no subject is refused with one.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '409':
+          description: An earlier request carrying the same Idempotency-Key is still running. Wait Retry-After and re-issue the same key.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '422':
+          description: 'The request was understood and refused. Field-keyed messages under errors, or a single problem carrying a code - never both, so read whichever member is present.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblemDetails'
+        '429':
+          description: The caller's request budget is spent. Retry-After says for how long.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '500':
+          description: Something went wrong. No detail is disclosed.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
+        '503':
+          description: 'The replay cache could not be reached, so the request was refused rather than run without its once-only guarantee. Retry with the same key.'
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ProblemDetails'
       security:
         - bearer: [ ]
 components:
@@ -979,26 +2342,31 @@ components:
           type: string
           format: uuid
         kind:
-          type: string
+          $ref: '#/components/schemas/ActivityKind'
         occurredAt:
           type: string
           format: date-time
         fromStage:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Stage'
         toStage:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Stage'
         transitionKind:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/TransitionKind'
         note:
           type:
             - 'null'
             - string
+    ActivityKind:
+      enum:
+        - Created
+        - StageChanged
+        - Note
     AddNoteRequest:
       required:
         - note
@@ -1076,7 +2444,7 @@ components:
             - string
           format: uuid
         stage:
-          type: string
+          $ref: '#/components/schemas/Stage'
         role:
           type: string
         compensation:
@@ -1088,9 +2456,9 @@ components:
             - 'null'
             - string
         workMode:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/WorkMode'
         postingUrl:
           type:
             - 'null'
@@ -1156,13 +2524,13 @@ components:
             - string
           format: uuid
         stage:
-          type: string
+          $ref: '#/components/schemas/Stage'
         role:
           type: string
         workMode:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/WorkMode'
         appliedDate:
           type: string
           format: date
@@ -1310,9 +2678,9 @@ components:
         name:
           type: string
         role:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/ContactRole'
         email:
           type:
             - 'null'
@@ -1333,6 +2701,13 @@ components:
             - 'null'
             - string
           format: date-time
+    ContactRole:
+      enum:
+        - Recruiter
+        - HiringManager
+        - Interviewer
+        - Referral
+        - Other
     CreateApplicationRequest:
       required:
         - role
@@ -1561,7 +2936,7 @@ components:
         label:
           type: string
         type:
-          type: string
+          $ref: '#/components/schemas/CustomFieldType'
         options:
           type: array
           items:
@@ -1576,6 +2951,15 @@ components:
             - 'null'
             - string
           format: date-time
+    CustomFieldType:
+      enum:
+        - Text
+        - Number
+        - Date
+        - Checkbox
+        - SingleSelect
+        - MultiSelect
+        - Url
     FunnelResponse:
       required:
         - total
@@ -1600,6 +2984,17 @@ components:
         reachedOffer:
           type: integer
           format: int32
+    InterviewFormat:
+      enum:
+        - Remote
+        - Onsite
+        - Phone
+    InterviewOutcome:
+      enum:
+        - Pending
+        - Passed
+        - Failed
+        - Cancelled
     InterviewResponse:
       required:
         - id
@@ -1623,11 +3018,11 @@ components:
           type: string
           format: date-time
         type:
-          type: string
+          $ref: '#/components/schemas/InterviewType'
         format:
-          type: string
+          $ref: '#/components/schemas/InterviewFormat'
         outcome:
-          type: string
+          $ref: '#/components/schemas/InterviewOutcome'
         notes:
           type:
             - 'null'
@@ -1640,6 +3035,13 @@ components:
             - 'null'
             - string
           format: date-time
+    InterviewType:
+      enum:
+        - PhoneScreen
+        - Technical
+        - Behavioural
+        - Onsite
+        - Other
     LoginRequest:
       required:
         - email
@@ -1820,12 +3222,43 @@ components:
       type: object
       properties:
         tier:
-          type: string
+          $ref: '#/components/schemas/PlanTier'
         updatedAt:
           type:
             - 'null'
             - string
           format: date-time
+    PlanTier:
+      enum:
+        - Free
+        - Pro
+    ProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          description: A URI identifying the problem type.
+        title:
+          type: string
+          description: 'A short, stable summary of the problem type.'
+        status:
+          type: integer
+          description: 'The HTTP status code, repeated in the body.'
+          format: int32
+        detail:
+          type: string
+          description: 'An explanation specific to this occurrence, safe to show a user.'
+        instance:
+          type: string
+          description: A URI identifying this occurrence. Usually absent.
+        code:
+          type: string
+          description: 'This API''s stable, lowercase error code - "application.illegal_transition". The member to branch on. Absent on the framework''s own refusals, and on a validation problem, which keys its messages to fields instead.'
+        traceId:
+          type: string
+          description: The W3C trace of the request that failed. Log it; never show it. Its absence means nothing.
+      additionalProperties: { }
+      description: 'An RFC 9457 problem. Branch on code, never on the prose in title or detail.'
     RatesResponse:
       required:
         - response
@@ -1881,6 +3314,16 @@ components:
           type:
             - 'null'
             - string
+    ReminderKind:
+      enum:
+        - InterviewMorningBefore
+        - InterviewHourBefore
+        - ApplicationDeadlineThreeDaysBefore
+        - ApplicationDeadlineMorningOf
+        - OfferDecisionThreeDaysBefore
+        - OfferDecisionDayBefore
+        - OfferDecisionMorningOf
+        - FollowUp
     ReminderResponse:
       required:
         - id
@@ -1897,7 +3340,7 @@ components:
           type: string
           format: uuid
         kind:
-          type: string
+          $ref: '#/components/schemas/ReminderKind'
         dueAt:
           type: string
           format: date-time
@@ -1961,6 +3404,16 @@ components:
             - 'null'
             - integer
           format: int32
+    Stage:
+      enum:
+        - Applied
+        - Screening
+        - Interview
+        - Offer
+        - Accepted
+        - Rejected
+        - Withdrawn
+        - Ghosted
     StageDuration:
       required:
         - stage
@@ -2016,6 +3469,12 @@ components:
           type:
             - 'null'
             - string
+    TransitionKind:
+      enum:
+        - Advance
+        - Terminal
+        - Reopen
+        - Reclassify
     TrendPoint:
       required:
         - weekStarting
@@ -2228,6 +3687,40 @@ components:
           type:
             - 'null'
             - string
+    ValidationProblemDetails:
+      type: object
+      properties:
+        type:
+          type: string
+          description: A URI identifying the problem type.
+        title:
+          type: string
+          description: 'A short, stable summary of the problem type.'
+        status:
+          type: integer
+          description: 'The HTTP status code, repeated in the body.'
+          format: int32
+        detail:
+          type: string
+          description: 'An explanation specific to this occurrence, safe to show a user.'
+        instance:
+          type: string
+          description: A URI identifying this occurrence. Usually absent.
+        code:
+          type: string
+          description: 'This API''s stable, lowercase error code - "application.illegal_transition". The member to branch on. Absent on the framework''s own refusals, and on a validation problem, which keys its messages to fields instead.'
+        traceId:
+          type: string
+          description: The W3C trace of the request that failed. Log it; never show it. Its absence means nothing.
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: 'Messages by request field. A field can carry several - a password can be short and have no digit at once - so this is a list per key, not a string.'
+      additionalProperties: { }
+      description: A problem that may carry field-keyed validation messages.
     WeeklyGoalResponse:
       required:
         - target
@@ -2248,6 +3741,11 @@ components:
         weekStart:
           type: string
           format: date
+    WorkMode:
+      enum:
+        - Onsite
+        - Hybrid
+        - Remote
   securitySchemes:
     bearer:
       type: http
