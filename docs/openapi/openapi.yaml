@@ -979,26 +979,31 @@ components:
           type: string
           format: uuid
         kind:
-          type: string
+          $ref: '#/components/schemas/ActivityKind'
         occurredAt:
           type: string
           format: date-time
         fromStage:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Stage'
         toStage:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/Stage'
         transitionKind:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/TransitionKind'
         note:
           type:
             - 'null'
             - string
+    ActivityKind:
+      enum:
+        - Created
+        - StageChanged
+        - Note
     AddNoteRequest:
       required:
         - note
@@ -1076,7 +1081,7 @@ components:
             - string
           format: uuid
         stage:
-          type: string
+          $ref: '#/components/schemas/Stage'
         role:
           type: string
         compensation:
@@ -1088,9 +1093,9 @@ components:
             - 'null'
             - string
         workMode:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/WorkMode'
         postingUrl:
           type:
             - 'null'
@@ -1156,13 +1161,13 @@ components:
             - string
           format: uuid
         stage:
-          type: string
+          $ref: '#/components/schemas/Stage'
         role:
           type: string
         workMode:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/WorkMode'
         appliedDate:
           type: string
           format: date
@@ -1310,9 +1315,9 @@ components:
         name:
           type: string
         role:
-          type:
-            - 'null'
-            - string
+          oneOf:
+            - type: 'null'
+            - $ref: '#/components/schemas/ContactRole'
         email:
           type:
             - 'null'
@@ -1333,6 +1338,13 @@ components:
             - 'null'
             - string
           format: date-time
+    ContactRole:
+      enum:
+        - Recruiter
+        - HiringManager
+        - Interviewer
+        - Referral
+        - Other
     CreateApplicationRequest:
       required:
         - role
@@ -1561,7 +1573,7 @@ components:
         label:
           type: string
         type:
-          type: string
+          $ref: '#/components/schemas/CustomFieldType'
         options:
           type: array
           items:
@@ -1576,6 +1588,15 @@ components:
             - 'null'
             - string
           format: date-time
+    CustomFieldType:
+      enum:
+        - Text
+        - Number
+        - Date
+        - Checkbox
+        - SingleSelect
+        - MultiSelect
+        - Url
     FunnelResponse:
       required:
         - total
@@ -1600,6 +1621,17 @@ components:
         reachedOffer:
           type: integer
           format: int32
+    InterviewFormat:
+      enum:
+        - Remote
+        - Onsite
+        - Phone
+    InterviewOutcome:
+      enum:
+        - Pending
+        - Passed
+        - Failed
+        - Cancelled
     InterviewResponse:
       required:
         - id
@@ -1623,11 +1655,11 @@ components:
           type: string
           format: date-time
         type:
-          type: string
+          $ref: '#/components/schemas/InterviewType'
         format:
-          type: string
+          $ref: '#/components/schemas/InterviewFormat'
         outcome:
-          type: string
+          $ref: '#/components/schemas/InterviewOutcome'
         notes:
           type:
             - 'null'
@@ -1640,6 +1672,13 @@ components:
             - 'null'
             - string
           format: date-time
+    InterviewType:
+      enum:
+        - PhoneScreen
+        - Technical
+        - Behavioural
+        - Onsite
+        - Other
     LoginRequest:
       required:
         - email
@@ -1820,12 +1859,16 @@ components:
       type: object
       properties:
         tier:
-          type: string
+          $ref: '#/components/schemas/PlanTier'
         updatedAt:
           type:
             - 'null'
             - string
           format: date-time
+    PlanTier:
+      enum:
+        - Free
+        - Pro
     RatesResponse:
       required:
         - response
@@ -1881,6 +1924,16 @@ components:
           type:
             - 'null'
             - string
+    ReminderKind:
+      enum:
+        - InterviewMorningBefore
+        - InterviewHourBefore
+        - ApplicationDeadlineThreeDaysBefore
+        - ApplicationDeadlineMorningOf
+        - OfferDecisionThreeDaysBefore
+        - OfferDecisionDayBefore
+        - OfferDecisionMorningOf
+        - FollowUp
     ReminderResponse:
       required:
         - id
@@ -1897,7 +1950,7 @@ components:
           type: string
           format: uuid
         kind:
-          type: string
+          $ref: '#/components/schemas/ReminderKind'
         dueAt:
           type: string
           format: date-time
@@ -1961,6 +2014,16 @@ components:
             - 'null'
             - integer
           format: int32
+    Stage:
+      enum:
+        - Applied
+        - Screening
+        - Interview
+        - Offer
+        - Accepted
+        - Rejected
+        - Withdrawn
+        - Ghosted
     StageDuration:
       required:
         - stage
@@ -2016,6 +2079,12 @@ components:
           type:
             - 'null'
             - string
+    TransitionKind:
+      enum:
+        - Advance
+        - Terminal
+        - Reopen
+        - Reclassify
     TrendPoint:
       required:
         - weekStarting
@@ -2248,6 +2317,11 @@ components:
         weekStart:
           type: string
           format: date
+    WorkMode:
+      enum:
+        - Onsite
+        - Hybrid
+        - Remote
   securitySchemes:
     bearer:
       type: http

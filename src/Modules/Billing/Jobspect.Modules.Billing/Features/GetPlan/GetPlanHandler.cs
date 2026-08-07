@@ -22,6 +22,6 @@ internal sealed class GetPlanHandler(BillingDbContext dbContext)
 
         return plan is null
             ? Error.NotFound("billing.plan_not_found", "This account has no plan.")
-            : new PlanStatusResponse(plan.Tier.ToString(), plan.UpdatedAt);
+            : new PlanStatusResponse(plan.Tier, plan.UpdatedAt);
     }
 }

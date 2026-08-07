@@ -11,7 +11,7 @@ namespace Jobspect.Modules.Applications.Features;
 internal sealed record CustomFieldResponse(
     Guid Id,
     string Label,
-    string Type,
+    CustomFieldType Type,
     IReadOnlyList<string> Options,
     bool IsArchived,
     DateTimeOffset CreatedAt,
@@ -22,7 +22,7 @@ internal static class CustomFieldResponseMapping
     public static CustomFieldResponse ToResponse(this CustomFieldDefinition definition) => new(
         definition.Id,
         definition.Label,
-        definition.Type.ToString(),
+        definition.Type,
         definition.Options,
         definition.IsArchived,
         definition.CreatedAt,

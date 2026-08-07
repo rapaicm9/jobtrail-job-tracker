@@ -37,5 +37,6 @@ internal static class OpenApiConfiguration
         options.Document.AddDocumentTransformer(new ResourceTagTransformer());
         options.Document.AddDocumentTransformer(bearer);
         options.Document.AddOperationTransformer(bearer);
+        options.Document.AddSchemaTransformer(new EnumSchemaTransformer());
     }
 }
