@@ -99,6 +99,11 @@ secrets.json
 # Docker
 # ---------------------------------------------------------------------------
 docker-compose.override.yml
+
+# The published Compose topology. `aspire publish` renders it from the AppHost
+# graph, which is the tracked source of truth - a committed copy is a snapshot
+# that goes stale the first time a resource is added, with nothing to catch it.
+aspire-output/
 .docker/
 *.tar
 

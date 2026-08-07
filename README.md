@@ -146,7 +146,6 @@ Jobspect.AppHost/              Aspire orchestration + Compose publish target
 docs/
   adr/                         Architecture decision records (see index below)
   openapi/openapi.yaml         The committed API contract
-ops/compose/                   Published Compose topology + .env.example
 src/
   Jobspect.Api/                HTTP host: composition root and cross-cutting middleware
   Jobspect.Worker/             Background host: the reminder schedule
@@ -175,7 +174,7 @@ tests/
 | **Data** | EF Core 10 + Npgsql 10 over PostgreSQL 18. UUIDv7 keys generated DB-side; snake_case columns via `EFCore.NamingConventions`. |
 | **Cache** | Redis (Valkey-compatible) via StackExchange.Redis — the idempotency replay cache and the Data Protection key ring today; Streams back the push-delivery queue when that channel arrives. |
 | **Background** | Quartz.NET with a persistent ADO job store on PostgreSQL. |
-| **Orchestration** | Aspire 13 AppHost; `aspire publish` renders Docker Compose. |
+| **Orchestration** | Aspire 13 AppHost; `aspire publish` renders Docker Compose from the graph, on demand rather than into the repository. |
 | **Observability** | OpenTelemetry over OTLP; the Aspire dashboard locally and in the published topology. |
 | **Testing** | xUnit v3, Shouldly, ArchUnitNET, Testcontainers. Never the EF in-memory provider. |
 
@@ -395,14 +394,21 @@ mocked by design.
 ## Deployment
 
 The published artefacts are containers. `aspire publish` renders the AppHost graph into
-`ops/compose/`: the dashboard, Postgres, Redis, the migration one-shot, the API and the
-worker, wired together with the migration as a completion gate on both hosts.
+`Jobspect.AppHost/aspire-output/`: the dashboard, Postgres, Redis, the migration one-shot, the
+API and the worker, wired together with the migration as a completion gate on both hosts.
 
-On the deployment host, copy `ops/compose/.env.example` to `.env` and fill it in — image
-references, the API port, the Postgres and Redis passwords, and the ES256 keypair. Both key
-values are multi-line PEM and Compose reads `.env` line by line, so either quote them onto one
-line or supply the two variables to the Compose process from the host's own secret store. The
-real `.env` is git-ignored and belongs to the host alone.
+**The topology is generated, not committed.** `AppHost.cs` is the source of truth and the output
+directory is git-ignored — a checked-in copy would be a snapshot that goes stale the first time a
+resource is added, with no gate to catch it. Publish before you deploy; don't hand-edit the result.
+
+Publishing writes an `.env` beside the topology listing every variable it references, with the
+values left empty. That file is the checklist: image references, the API port, the Postgres and
+Redis passwords, and the ES256 keypair (minted as above — one pair per environment, never reused
+between them). Fill it in on the deployment host, where it stays; it is git-ignored, and the
+secrets in it belong to that host alone.
+
+Both key values are multi-line PEM and Compose reads `.env` line by line, so either quote them
+onto one line or supply the two variables to the Compose process from the host's own secret store.
 
 The API expects to sit behind a reverse proxy: forwarded headers are enabled, and the
 liveness and readiness endpoints are there for the proxy and the orchestrator to poll.
