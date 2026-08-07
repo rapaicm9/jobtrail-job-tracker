@@ -34,6 +34,9 @@
     <PackageVersion Include="Aspire.Hosting.Redis" Version="13.4.6" />
     <!-- Publishes the AppHost graph to a Docker Compose topology for the VPS. -->
     <PackageVersion Include="Aspire.Hosting.Docker" Version="13.4.6" />
+     <!-- The Next.js client as an orchestrated resource: `next dev` in the local
+         loop, a standalone-output Dockerfile on publish. -->
+    <PackageVersion Include="Aspire.Hosting.JavaScript" Version="13.4.6" />
   </ItemGroup>
 
   <ItemGroup Label="Service defaults (shared host wiring)">
