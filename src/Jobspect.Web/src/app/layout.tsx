@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const geistSans = Geist({
+// Self-hosted rather than fetched: the Content-Security-Policy allows
+// `font-src 'self'` and nothing else, so a font from a CDN would be blocked at
+// runtime. One variable file covers every weight the UI uses. Licence in
+// ../styles/fonts/OFL.txt.
+const geistSans = localFont({
+  src: "../styles/fonts/geist-variable.woff2",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
