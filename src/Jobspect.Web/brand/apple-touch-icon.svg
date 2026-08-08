@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180" role="img" aria-label="Jobspect">
+  <!-- iOS applies its own corner mask, so the tile is a full square and never transparent. -->
+  <rect width="180" height="180" fill="#0B132B"/>
+  <g transform="translate(30 30) scale(5)">
+    <path d="M15.6 4.1V14.9A5 5 0 0 1 10.6 19.9H9.9" fill="none" stroke="#5BC0BE"
+          stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
