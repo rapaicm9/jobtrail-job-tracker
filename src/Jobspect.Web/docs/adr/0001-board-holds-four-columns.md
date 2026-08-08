@@ -5,8 +5,8 @@
 
 ## Context
 
-An application moves through a fixed pipeline. Four stages are *active* and strictly ordered —
-Applied, Screening, Interview, Offer — and four are *terminal* outcomes with no order among
+An application moves through a fixed pipeline. Four stages are _active_ and strictly ordered —
+Applied, Screening, Interview, Offer — and four are _terminal_ outcomes with no order among
 themselves: Accepted, Rejected, Withdrawn, Ghosted. The API models both as members of one stage
 enum, and a transition to a terminal stage uses the same endpoint as an advance.
 

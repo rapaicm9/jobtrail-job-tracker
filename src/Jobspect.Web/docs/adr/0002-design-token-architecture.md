@@ -18,7 +18,7 @@ Prussian Blue `#0B132B` as the dark ground. The marks in `brand/` are drawn in t
 
 ### Three layers, enforced rather than agreed
 
-**Primitives** are raw ramps in `:root`. They live *outside* Tailwind's `@theme`, so no utility
+**Primitives** are raw ramps in `:root`. They live _outside_ Tailwind's `@theme`, so no utility
 class is generated for them and a component cannot reach one. **Semantics** are the roles
 components read — `--background`, `--stage-offer`, `--border-strong` — bridged to utilities in a
 `@theme inline` block. **Component overrides** are the third layer and are currently empty; each
@@ -41,7 +41,7 @@ outcomes that the domain denies — see [0001](0001-board-holds-four-columns.md)
 
 **The ramp direction reverses between themes.** On a light ground progression deepens; on a dark
 ground deepening recedes into the background, so the same four steps run the other way and
-progression reads as brightening. The invariant is *further along is visually heavier*, not a fixed
+progression reads as brightening. The invariant is _further along is visually heavier_, not a fixed
 lightness direction.
 
 Each stage and outcome carries three tokens, because one value cannot do all three jobs: an
@@ -68,17 +68,17 @@ and page surfaces sit 1.22:1 apart, so a card rendered without a border has effe
 
 Every value was solved against a contrast target. Measured ratios:
 
-| | light | dark |
-|---|---|---|
-| body text on page | 17.57 | 17.57 |
-| muted text on page | 4.52 | 7.10 |
-| primary on page | 4.94 | 8.52 |
-| `--border-strong` on page | 3.00 | 3.07 |
-| card vs page | 1.05 | 1.22 |
-| stage identity vs page | 3.05 – 6.99 | 3.05 – 11.00 |
-| outcome identity vs page | 3.29 – 6.52 | 5.47 – 10.68 |
-| chip text on chip surface | 4.99 – 5.01 | 4.99 – 5.01 |
-| tightest outcome pair, greyscale | 1.14 | 1.09 |
+|                                  | light       | dark         |
+| -------------------------------- | ----------- | ------------ |
+| body text on page                | 17.57       | 17.57        |
+| muted text on page               | 4.52        | 7.10         |
+| primary on page                  | 4.94        | 8.52         |
+| `--border-strong` on page        | 3.00        | 3.07         |
+| card vs page                     | 1.05        | 1.22         |
+| stage identity vs page           | 3.05 – 6.99 | 3.05 – 11.00 |
+| outcome identity vs page         | 3.29 – 6.52 | 5.47 – 10.68 |
+| chip text on chip surface        | 4.99 – 5.01 | 4.99 – 5.01  |
+| tightest outcome pair, greyscale | 1.14        | 1.09         |
 
 `e2e/tokens.spec.ts` asserts these floors in both themes, so a token edited to a nicer-looking
 value that drops below one fails the build rather than shipping.

@@ -21,7 +21,7 @@ independent of the backend's sequence.
 
 - **Conventions are the backend's**, defined in `docs/adr/0000-record-architecture-decisions.md`:
   Nygard style, one record per topic, amended in place rather than superseded by a new file, a
-  dated *Revision history* at the foot, numbers retired rather than reused.
+  dated _Revision history_ at the foot, numbers retired rather than reused.
 - **A record in the other log is always named in prose as "backend ADR NNNN"**, never as a bare
   number. The two sequences overlap, so `0004` alone is ambiguous and a reader who resolves it
   against the wrong log lands on an unrelated topic.
