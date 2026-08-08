@@ -55,6 +55,20 @@ var cache = builder
 var jwtPrivateKey = builder.AddParameter("identity-jwt-private-key", secret: true);
 var jwtPublicKey = builder.AddParameter("identity-jwt-public-key", secret: true);
 
+// The web client's two secrets, declared the same way and for the same reasons.
+//
+// The session secret signs the opaque id the browser cookie carries; the tokens
+// themselves never leave this process. The encryption key is read by Next
+// itself rather than by any code here: it encrypts the values a Server Action
+// closes over, and Next mints a fresh one per build when it is unset. That is
+// invisible with a single instance and breaks the moment there are two, because
+// a client that loaded a page from one instance posts its action back to the
+// other, which cannot decrypt it. The failure surfaces mid-session as "Failed
+// to find Server Action", so the key has to be pinned before a second instance
+// exists rather than after.
+var webSessionSecret = builder.AddParameter("web-session-secret", secret: true);
+var webServerActionsKey = builder.AddParameter("web-server-actions-encryption-key", secret: true);
+
 // Schema first. A one-shot that applies every module's migrations and exits;
 // both hosts wait for it to succeed, so neither can start against a database that
 // is a migration behind. Nothing migrates on startup - two instances of a host
@@ -111,6 +125,8 @@ builder.AddNextJsApp("web", "../src/Jobspect.Web")
     .WithHttpEndpoint(port: 3000, env: "PORT")
     .WithExternalHttpEndpoints()
     .WithEnvironment("JOBSPECT_API_BASE_URL", api.GetEndpoint("http"))
+    .WithEnvironment("SESSION_SECRET", webSessionSecret)
+    .WithEnvironment("NEXT_SERVER_ACTIONS_ENCRYPTION_KEY", webServerActionsKey)
     .WithReference(cache)
     .WithHttpHealthCheck("/health/ready")
     .WaitFor(api);
