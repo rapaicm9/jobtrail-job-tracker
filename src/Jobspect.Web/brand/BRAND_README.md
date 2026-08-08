@@ -28,14 +28,16 @@ system. Both are in the same teal, so the pair reads as one brand.
 The brand teal needs two variants because one cannot do both grounds:
 
 - **`#5BC0BE`** on dark grounds — 8.52:1 on Prussian Blue `#0B132B`
-- **`#007A79`** on light grounds — 5.17:1 with white text, 4.87:1 against the `slate-50` page
+- **`#007A79`** on light grounds — 5.17:1 with white text, 4.94:1 against the `slate-50` page
 
 `#5BC0BE` on white is 2.16:1, short of even the 3:1 large-text floor. Never put the light-ground
 mark on a light ground.
 
 The PNG fallbacks are `#007A79` because it is the only one of the two that clears 3:1 against
-_both_ a white tab bar (5.17:1) and a dark one (3.11:1). A filled tile was the alternative and
-turned out to be unnecessary.
+_both_ a white tab bar (5.17:1) and a dark one (3.11:1, measured against Chrome's `#202124`). Name
+the reference when re-deriving that figure: browser chrome differs enough to move it either side of
+3:1, and the same teal is 3.55:1 on Prussian Blue. A filled tile was the alternative and turned out
+to be unnecessary.
 
 ## `currentColor` — an inlining-only feature
 
