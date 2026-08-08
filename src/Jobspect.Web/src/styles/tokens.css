@@ -1,0 +1,256 @@
+/* Design tokens, in three layers.
+ *
+ * Layer 1 is primitives: raw ramps, no roles. They live outside `@theme`, so
+ * Tailwind generates no utilities for them and a component physically cannot
+ * reach one. Layer 2 is semantics: the roles components actually read, bridged
+ * to utilities in globals.css. Layer 3 is component overrides, and is empty.
+ *
+ * Every colour is OKLCH and every one was solved against a contrast target
+ * rather than picked by eye. The ratios are recorded in docs/adr/0002.
+ */
+
+/* ---------------------------------------------------------------- layer 1 */
+
+:root {
+  /* Cool neutral ramp. The dark end is the brand's Prussian Blue, so surfaces
+     and the mark share a hue family instead of fighting over one. */
+  --ink-50: oklch(0.9842 0.0034 247.9);
+  --ink-100: oklch(0.968 0.005 248);
+  --ink-200: oklch(0.923 0.008 250);
+  --ink-300: oklch(0.865 0.012 252);
+  --ink-400: oklch(0.708 0.018 255);
+  --ink-450: oklch(0.657 0.02 255);
+  --ink-500: oklch(0.556 0.022 257);
+  --ink-550: oklch(0.5 0.026 259);
+  --ink-600: oklch(0.452 0.026 259);
+  --ink-700: oklch(0.372 0.03 261);
+  --ink-800: oklch(0.3 0.044 266);
+  --ink-850: oklch(0.272 0.05 267.7);
+  --ink-900: oklch(0.1944 0.0498 267.7);
+  --ink-950: oklch(0.145 0.042 267.7);
+
+  /* Brand teal. These two are fixed points, not derived: they are the values
+     the marks in brand/ are drawn in, and a UI primary that drifts from the
+     logo reads as two teals rather than one. */
+  --teal-400: oklch(0.7474 0.0942 193.6); /* #5BC0BE, for dark grounds */
+  --teal-600: oklch(0.5243 0.0897 193.8); /* #007A79, for light grounds */
+
+  /* Stage blue: sequential, and far enough from the teal at 193.8 that a stage
+     mark never reads as a brand mark. */
+  --blue-300: oklch(0.833 0.083 258);
+  --blue-400: oklch(0.723 0.144 258);
+  --blue-500: oklch(0.657 0.17 258);
+  --blue-600: oklch(0.591 0.17 258);
+  --blue-700: oklch(0.526 0.17 258);
+  --blue-750: oklch(0.504 0.17 258);
+  --blue-800: oklch(0.46 0.17 258);
+
+  /* Outcome hues: categorical, one saturated step per theme. Withdrawn is
+     near-neutral on purpose, because withdrawing is the user's own decision
+     and colouring it like a failure editorialises. */
+  --green-400: oklch(0.78 0.16 152);
+  --green-600: oklch(0.56 0.147 152);
+  --red-400: oklch(0.7 0.16 25);
+  --red-600: oklch(0.52 0.16 25);
+  --slate-400: oklch(0.64 0.022 255);
+  --slate-600: oklch(0.47 0.022 255);
+  --amber-400: oklch(0.83 0.148 75);
+  --amber-600: oklch(0.64 0.135 75);
+}
+
+/* ------------------------------------------------------- layer 2, light  */
+
+:root {
+  --background: var(--ink-50);
+  --foreground: var(--ink-900);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--ink-900);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--ink-900);
+
+  --primary: var(--teal-600);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: var(--ink-100);
+  --secondary-foreground: var(--ink-900);
+  --muted: var(--ink-100);
+  --muted-foreground: var(--ink-500);
+
+  /* Neutral, not amber. An earlier draft made the accent a saturated amber a
+     hair from Ghosted and resolved the collision with a usage rule; a neutral
+     hover tint means the collision cannot arise at all. Amber survives as the
+     Ghosted outcome, where it carries meaning. */
+  --accent: var(--ink-100);
+  --accent-foreground: var(--ink-900);
+
+  --destructive: var(--red-600);
+  --destructive-foreground: oklch(1 0 0);
+
+  /* Two borders, and the difference matters. --border is a divider and is
+     exempt from WCAG 1.4.11; --border-strong clears 3:1 and is what identifies
+     a control. Putting the subtle one on a text input is the usual way a
+     design system fails 1.4.11 while looking tidy. */
+  --border: var(--ink-200);
+  --border-strong: var(--ink-450);
+  --input: var(--ink-450);
+  --ring: var(--teal-600);
+
+  /* Stages: ordered, so the scale is sequential and deepens toward Offer.
+     Each has an identity colour for dots, chart marks and chip borders, plus a
+     chip surface and the text colour that sits on it. */
+  --stage-applied: var(--blue-500);
+  --stage-applied-surface: oklch(0.968 0.015 258);
+  --stage-applied-foreground: oklch(0.524 0.14 258);
+  --stage-screening: var(--blue-600);
+  --stage-screening-surface: oklch(0.947 0.025 258);
+  --stage-screening-foreground: oklch(0.51 0.14 258);
+  --stage-interview: var(--blue-700);
+  --stage-interview-surface: oklch(0.926 0.035 258);
+  --stage-interview-foreground: oklch(0.495 0.14 258);
+  --stage-offer: var(--blue-800);
+  --stage-offer-surface: oklch(0.905 0.045 258);
+  --stage-offer-foreground: oklch(0.48 0.14 258);
+
+  /* Outcomes: unordered, so the scale is categorical and every chip surface
+     sits at one lightness. A lightness difference here would imply a rank the
+     domain does not have. */
+  --outcome-accepted: var(--green-600);
+  --outcome-accepted-surface: oklch(0.947 0.045 152);
+  --outcome-accepted-foreground: oklch(0.496 0.131 152);
+  --outcome-rejected: var(--red-600);
+  --outcome-rejected-surface: oklch(0.947 0.026 25);
+  --outcome-rejected-foreground: oklch(0.521 0.14 25);
+  --outcome-withdrawn: var(--slate-600);
+  --outcome-withdrawn-surface: oklch(0.947 0.022 255);
+  --outcome-withdrawn-foreground: oklch(0.506 0.022 255);
+  --outcome-ghosted: var(--amber-600);
+  --outcome-ghosted-surface: oklch(0.947 0.043 75);
+  --outcome-ghosted-foreground: oklch(0.51 0.108 75);
+
+  /* Provisional. The charts inherit the palette and the consolidation session
+     before analytics settles them against real data. */
+  --chart-1: var(--teal-600);
+  --chart-2: var(--blue-600);
+  --chart-3: var(--amber-600);
+  --chart-4: var(--green-600);
+  --chart-5: var(--slate-600);
+}
+
+/* -------------------------------------------------------- layer 2, dark  */
+
+/* System-driven. There is no toggle and no theme library: a toggle would need
+   a `.dark` block repeating these values and a blocking inline script to set
+   the class before first paint. The `dark` variant in globals.css already
+   matches `.dark`, so that day is additive. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: var(--ink-900);
+    --foreground: var(--ink-50);
+    /* 1.22:1 above the page — enough to read as a raised surface, close enough
+       that a card with no border has effectively no edge. That is what makes
+       --border-strong load-bearing rather than decorative down here. */
+    --card: var(--ink-850);
+    --card-foreground: var(--ink-50);
+    --popover: var(--ink-850);
+    --popover-foreground: var(--ink-50);
+
+    --primary: var(--teal-400);
+    --primary-foreground: var(--ink-950);
+    --secondary: var(--ink-800);
+    --secondary-foreground: var(--ink-50);
+    --muted: var(--ink-800);
+    --muted-foreground: var(--ink-400);
+    --accent: var(--ink-800);
+    --accent-foreground: var(--ink-50);
+
+    --destructive: var(--red-400);
+    --destructive-foreground: var(--ink-950);
+
+    --border: var(--ink-800);
+    --border-strong: var(--ink-550);
+    --input: var(--ink-550);
+    --ring: var(--teal-400);
+
+    /* The ramp runs the other way here. Deepening recedes into a dark ground,
+       so progression reads as brightening instead. The invariant is "further
+       along is visually heavier", not a fixed lightness direction. */
+    --stage-applied: var(--blue-700);
+    --stage-applied-surface: oklch(0.255 0.06 258);
+    --stage-applied-foreground: oklch(0.658 0.14 258);
+    --stage-screening: var(--blue-500);
+    --stage-screening-surface: oklch(0.288 0.06 258);
+    --stage-screening-foreground: oklch(0.685 0.14 258);
+    --stage-interview: var(--blue-400);
+    --stage-interview-surface: oklch(0.321 0.06 258);
+    --stage-interview-foreground: oklch(0.716 0.14 258);
+    --stage-offer: var(--blue-300);
+    --stage-offer-surface: oklch(0.354 0.06 258);
+    --stage-offer-foreground: oklch(0.75 0.129 258);
+
+    --outcome-accepted: var(--green-400);
+    --outcome-accepted-surface: oklch(0.3 0.06 152);
+    --outcome-accepted-foreground: oklch(0.685 0.14 152);
+    --outcome-rejected: var(--red-400);
+    --outcome-rejected-surface: oklch(0.3 0.06 25);
+    --outcome-rejected-foreground: oklch(0.704 0.14 25);
+    --outcome-withdrawn: var(--slate-400);
+    --outcome-withdrawn-surface: oklch(0.3 0.022 255);
+    --outcome-withdrawn-foreground: oklch(0.694 0.022 255);
+    --outcome-ghosted: var(--amber-400);
+    --outcome-ghosted-surface: oklch(0.3 0.06 75);
+    --outcome-ghosted-foreground: oklch(0.698 0.14 75);
+
+    --chart-1: var(--teal-400);
+    --chart-2: var(--blue-400);
+    --chart-3: var(--amber-400);
+    --chart-4: var(--green-400);
+    --chart-5: var(--slate-400);
+  }
+}
+
+/* ------------------------------------------------- layer 2, non-colour  */
+
+:root {
+  --radius: 0.5rem;
+
+  /* Dashboard density, 8-32px. Tailwind derives every spacing utility from
+     --spacing, so the scale is continuous and the decision is which steps are
+     in bounds: 2 3 4 5 6 8. Anything above 8 is the marketing scale. */
+  --row-height-comfortable: 2.75rem;
+  --row-height-compact: 2rem;
+  --control-height-sm: 2rem;
+  --control-height-md: 2.25rem;
+  --control-height-lg: 2.75rem;
+
+  /* WCAG 2.2 AA asks for 24px (2.5.8); 44px is 2.5.5, which is AAA, and a
+     44px row is not a compact table. So the larger floor binds where the
+     pointer is coarse and the AA floor binds everywhere else. */
+  --target-min: 1.5rem;
+
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (pointer: coarse) {
+  :root {
+    --target-min: 2.75rem;
+    --control-height-sm: 2.75rem;
+    --control-height-md: 2.75rem;
+  }
+}
+
+/* Collapsed here rather than per component, so a new component cannot forget
+   it. 1ms rather than 0 keeps transitionend firing. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 1ms;
+    --duration-base: 1ms;
+    --duration-slow: 1ms;
+  }
+}
+
+/* ---------------------------------------------------------------- layer 3 */
+
+/* Component overrides live here — the few that survive review, each with the
+   reason it could not be expressed as a semantic token. Empty by design. */
