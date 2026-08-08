@@ -1,26 +1,125 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "../styles/tokens.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Matches the media query the tokens flip under, and `.dark` as well. Nothing
+   sets that class today; when something does, the variant already works and
+   only the token block has to follow. */
+@custom-variant dark {
+  @media (prefers-color-scheme: dark) {
+    @slot;
+  }
+  &:where(.dark, .dark *) {
+    @slot;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Deleting the default palette is what makes the token layering enforceable
+   instead of advisory: `bg-blue-700` resolves to nothing at all, so reaching
+   past the semantic layer fails visibly in review rather than quietly shipping.
+   white and black are theme variables and have to be re-declared; transparent,
+   current and inherit are keywords and survive untouched. */
+@theme {
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+}
+
+/* The bridge: semantics become utilities. `inline` matters here — without it a
+   utility references the theme variable rather than its value, and a token
+   redefined inside the dark media query resolves at the wrong cascade level. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-stage-applied: var(--stage-applied);
+  --color-stage-applied-surface: var(--stage-applied-surface);
+  --color-stage-applied-foreground: var(--stage-applied-foreground);
+  --color-stage-screening: var(--stage-screening);
+  --color-stage-screening-surface: var(--stage-screening-surface);
+  --color-stage-screening-foreground: var(--stage-screening-foreground);
+  --color-stage-interview: var(--stage-interview);
+  --color-stage-interview-surface: var(--stage-interview-surface);
+  --color-stage-interview-foreground: var(--stage-interview-foreground);
+  --color-stage-offer: var(--stage-offer);
+  --color-stage-offer-surface: var(--stage-offer-surface);
+  --color-stage-offer-foreground: var(--stage-offer-foreground);
+
+  --color-outcome-accepted: var(--outcome-accepted);
+  --color-outcome-accepted-surface: var(--outcome-accepted-surface);
+  --color-outcome-accepted-foreground: var(--outcome-accepted-foreground);
+  --color-outcome-rejected: var(--outcome-rejected);
+  --color-outcome-rejected-surface: var(--outcome-rejected-surface);
+  --color-outcome-rejected-foreground: var(--outcome-rejected-foreground);
+  --color-outcome-withdrawn: var(--outcome-withdrawn);
+  --color-outcome-withdrawn-surface: var(--outcome-withdrawn-surface);
+  --color-outcome-withdrawn-foreground: var(--outcome-withdrawn-foreground);
+  --color-outcome-ghosted: var(--outcome-ghosted);
+  --color-outcome-ghosted-surface: var(--outcome-ghosted-surface);
+  --color-outcome-ghosted-foreground: var(--outcome-ghosted-foreground);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* One typeface. No --font-mono: there is no monospace anywhere in the
+     product UI, so a token for it would be an invitation. */
+  --font-sans: var(--font-geist-sans);
+  --font-heading: var(--font-geist-sans);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+
+  --height-row-comfortable: var(--row-height-comfortable);
+  --height-row-compact: var(--row-height-compact);
+  --height-control-sm: var(--control-height-sm);
+  --height-control-md: var(--control-height-md);
+  --height-control-lg: var(--control-height-lg);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+    /* Tells the UA to render form controls and scrollbars for the theme the
+       tokens are already painting. */
+    color-scheme: light dark;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Proportional digits make a column of figures ragged, which is the specific
+     readability problem a dense table has. */
+  table,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
 }

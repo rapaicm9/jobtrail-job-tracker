@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Jobspect">
+  <style>
+    .j { stroke: #007A79; }
+    @media (prefers-color-scheme: dark) { .j { stroke: #5BC0BE; } }
+  </style>
+  <path class="j" d="M15.6 4.1V14.9A5 5 0 0 1 10.6 19.9H9.9" fill="none"
+        stroke-width="4.6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
